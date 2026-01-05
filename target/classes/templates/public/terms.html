@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Voz Segura</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+</head>
+<body>
+<div class="vs-page">
+    <header class="vs-header">
+        <div class="vs-logo">
+            <span class="vs-logo-text">Voz Segura</span>
+        </div>
+    </header>
+    <main class="vs-main">
+
+        <section class="vs-card vs-terms">
+            <h1 class="vs-title">Términos y condiciones de Voz Segura</h1>
+
+            <h2>Validación de identidad</h2>
+            <p>
+                El sistema valida tu identidad (cédula, código dactilar, biometría y OTP) únicamente para evitar suplantación.
+                Estos datos no serán visibles para analistas ni administradores internos.
+            </p>
+
+            <h2>Anonimato frente al analista</h2>
+            <p>
+                Los analistas que revisan las denuncias no tienen acceso a tu nombre, número de cédula, fotografía
+                ni a ningún dato de contacto personal.
+            </p>
+
+            <h2>Manejo de evidencias y retención</h2>
+            <p>
+                Las evidencias y el contenido de la denuncia se almacenan cifrados y se eliminan automáticamente
+                una vez concluida la derivación y cumplido el tiempo de retención configurado.
+            </p>
+
+            <h2>Logs y trazabilidad</h2>
+            <p>
+                Los registros de auditoría se limitan a acciones del sistema (cambios de estado, derivaciones, accesos)
+                y nunca incluyen cédula, código dactilar, biometría, correos personales ni archivos de evidencia.
+            </p>
+
+            <h2>Contenido permitido</h2>
+            <p>
+                Está prohibido subir contenido ilegal, malicioso o deliberadamente falso. El sistema aplica filtros
+                básicos para reducir spam y abusos, sin analizar el contenido en profundidad.
+            </p>
+
+            <h2>Aceptación</h2>
+            <p>
+                Para continuar con el proceso de denuncia, debes aceptar expresamente estos términos
+                en la pantalla inicial antes de hacer clic en "Iniciar sesión".
+            </p>
+        </section>
+
+    </main>
+</div>
+</body>
+</html>

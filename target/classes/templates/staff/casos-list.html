@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Voz Segura</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+</head>
+<body>
+<div class="vs-page">
+    <header class="vs-header">
+        <div class="vs-logo">
+            <span class="vs-logo-text">Voz Segura</span>
+        </div>
+    </header>
+    <main class="vs-main">
+
+        <section class="vs-card vs-wide">
+            <h1 class="vs-title">Supervisión de Denuncias</h1>
+            <p class="vs-subtitle">Gestiona las denuncias activas y filtradas.</p>
+
+            <form class="vs-filter-bar">
+                <select>
+                    <option>Todas</option>
+                    <option>En revisión</option>
+                    <option>Pendiente</option>
+                    <option>Escalada</option>
+                </select>
+                <select>
+                    <option>Últimos 7 días</option>
+                    <option>Últimos 30 días</option>
+                </select>
+                <input type="search" placeholder="Buscar denuncias"/>
+                <button type="submit" class="vs-btn-primary">Filtrar</button>
+            </form>
+
+            <table class="vs-table">
+                <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th>Resumen</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><span class="vs-badge vs-badge-danger">Escalado</span></td>
+                    <td>Acoso laboral</td>
+                    <td>24 abr, 2024 - 09:22</td>
+                    <td><a href="#" class="vs-link">Abrir</a></td>
+                </tr>
+                </tbody>
+            </table>
+
+            <p class="vs-security-text">
+                Mantén la confidencialidad y trata las denuncias con imparcialidad y urgencia.
+                Toda la actividad está registrada para auditorías.
+            </p>
+        </section>
+
+    </main>
+</div>
+</body>
+</html>

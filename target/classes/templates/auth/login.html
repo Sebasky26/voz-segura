@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Acceso Staff - Voz Segura</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+</head>
+<body class="vs-body">
+<div class="vs-container">
+    <header class="vs-header-main">
+        <div class="vs-shield-icon">🛡️</div>
+    </header>
+
+    <main class="vs-content">
+        <div class="vs-card-main">
+            <h1 class="vs-main-title">Voz Segura</h1>
+            <p class="vs-main-subtitle">Acceso para Personal Autorizado</p>
+
+            <div th:if="${param.error}" class="vs-alert-error">
+                <strong>⚠️ Error:</strong> Usuario o contraseña incorrectos
+            </div>
+
+            <div th:if="${param.logout}" class="vs-alert-success">
+                ✅ Sesión cerrada exitosamente
+            </div>
+
+            <form method="post" action="/login" class="vs-form-main">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="vs-form-group">
+                    <label class="vs-label">Usuario</label>
+                    <div class="vs-input-icon">
+                        <span class="vs-icon">👤</span>
+                        <input type="text" name="username" class="vs-input" placeholder="Ingrese su usuario" required autofocus/>
+                    </div>
+                </div>
+
+                <div class="vs-form-group">
+                    <label class="vs-label">Contraseña</label>
+                    <div class="vs-input-icon">
+                        <span class="vs-icon">🔒</span>
+                        <input type="password" name="password" class="vs-input" placeholder="Ingrese su contraseña" required/>
+                    </div>
+                </div>
+
+                <button type="submit" class="vs-button-primary" style="width: 100%; margin-top: 10px;">Ingresar</button>
+            </form>
+
+            <div class="vs-security-notice" style="margin-top: 25px;">
+                <span class="vs-shield-small">🛡️</span>
+                <p>Acceso restringido solo para personal autorizado.<br/>
+                   Todas las acciones son registradas en el sistema de auditoría.</p>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>
