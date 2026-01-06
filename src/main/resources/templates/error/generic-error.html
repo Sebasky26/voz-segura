@@ -1,25 +1,42 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
-    <title>Voz Segura</title>
+    <title>Voz Segura — Error</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
 </head>
-<body>
-<div class="vs-page">
-    <header class="vs-header">
-        <div class="vs-logo">
-            <span class="vs-logo-text">Voz Segura</span>
+
+<body class="vs-app">
+
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-header__logo">Voz Segura</div>
+    </div>
+</header>
+
+<main class="vs-container">
+    <div class="vs-card">
+
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Ocurrió un problema</h1>
         </div>
-    </header>
-    <main class="vs-main">
 
-        <section class="vs-card">
-            <h1 class="vs-title">Ha ocurrido un problema</h1>
-            <p>Intenta nuevamente más tarde. Si el error persiste, contacta al equipo responsable.</p>
-        </section>
+        <div class="vs-alert vs-alert--error vs-mb-4">
+            No fue posible completar la operación.
+        </div>
 
-    </main>
-</div>
+        <p class="vs-text-center">
+            Intenta nuevamente más tarde.
+        </p>
+
+        <div class="vs-button-group vs-mt-6">
+            <a th:href="@{/}" class="vs-button vs-button--primary vs-button--block">
+                Volver al inicio
+            </a>
+        </div>
+
+    </div>
+</main>
+
 </body>
 </html>

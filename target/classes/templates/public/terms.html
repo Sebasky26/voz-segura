@@ -1,60 +1,68 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
-    <title>Voz Segura</title>
+    <title>Términos y Condiciones — Voz Segura</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
 </head>
-<body>
-<div class="vs-page">
+<body class="vs-app">
+
+<div class="vs-container">
     <header class="vs-header">
-        <div class="vs-logo">
-            <span class="vs-logo-text">Voz Segura</span>
-        </div>
+        <div class="vs-header__logo">🛡️</div>
     </header>
-    <main class="vs-main">
 
-        <section class="vs-card vs-terms">
-            <h1 class="vs-title">Términos y condiciones de Voz Segura</h1>
+    <main>
+        <div class="vs-card">
+            <div class="vs-card__header">
+                <h1 class="vs-card__title">Términos y Condiciones</h1>
+                <p class="vs-card__subtitle">Uso de la plataforma Voz Segura</p>
+            </div>
 
-            <h2>Validación de identidad</h2>
-            <p>
-                El sistema valida tu identidad (cédula, código dactilar, biometría y OTP) únicamente para evitar suplantación.
-                Estos datos no serán visibles para analistas ni administradores internos.
-            </p>
+            <div class="vs-terms">
 
-            <h2>Anonimato frente al analista</h2>
-            <p>
-                Los analistas que revisan las denuncias no tienen acceso a tu nombre, número de cédula, fotografía
-                ni a ningún dato de contacto personal.
-            </p>
+                <h3>Validación de identidad</h3>
+                <p>
+                    Los datos de verificación se utilizan únicamente para confirmar que el usuario es auténtico
+                    y evitar suplantación. Estos datos no se muestran al personal que revisa las denuncias.
+                </p>
 
-            <h2>Manejo de evidencias y retención</h2>
-            <p>
-                Las evidencias y el contenido de la denuncia se almacenan cifrados y se eliminan automáticamente
-                una vez concluida la derivación y cumplido el tiempo de retención configurado.
-            </p>
+                <h3>Privacidad del denunciante</h3>
+                <p>
+                    La identidad del denunciante no es visible para analistas, operadores ni revisores del sistema.
+                </p>
 
-            <h2>Logs y trazabilidad</h2>
-            <p>
-                Los registros de auditoría se limitan a acciones del sistema (cambios de estado, derivaciones, accesos)
-                y nunca incluyen cédula, código dactilar, biometría, correos personales ni archivos de evidencia.
-            </p>
+                <h3>Evidencias</h3>
+                <p>
+                    Los archivos y el contenido enviado se almacenan de forma protegida y se conservan solo por el
+                    tiempo necesario para la gestión del caso.
+                </p>
 
-            <h2>Contenido permitido</h2>
-            <p>
-                Está prohibido subir contenido ilegal, malicioso o deliberadamente falso. El sistema aplica filtros
-                básicos para reducir spam y abusos, sin analizar el contenido en profundidad.
-            </p>
+                <h3>Registros del sistema</h3>
+                <p>
+                    Los registros solo registran acciones operativas del sistema y no incluyen datos personales del usuario.
+                </p>
 
-            <h2>Aceptación</h2>
-            <p>
-                Para continuar con el proceso de denuncia, debes aceptar expresamente estos términos
-                en la pantalla inicial antes de hacer clic en "Iniciar sesión".
-            </p>
-        </section>
+                <h3>Uso permitido</h3>
+                <p>
+                    No se permite enviar información falsa, malintencionada o contenidos no relacionados con la denuncia.
+                </p>
 
+                <h3>Aceptación</h3>
+                <p>
+                    Para continuar, el usuario debe aceptar estos términos antes de utilizar la plataforma.
+                </p>
+
+            </div>
+
+            <div class="vs-button-group vs-text-right" style="margin-top: var(--space-6);">
+                <a href="javascript:history.back()" class="vs-button vs-button--primary">
+                    Aceptar y volver
+                </a>
+            </div>
+        </div>
     </main>
 </div>
+
 </body>
 </html>

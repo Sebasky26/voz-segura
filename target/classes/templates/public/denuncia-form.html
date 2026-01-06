@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Realizar Denuncia - Voz Segura</title>
+    <title>Voz Segura — Registrar denuncia</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
     <style>
         .vs-file-list {
@@ -29,7 +29,7 @@
         }
 
         .vs-file-item__icon {
-            font-size: var(--font-size-2xl);
+            font-size: var(--font-size-xl);
         }
 
         .vs-file-item__name {
@@ -49,22 +49,21 @@
             color: var(--danger);
             cursor: pointer;
             padding: var(--space-2);
-            font-size: var(--font-size-xl);
+            font-size: var(--font-size-lg);
             transition: transform var(--transition-fast);
         }
 
         .vs-file-item__remove:hover {
-            transform: scale(1.2);
+            transform: scale(1.1);
         }
 
         .vs-progress {
-            margin-top: var(--space-8);
+            margin-bottom: var(--space-6);
         }
 
         .vs-progress__steps {
             display: flex;
             justify-content: space-between;
-            margin-bottom: var(--space-6);
             position: relative;
         }
 
@@ -107,7 +106,6 @@
             background: var(--accent);
             border-color: var(--accent);
             color: white;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
         }
 
         .vs-progress__step.completed .vs-progress__step-circle {
@@ -129,302 +127,253 @@
     </style>
 </head>
 <body class="vs-app">
+
+<header class="vs-header">
     <div class="vs-container vs-container-wide">
-        <header class="vs-header">
-            <div class="vs-header__logo">🛡️</div>
-        </header>
+        <div class="vs-header__logo">Voz Segura</div>
+    </div>
+</header>
 
-        <main>
-            <!-- Progreso -->
-            <div class="vs-progress">
-                <div class="vs-progress__steps">
-                    <div class="vs-progress__step completed">
-                        <div class="vs-progress__step-circle">✓</div>
-                        <span class="vs-progress__step-label">Verificación</span>
-                    </div>
-                    <div class="vs-progress__step completed">
-                        <div class="vs-progress__step-circle">✓</div>
-                        <span class="vs-progress__step-label">Biométrica</span>
-                    </div>
-                    <div class="vs-progress__step active">
-                        <div class="vs-progress__step-circle">3</div>
-                        <span class="vs-progress__step-label">Denuncia</span>
-                    </div>
-                    <div class="vs-progress__step">
-                        <div class="vs-progress__step-circle">4</div>
-                        <span class="vs-progress__step-label">Confirmación</span>
-                    </div>
-                </div>
+<main class="vs-container vs-container-wide">
+
+    <!-- Progreso -->
+    <div class="vs-progress">
+        <div class="vs-progress__steps">
+            <div class="vs-progress__step completed">
+                <div class="vs-progress__step-circle">1</div>
+                <span class="vs-progress__step-label">Verificación</span>
             </div>
-
-            <div class="vs-card">
-                <div class="vs-card__header">
-                    <h1 class="vs-card__title">Realizar Denuncia Anónima</h1>
-                    <p class="vs-card__subtitle">Toda la información será cifrada y protegida</p>
-                </div>
-
-                <form th:action="@{/denuncia/submit}" method="post" enctype="multipart/form-data"
-                      th:object="${complaintForm}" class="vs-form" id="complaintForm">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-
-                    <!-- Detalle de la denuncia -->
-                    <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="detail">
-                            Descripción del incidente
-                        </label>
-                        <textarea
-                            th:field="*{detail}"
-                            id="detail"
-                            class="vs-textarea"
-                            placeholder="Describa detalladamente el incidente que desea reportar..."
-                            required
-                            rows="6"
-                        ></textarea>
-                        <span class="vs-form__help">Sea lo más específico posible. Incluya fechas, lugares y personas involucradas si es relevante.</span>
-                    </div>
-
-                    <div class="vs-divider"></div>
-
-                    <!-- Información de la empresa -->
-                    <h3 style="font-size: var(--font-size-lg); font-weight: 600; color: var(--primary); margin-bottom: var(--space-4);">
-                        Información de la Empresa (Opcional)
-                    </h3>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);">
-                        <div class="vs-form__group">
-                            <label class="vs-form__label" for="companyName">
-                                Nombre de la empresa
-                            </label>
-                            <input
-                                type="text"
-                                th:field="*{companyName}"
-                                id="companyName"
-                                class="vs-input"
-                                placeholder="Ej: Empresa ABC S.A."
-                            />
-                        </div>
-
-                        <div class="vs-form__group">
-                            <label class="vs-form__label" for="companyContact">
-                                Persona de contacto
-                            </label>
-                            <input
-                                type="text"
-                                th:field="*{companyContact}"
-                                id="companyContact"
-                                class="vs-input"
-                                placeholder="Ej: Juan Pérez"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="vs-form__group">
-                        <label class="vs-form__label" for="companyAddress">
-                            Dirección
-                        </label>
-                        <input
-                            type="text"
-                            th:field="*{companyAddress}"
-                            id="companyAddress"
-                            class="vs-input"
-                            placeholder="Dirección completa de la empresa"
-                        />
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);">
-                        <div class="vs-form__group">
-                            <label class="vs-form__label" for="companyEmail">
-                                Email de contacto
-                            </label>
-                            <div class="vs-input-wrapper">
-                                <span class="vs-input-icon">✉️</span>
-                                <input
-                                    type="email"
-                                    th:field="*{companyEmail}"
-                                    id="companyEmail"
-                                    class="vs-input vs-input--with-icon"
-                                    placeholder="correo@empresa.com"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="vs-form__group">
-                            <label class="vs-form__label" for="companyPhone">
-                                Teléfono de contacto
-                            </label>
-                            <div class="vs-input-wrapper">
-                                <span class="vs-input-icon">📞</span>
-                                <input
-                                    type="tel"
-                                    th:field="*{companyPhone}"
-                                    id="companyPhone"
-                                    class="vs-input vs-input--with-icon"
-                                    placeholder="0999999999"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="vs-divider"></div>
-
-                    <!-- Evidencias -->
-                    <div class="vs-form__group">
-                        <label class="vs-form__label" for="evidences">
-                            Evidencias (Opcional)
-                        </label>
-                        <div class="vs-file-upload">
-                            <input
-                                type="file"
-                                th:field="*{evidences}"
-                                id="evidences"
-                                class="vs-file-upload__input"
-                                accept="image/*,video/*,.pdf,.doc,.docx"
-                                multiple
-                                onchange="handleFiles(this.files)"
-                            />
-                            <label for="evidences" class="vs-file-upload__label">
-                                <span class="vs-file-upload__icon">📎</span>
-                                <span>
-                                    <strong>Adjuntar archivos</strong><br/>
-                                    o arrastre y suelte aquí
-                                </span>
-                            </label>
-                        </div>
-                        <span class="vs-form__help">
-                            Máximo 5 archivos. Tipos soportados: imágenes, videos, PDF, documentos.<br/>
-                            Tamaño máximo por archivo: 25MB
-                        </span>
-                        <div id="fileList" class="vs-file-list"></div>
-                    </div>
-
-                    <div class="vs-alert vs-alert--warning">
-                        <span class="vs-alert__icon">⚠️</span>
-                        <div>
-                            <strong>Importante</strong>
-                            <p style="margin-top: var(--space-2); font-size: var(--font-size-sm);">
-                                Verifique que toda la información sea correcta antes de enviar.<br/>
-                                Su denuncia será cifrada y solo personal autorizado podrá acceder a ella.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Botones -->
-                    <div class="vs-button-group vs-button-group--space-between" style="margin-top: var(--space-8);">
-                        <a href="javascript:history.back()" class="vs-button vs-button--ghost">
-                            <span class="vs-button__icon">←</span>
-                            Volver
-                        </a>
-                        <button type="submit" class="vs-button vs-button--primary vs-button--lg">
-                            <span class="vs-button__icon">🔒</span>
-                            Enviar Denuncia Cifrada
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Aviso de seguridad -->
-                <div class="vs-alert vs-alert--success" style="margin-top: var(--space-8);">
-                    <span class="vs-alert__icon">🛡️</span>
-                    <div>
-                        <strong>100% Anónimo y Seguro</strong>
-                        <p style="margin-top: var(--space-2); font-size: var(--font-size-sm);">
-                            Su identidad está protegida mediante cifrado de extremo a extremo.<br/>
-                            Recibirá un código de seguimiento para consultar el estado de su denuncia.
-                        </p>
-                    </div>
-                </div>
+            <div class="vs-progress__step completed">
+                <div class="vs-progress__step-circle">2</div>
+                <span class="vs-progress__step-label">Biométrica</span>
             </div>
-        </main>
+            <div class="vs-progress__step active">
+                <div class="vs-progress__step-circle">3</div>
+                <span class="vs-progress__step-label">Denuncia</span>
+            </div>
+            <div class="vs-progress__step">
+                <div class="vs-progress__step-circle">4</div>
+                <span class="vs-progress__step-label">Confirmación</span>
+            </div>
+        </div>
     </div>
 
-    <script>
-        let selectedFiles = [];
+    <div class="vs-card">
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Registrar denuncia</h1>
+            <p class="vs-card__subtitle">Complete los datos del caso</p>
+        </div>
 
-        function handleFiles(files) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
+        <form th:action="@{/denuncia/submit}"
+              method="post"
+              enctype="multipart/form-data"
+              th:object="${complaintForm}"
+              class="vs-form"
+              id="complaintForm">
 
-            selectedFiles = Array.from(files);
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
-            selectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'vs-file-item';
+            <!-- Detalle de la denuncia -->
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="detail">
+                    Descripción del incidente
+                </label>
+                <textarea
+                        th:field="*{detail}"
+                        id="detail"
+                        class="vs-textarea"
+                        required
+                        rows="6"
+                ></textarea>
+                <span class="vs-form__help">
+                    Indique qué ocurrió.
+                </span>
+            </div>
 
-                const fileInfo = document.createElement('div');
-                fileInfo.className = 'vs-file-item__info';
+            <div class="vs-divider"></div>
 
-                const icon = document.createElement('span');
-                icon.className = 'vs-file-item__icon';
-                icon.textContent = getFileIcon(file.type);
+            <!-- Información de la empresa -->
+            <h3 style="font-size: var(--font-size-lg); font-weight: 600; color: var(--primary); margin-bottom: var(--space-4);">
+                Información de la empresa
+            </h3>
 
-                const details = document.createElement('div');
-                const name = document.createElement('div');
-                name.className = 'vs-file-item__name';
-                name.textContent = file.name;
-                const size = document.createElement('div');
-                size.className = 'vs-file-item__size';
-                size.textContent = formatFileSize(file.size);
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);">
+                <div class="vs-form__group">
+                    <label class="vs-form__label vs-form__label--required" for="companyName">
+                        Nombre de la empresa
+                    </label>
+                    <input
+                            type="text"
+                            th:field="*{companyName}"
+                            id="companyName"
+                            class="vs-input"
+                            required
+                    />
+                </div>
 
-                details.appendChild(name);
-                details.appendChild(size);
-                fileInfo.appendChild(icon);
-                fileInfo.appendChild(details);
+                <div class="vs-form__group">
+                    <label class="vs-form__label vs-form__label--required" for="companyContact">
+                        Contacto (correo o teléfono)
+                    </label>
+                    <input
+                            type="text"
+                            th:field="*{companyContact}"
+                            id="companyContact"
+                            class="vs-input"
+                            required
+                    />
+                </div>
+            </div>
 
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'vs-file-item__remove';
-                removeBtn.innerHTML = '×';
-                removeBtn.type = 'button';
-                removeBtn.onclick = () => removeFile(index);
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="companyAddress">
+                    Dirección
+                </label>
+                <input
+                        type="text"
+                        th:field="*{companyAddress}"
+                        id="companyAddress"
+                        class="vs-input"
+                        required
+                />
+            </div>
 
-                fileItem.appendChild(fileInfo);
-                fileItem.appendChild(removeBtn);
-                fileList.appendChild(fileItem);
-            });
-        }
+            <div class="vs-divider"></div>
 
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            const dt = new DataTransfer();
-            selectedFiles.forEach(file => dt.items.add(file));
-            document.getElementById('evidences').files = dt.files;
-            handleFiles(dt.files);
-        }
+            <!-- Evidencias -->
+            <div class="vs-form__group">
+                <label class="vs-form__label" for="evidences">
+                    Evidencias
+                </label>
+                <div class="vs-file-upload">
+                    <input
+                            type="file"
+                            th:field="*{evidences}"
+                            id="evidences"
+                            class="vs-file-upload__input"
+                            accept="image/*,video/*,.pdf,.doc,.docx"
+                            multiple
+                            onchange="handleFiles(this.files)"
+                    />
+                    <label for="evidences" class="vs-file-upload__label">
+                        <span>
+                            Adjuntar archivos
+                        </span>
+                    </label>
+                </div>
+                <span class="vs-form__help">
+                    Máximo 5 archivos. Tamaño máximo por archivo: 25MB.
+                </span>
+                <div id="fileList" class="vs-file-list"></div>
+            </div>
 
-        function getFileIcon(type) {
-            if (type.startsWith('image/')) return '🖼️';
-            if (type.startsWith('video/')) return '🎥';
-            if (type.includes('pdf')) return '📄';
-            if (type.includes('word') || type.includes('document')) return '📝';
-            return '📎';
-        }
+            <!-- Aviso -->
+            <div class="vs-alert vs-alert--warning">
+                La información se revisará de forma confidencial.
+            </div>
 
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-        }
+            <!-- Botones -->
+            <div class="vs-button-group vs-button-group--space-between" style="margin-top: var(--space-6);">
+                <a href="javascript:history.back()" class="vs-button vs-button--ghost">
+                    Volver
+                </a>
+                <button type="submit" class="vs-button vs-button--primary vs-button--lg">
+                    Enviar denuncia
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
 
-        // Validación antes de enviar
-        document.getElementById('complaintForm').addEventListener('submit', function(e) {
-            const detail = document.getElementById('detail').value.trim();
-            if (detail.length < 50) {
-                e.preventDefault();
-                alert('Por favor, proporcione una descripción más detallada (mínimo 50 caracteres)');
-                return false;
-            }
+<script>
+    let selectedFiles = [];
+
+    function handleFiles(files) {
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+
+        selectedFiles = Array.from(files);
+
+        selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'vs-file-item';
+
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'vs-file-item__info';
+
+            const icon = document.createElement('span');
+            icon.className = 'vs-file-item__icon';
+            icon.textContent = getFileIcon(file.type);
+
+            const details = document.createElement('div');
+            const name = document.createElement('div');
+            name.className = 'vs-file-item__name';
+            name.textContent = file.name;
+            const size = document.createElement('div');
+            size.className = 'vs-file-item__size';
+            size.textContent = formatFileSize(file.size);
+
+            details.appendChild(name);
+            details.appendChild(size);
+            fileInfo.appendChild(icon);
+            fileInfo.appendChild(details);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'vs-file-item__remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.type = 'button';
+            removeBtn.onclick = () => removeFile(index);
+
+            fileItem.appendChild(fileInfo);
+            fileItem.appendChild(removeBtn);
+            fileList.appendChild(fileItem);
         });
+    }
 
-        // Contador de caracteres
-        const detailTextarea = document.getElementById('detail');
-        detailTextarea.addEventListener('input', function() {
-            const length = this.value.length;
-            const label = this.previousElementSibling;
-            if (length > 0) {
-                label.innerHTML = `Descripción del incidente <span style="color: var(--gray-500); font-weight: normal;">(${length} caracteres)</span>`;
-            }
-        });
-    </script>
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        document.getElementById('evidences').files = dt.files;
+        handleFiles(dt.files);
+    }
+
+    function getFileIcon(type) {
+        if (type.startsWith('image/')) return '▣';
+        if (type.startsWith('video/')) return '▶';
+        if (type.includes('pdf')) return 'P';
+        if (type.includes('word') || type.includes('document')) return 'D';
+        return 'F';
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    document.getElementById('complaintForm').addEventListener('submit', function(e) {
+        const detail = document.getElementById('detail').value.trim();
+        if (detail.length < 50) {
+            e.preventDefault();
+            alert('Describa el incidente con al menos 50 caracteres.');
+            return false;
+        }
+    });
+
+    const detailTextarea = document.getElementById('detail');
+    detailTextarea.addEventListener('input', function() {
+        const length = this.value.length;
+        const label = this.previousElementSibling;
+        if (length > 0) {
+            label.innerHTML = `Descripción del incidente <span style="color: var(--gray-500); font-weight: normal;">(${length} caracteres)</span>`;
+        } else {
+            label.textContent = 'Descripción del incidente';
+        }
+    });
+</script>
+
 </body>
 </html>
-

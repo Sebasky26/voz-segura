@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Verificación Biométrica - Voz Segura</title>
+    <title>Voz Segura — Verificación biométrica</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
     <style>
         .vs-camera-container {
             position: relative;
             width: 100%;
             max-width: 400px;
-            margin: 0 auto var(--space-8);
+            margin: 0 auto var(--space-6);
             aspect-ratio: 1;
             border-radius: var(--radius-xl);
             overflow: hidden;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            box-shadow: var(--shadow-xl);
+            box-shadow: var(--shadow-lg);
         }
 
         .vs-camera-preview {
@@ -28,92 +29,60 @@
             position: relative;
         }
 
-        .vs-camera-circle {
+        .vs-camera-frame {
             width: 200px;
             height: 200px;
             border-radius: 50%;
-            border: 4px dashed rgba(255, 255, 255, 0.5);
+            border: 4px dashed rgba(255, 255, 255, 0.6);
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
         }
 
         .vs-camera-icon {
-            font-size: 80px;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            width: 80px;
+            height: 50px;
+            border-radius: var(--radius-md);
+            border: 3px solid white;
+            position: relative;
+        }
+
+        .vs-camera-icon::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            width: 20px;
+            height: 12px;
+            border-radius: 6px 6px 0 0;
+            border: 3px solid white;
+            border-bottom: none;
         }
 
         .vs-camera-button {
             position: absolute;
-            bottom: var(--space-6);
+            bottom: var(--space-5);
             left: 50%;
             transform: translateX(-50%);
-            width: 64px;
-            height: 64px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             background: white;
-            border: 4px solid var(--accent);
+            border: 3px solid var(--accent);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            transition: all var(--transition-base);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform var(--transition-base), box-shadow var(--transition-base);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
         }
 
         .vs-camera-button:hover {
-            transform: translateX(-50%) scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            transform: translateX(-50%) scale(1.05);
         }
 
         .vs-camera-button:active {
-            transform: translateX(-50%) scale(0.95);
-        }
-
-        .vs-info-box {
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-            border-left: 4px solid var(--info);
-            padding: var(--space-4);
-            border-radius: var(--radius-md);
-            margin: var(--space-6) 0;
-        }
-
-        .vs-info-box__title {
-            font-weight: 600;
-            color: #0c4a6e;
-            margin-bottom: var(--space-2);
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .vs-info-box__list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .vs-info-box__list li {
-            padding-left: var(--space-6);
-            margin: var(--space-2) 0;
-            position: relative;
-            color: #164e63;
-            font-size: var(--font-size-sm);
-        }
-
-        .vs-info-box__list li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: var(--success);
-            font-weight: bold;
+            transform: translateX(-50%) scale(0.96);
         }
 
         #photoPreview {
@@ -127,118 +96,159 @@
             display: block;
         }
 
-        .vs-camera-circle.hidden {
+        .vs-camera-frame.hidden {
             display: none;
+        }
+
+        .vs-info-box {
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin: var(--space-4) 0 var(--space-6);
+            border: 1px solid var(--gray-200);
+        }
+
+        .vs-info-box__title {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .vs-info-box__list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .vs-info-box__list li {
+            position: relative;
+            padding-left: var(--space-4);
+            margin-bottom: var(--space-1);
+            font-size: var(--font-size-sm);
+            color: var(--gray-700);
+        }
+
+        .vs-info-box__list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
         }
     </style>
 </head>
 <body class="vs-app">
+
+<header class="vs-header">
     <div class="vs-container">
-        <header class="vs-header">
-            <div class="vs-header__logo">🛡️</div>
-        </header>
-
-        <main>
-            <div class="vs-card">
-                <div class="vs-card__header">
-                    <h1 class="vs-card__title">Verificación de Identidad</h1>
-                    <p class="vs-card__subtitle">Por favor, tome una fotografía para verificar su identidad</p>
-                </div>
-
-                <!-- Cámara -->
-                <div class="vs-camera-container">
-                    <div class="vs-camera-preview">
-                        <div class="vs-camera-circle" id="cameraPlaceholder">
-                            <div class="vs-camera-icon">📷</div>
-                        </div>
-                        <img id="photoPreview" alt="Vista previa"/>
-                        <button type="button" class="vs-camera-button" onclick="capturePhoto()">
-                            <span id="cameraBtnIcon">📸</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Instrucciones -->
-                <div class="vs-info-box">
-                    <div class="vs-info-box__title">
-                        <span>ℹ️</span>
-                        <span>Instrucciones para la fotografía</span>
-                    </div>
-                    <ul class="vs-info-box__list">
-                        <li>Asegúrese de que su rostro esté claramente visible</li>
-                        <li>Use un fondo bien iluminado</li>
-                        <li>Mantenga la cámara a la altura de sus ojos</li>
-                        <li>No use accesorios que oculten su rostro</li>
-                    </ul>
-                </div>
-
-                <!-- Formulario -->
-                <form th:action="@{/denuncia/biometric}" method="post" enctype="multipart/form-data"
-                      th:object="${biometricOtpForm}" class="vs-form" id="biometricForm">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <input type="file" th:field="*{biometricSample}" accept="image/*" style="display:none;" id="photoInput" onchange="previewPhoto(event)"/>
-
-                    <div class="vs-button-group vs-button-group--space-between">
-                        <a href="javascript:history.back()" class="vs-button vs-button--ghost">
-                            <span class="vs-button__icon">←</span>
-                            Volver
-                        </a>
-                        <button type="submit" class="vs-button vs-button--primary vs-button--lg" id="submitBtn" disabled>
-                            <span class="vs-button__icon">→</span>
-                            Continuar
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Aviso de seguridad -->
-                <div class="vs-alert vs-alert--info" style="margin-top: var(--space-6);">
-                    <span class="vs-alert__icon">🔒</span>
-                    <div>
-                        <strong>Privacidad garantizada</strong>
-                        <p style="margin-top: var(--space-2); font-size: var(--font-size-sm);">
-                            Su fotografía se utiliza únicamente para verificar su identidad.<br/>
-                            No se almacena ni se comparte con terceros. Cifrado AES-256-GCM.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </main>
+        <div class="vs-header__logo">Voz Segura</div>
     </div>
+</header>
 
-    <script>
-        let photoTaken = false;
+<main class="vs-container">
+    <div class="vs-card">
 
-        function capturePhoto() {
-            document.getElementById('photoInput').click();
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Verificación biométrica</h1>
+            <p class="vs-card__subtitle">Capture una fotografía para continuar</p>
+        </div>
+
+        <!-- Cámara -->
+        <div class="vs-camera-container">
+            <div class="vs-camera-preview">
+                <div class="vs-camera-frame" id="cameraPlaceholder">
+                    <div class="vs-camera-icon"></div>
+                </div>
+                <img id="photoPreview" alt="Vista previa"/>
+                <button type="button"
+                        class="vs-camera-button"
+                        onclick="capturePhoto()">
+                </button>
+            </div>
+        </div>
+
+        <!-- Indicaciones mínimas -->
+        <div class="vs-info-box">
+            <div class="vs-info-box__title">
+                Recomendaciones
+            </div>
+            <ul class="vs-info-box__list">
+                <li>Centre el rostro en el marco.</li>
+                <li>Use un entorno con buena iluminación.</li>
+            </ul>
+        </div>
+
+        <!-- Formulario -->
+        <form th:action="@{/denuncia/biometric}"
+              method="post"
+              enctype="multipart/form-data"
+              th:object="${biometricOtpForm}"
+              class="vs-form"
+              id="biometricForm">
+
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <input type="file"
+                   th:field="*{biometricSample}"
+                   accept="image/*"
+                   id="photoInput"
+                   style="display:none;"
+                   onchange="previewPhoto(event)"/>
+
+            <div class="vs-button-group vs-button-group--space-between">
+                <a href="javascript:history.back()" class="vs-button vs-button--ghost">
+                    Volver
+                </a>
+                <button type="submit"
+                        class="vs-button vs-button--primary vs-button--lg"
+                        id="submitBtn"
+                        disabled>
+                    Continuar
+                </button>
+            </div>
+        </form>
+
+        <!-- Aviso corto -->
+        <div class="vs-alert vs-alert--info vs-mt-6">
+            La imagen se utiliza solo para esta verificación.
+        </div>
+
+    </div>
+</main>
+
+<script>
+    let photoTaken = false;
+
+    function capturePhoto() {
+        document.getElementById('photoInput').click();
+    }
+
+    function previewPhoto(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = document.getElementById('photoPreview');
+                const placeholder = document.getElementById('cameraPlaceholder');
+                const submitBtn = document.getElementById('submitBtn');
+
+                preview.src = e.target.result;
+                preview.classList.add('active');
+                placeholder.classList.add('hidden');
+                submitBtn.disabled = false;
+                photoTaken = true;
+            };
+            reader.readAsDataURL(file);
         }
+    }
 
-        function previewPhoto(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('photoPreview');
-                    preview.src = e.target.result;
-                    preview.classList.add('active');
-
-                    document.getElementById('cameraPlaceholder').classList.add('hidden');
-                    document.getElementById('cameraBtnIcon').textContent = '🔄';
-                    document.getElementById('submitBtn').disabled = false;
-
-                    photoTaken = true;
-                };
-                reader.readAsDataURL(file);
-            }
+    document.getElementById('biometricForm').addEventListener('submit', function (e) {
+        if (!photoTaken) {
+            e.preventDefault();
+            alert('Capture una fotografía antes de continuar.');
         }
+    });
+</script>
 
-        // Validar que se haya tomado foto antes de enviar
-        document.getElementById('biometricForm').addEventListener('submit', function(e) {
-            if (!photoTaken) {
-                e.preventDefault();
-                alert('Por favor, tome una fotografía antes de continuar');
-            }
-        });
-    </script>
 </body>
 </html>
-

@@ -1,33 +1,56 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
-    <title>Voz Segura</title>
+    <title>Voz Segura — Detalle de caso</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
 </head>
-<body>
-<div class="vs-page">
-    <header class="vs-header">
-        <div class="vs-logo">
-            <span class="vs-logo-text">Voz Segura</span>
+
+<body class="vs-app">
+
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-header__logo">Voz Segura</div>
+    </div>
+</header>
+
+<main class="vs-container">
+    <div class="vs-card">
+
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Detalle de caso</h1>
+            <p class="vs-card__subtitle">La identidad del denunciante no se muestra en este panel.</p>
         </div>
-    </header>
-    <main class="vs-main">
 
-        <section class="vs-card vs-wide">
-            <h1 class="vs-title">Detalle de caso</h1>
-            <p class="vs-subtitle">La identidad del denunciante no está disponible en este panel.</p>
+        <div class="vs-form__group">
+            <label class="vs-form__label">
+                Contenido de la denuncia
+            </label>
+            <textarea class="vs-textarea" readonly>
+Contenido de la denuncia.
+            </textarea>
+        </div>
 
-            <p>Contenido de la denuncia (cifrado y presentado de forma anonimizada).</p>
+        <form method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
-            <form method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <button class="vs-btn-primary" formaction="#" type="submit">Actualizar estado</button>
-                <button class="vs-btn-secondary" formaction="#" type="submit">Derivar</button>
-            </form>
-        </section>
+            <div class="vs-button-group vs-button-group--space-between vs-mt-6">
+                <button class="vs-button vs-button--secondary"
+                        formaction="#"
+                        type="submit">
+                    Actualizar estado
+                </button>
 
-    </main>
-</div>
+                <button class="vs-button vs-button--primary"
+                        formaction="#"
+                        type="submit">
+                    Derivar
+                </button>
+            </div>
+        </form>
+
+    </div>
+</main>
+
 </body>
 </html>

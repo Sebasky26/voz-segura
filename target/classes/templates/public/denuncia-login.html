@@ -3,214 +3,187 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Acceso Seguro - Voz Segura</title>
+    <title>Acceso - Voz Segura</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
 </head>
 <body class="vs-app">
 
-    <!-- Modal de Términos y Condiciones -->
-    <div class="vs-modal-overlay" id="termsModal">
-        <div class="vs-modal">
-            <div class="vs-modal__header">
-                <h2 class="vs-modal__title">Términos y Condiciones de Uso</h2>
-                <button type="button" class="vs-modal__close" onclick="closeTermsModal()" aria-label="Cerrar">&times;</button>
+<!-- Modal de Términos y Condiciones -->
+<div class="vs-modal-overlay vs-modal--hidden" id="termsModal">
+    <div class="vs-modal">
+        <div class="vs-modal__header">
+            <h2 class="vs-modal__title">Términos y condiciones</h2>
+            <button type="button" class="vs-modal__close" onclick="closeTermsModal()" aria-label="Cerrar">&times;</button>
+        </div>
+
+        <div class="vs-modal__body">
+            <div class="vs-terms">
+                <p><strong>Fecha de vigencia: enero 2026</strong></p>
+
+                <h3>Validación de identidad</h3>
+                <ul>
+                    <li>La identidad se valida para evitar suplantaciones.</li>
+                    <li>Los datos se usan solo para este proceso de acceso.</li>
+                </ul>
+
+                <h3>Protección de identidad</h3>
+                <ul>
+                    <li>La identidad del denunciante no se muestra al personal que revisa los casos.</li>
+                    <li>Las denuncias y evidencias se almacenan cifradas y se eliminan tras un período de retención definido.</li>
+                </ul>
+
+                <h3>Revelación excepcional</h3>
+                <ul>
+                    <li>La identidad solo podrá revelarse en casos excepcionales y bajo autorización formal de la autoridad competente.</li>
+                </ul>
+
+                <h3>Uso responsable</h3>
+                <ul>
+                    <li>No se permite enviar información falsa o malintencionada.</li>
+                    <li>No se permite subir contenido ilegal.</li>
+                    <li>Las evidencias deben ser lícitas y pertinentes al caso.</li>
+                </ul>
+
+                <h3>Registros y auditoría</h3>
+                <ul>
+                    <li>Los registros de auditoría no almacenan datos personales del denunciante.</li>
+                    <li>Solo se guardan datos mínimos necesarios para trazabilidad del sistema.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="vs-modal__footer">
+            <button type="button" class="vs-button vs-button--secondary" onclick="closeTermsModal()">
+                Cerrar
+            </button>
+            <button type="button" class="vs-button vs-button--primary" onclick="acceptTerms()">
+                Aceptar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido principal -->
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-header__logo">Voz Segura</div>
+    </div>
+</header>
+
+<main class="vs-container">
+    <div class="vs-card">
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Acceso</h1>
+            <p class="vs-card__subtitle">Ingrese sus datos para continuar</p>
+        </div>
+
+        <!-- Alerta de error -->
+        <div th:if="${error}" class="vs-alert vs-alert--error">
+            <div>
+                <strong>No se pudo completar el acceso</strong>
+                <p th:text="${error}">Error al procesar.</p>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <form th:action="@{/auth/unified-login}"
+              method="post"
+              th:object="${unifiedLoginForm}"
+              class="vs-form"
+              id="loginForm">
+
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- Cédula -->
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="cedula">
+                    Cédula
+                </label>
+                <div class="vs-input-wrapper">
+                    <input
+                            type="text"
+                            th:field="*{cedula}"
+                            id="cedula"
+                            class="vs-input"
+                            required
+                            maxlength="10"
+                            pattern="[0-9]{10}"
+                    />
+                </div>
+                <span class="vs-form__help">
+                    Ingrese los 10 dígitos de su cédula.
+                </span>
             </div>
 
-            <div class="vs-modal__body">
-                <div class="vs-terms">
-                    <p><strong>Fecha de vigencia: Enero 2026</strong></p>
-
-                    <h3>1. Aceptación de Términos</h3>
-                    <p>Al acceder a esta plataforma, usted acepta que:</p>
-                    <ul>
-                        <li>Todos los datos proporcionados son <strong>legítimos y verídicos</strong></li>
-                        <li>Utilizará las evidencias con <strong>responsabilidad</strong> y únicamente para fines legítimos</li>
-                        <li>Comprende que el mal uso de esta plataforma está sujeto a consecuencias legales</li>
-                    </ul>
-
-                    <h3>2. Protección de Identidad</h3>
-                    <p>Su identidad está protegida mediante:</p>
-                    <ul>
-                        <li><strong>Cifrado de extremo a extremo</strong> (AES-256-GCM)</li>
-                        <li><strong>Identity Vault</strong> que separa su identidad de las denuncias</li>
-                        <li><strong>Anonimato total</strong> en el proceso de denuncia</li>
-                    </ul>
-
-                    <h3>3. Contacto por la Entidad Receptora</h3>
-                    <p><strong>IMPORTANTE:</strong> La entidad receptora de la denuncia podrá, si lo considera necesario, solicitar contacto con el denunciante para:</p>
-                    <ul>
-                        <li>Ampliar información sobre los hechos denunciados</li>
-                        <li>Solicitar evidencias adicionales</li>
-                        <li>Realizar seguimiento del caso</li>
-                    </ul>
-                    <p><strong>Sin embargo, el proceso es totalmente anónimo y nadie sabrá su identidad real</strong>, a menos que el caso se lleve a instancias legales superiores donde, por orden judicial, sea estrictamente necesario revelar su identidad para garantizar la justicia.</p>
-
-                    <h3>4. Revelación Excepcional</h3>
-                    <p>Su identidad <strong>SOLO</strong> podrá ser revelada si:</p>
-                    <ul>
-                        <li>Existe una <strong>orden judicial</strong> que lo requiera</li>
-                        <li>Es estrictamente necesario para la investigación de delitos graves</li>
-                        <li>El Comité de Ética y Seguridad lo aprueba mediante protocolo especial</li>
-                    </ul>
-                    <p>En todos los casos, se le notificará antes de cualquier revelación de identidad.</p>
-
-                    <h3>5. Uso Responsable</h3>
-                    <p>Usted se compromete a:</p>
-                    <ul>
-                        <li>NO realizar denuncias falsas o malintencionadas</li>
-                        <li>NO utilizar la plataforma para difamar o perjudicar a terceros</li>
-                        <li>Proporcionar evidencias legítimas y obtenidas de manera lícita</li>
-                        <li>Colaborar con las autoridades si el caso lo requiere</li>
-                    </ul>
-
-                    <h3>6. Confidencialidad de Datos</h3>
-                    <p>Todos sus datos personales y evidencias están protegidos por:</p>
-                    <ul>
-                        <li>Ley de Protección de Datos Personales (Ecuador 2026)</li>
-                        <li>Normativas internacionales de privacidad (GDPR)</li>
-                        <li>Protocolos de seguridad certificados ISO 27001</li>
-                    </ul>
+            <!-- Código dactilar -->
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="codigoDactilar">
+                    Código dactilar
+                </label>
+                <div class="vs-input-wrapper">
+                    <input
+                            type="password"
+                            th:field="*{codigoDactilar}"
+                            id="codigoDactilar"
+                            class="vs-input"
+                            required
+                    />
                 </div>
             </div>
 
-            <div class="vs-modal__footer">
-                <button type="button" class="vs-button vs-button--secondary" onclick="closeTermsModal()">
-                    <span class="vs-button__icon">←</span>
-                    Volver a leer
-                </button>
-                <button type="button" class="vs-button vs-button--primary" onclick="acceptTerms()">
-                    <span class="vs-button__icon">✓</span>
-                    Acepto los términos
-                </button>
+            <!-- CAPTCHA -->
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="captcha">
+                    Código de seguridad
+                </label>
+                <div class="vs-captcha">
+                    <div class="vs-captcha__code" th:text="${captchaCode}">XXXXXX</div>
+                    <input
+                            type="text"
+                            th:field="*{captcha}"
+                            id="captcha"
+                            class="vs-input vs-captcha__input"
+                            required
+                            maxlength="6"
+                    />
+                </div>
+                <span class="vs-form__help">
+                    Escriba el código mostrado.
+                </span>
+            </div>
+
+            <div class="vs-divider"></div>
+
+            <!-- Términos -->
+            <label class="vs-checkbox" for="termsAcceptance">
+                <input type="checkbox" class="vs-checkbox__input" id="termsAcceptance" required/>
+                <span class="vs-checkbox__label">
+                    He leído y acepto los términos y condiciones.
+                    <a href="#" onclick="showTermsModal(event)" class="vs-link">Ver términos</a>
+                </span>
+            </label>
+
+            <!-- Botón -->
+            <button type="submit"
+                    class="vs-button vs-button--primary vs-button--block vs-button--lg"
+                    id="submitBtn"
+                    disabled>
+                Iniciar sesión
+            </button>
+        </form>
+
+        <!-- Aviso breve -->
+        <div class="vs-alert vs-alert--info" style="margin-top: var(--space-6);">
+            <div>
+                <p style="font-size: var(--font-size-xs);">
+                    La información se valida con fuentes oficiales y se gestiona de forma confidencial.
+                </p>
             </div>
         </div>
     </div>
+</main>
 
-    <!-- Contenido Principal -->
-    <div class="vs-container">
-        <header class="vs-header">
-            <div class="vs-header__logo">🛡️</div>
-        </header>
-
-        <main>
-            <div class="vs-card">
-                <div class="vs-card__header">
-                    <h1 class="vs-card__title">Voz Segura</h1>
-                    <p class="vs-card__subtitle">Plataforma Segura de Denuncias Anónimas - 2026</p>
-                </div>
-
-                <!-- Alerta de Error -->
-                <div th:if="${error}" class="vs-alert vs-alert--error">
-                    <span class="vs-alert__icon">⚠️</span>
-                    <div>
-                        <strong>Error de autenticación</strong>
-                        <p th:text="${error}">Error al procesar</p>
-                    </div>
-                </div>
-
-                <!-- Formulario de Login -->
-                <form th:action="@{/auth/unified-login}" method="post" th:object="${unifiedLoginForm}" class="vs-form" id="loginForm">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-
-                    <!-- Cédula -->
-                    <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="cedula">
-                            Cédula de Identidad
-                        </label>
-                        <div class="vs-input-wrapper">
-                            <span class="vs-input-icon">👤</span>
-                            <input
-                                type="text"
-                                th:field="*{cedula}"
-                                id="cedula"
-                                class="vs-input vs-input--with-icon"
-                                placeholder="Ingrese su número de cédula"
-                                required
-                                autofocus
-                                maxlength="10"
-                                pattern="[0-9]{10}"
-                            />
-                        </div>
-                        <span class="vs-form__help">Número de cédula registrado en el Registro Civil del Ecuador</span>
-                    </div>
-
-                    <!-- Código Dactilar -->
-                    <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="codigoDactilar">
-                            Código Dactilar
-                        </label>
-                        <div class="vs-input-wrapper">
-                            <span class="vs-input-icon">🔒</span>
-                            <input
-                                type="password"
-                                th:field="*{codigoDactilar}"
-                                id="codigoDactilar"
-                                class="vs-input vs-input--with-icon"
-                                placeholder="Código dactilar de su cédula"
-                                required
-                            />
-                        </div>
-                        <span class="vs-form__help">Código dactilar que aparece en su documento de identidad</span>
-                    </div>
-
-                    <!-- CAPTCHA -->
-                    <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="captcha">
-                            Código de Seguridad
-                        </label>
-                        <div class="vs-captcha">
-                            <div class="vs-captcha__code" th:text="${captchaCode}">XXXXXX</div>
-                            <input
-                                type="text"
-                                th:field="*{captcha}"
-                                id="captcha"
-                                class="vs-input vs-captcha__input"
-                                placeholder="Ingrese el código"
-                                required
-                                maxlength="6"
-                            />
-                        </div>
-                        <span class="vs-form__help">Copie exactamente el código mostrado para verificar que no es un robot</span>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="vs-divider"></div>
-
-                    <!-- Checkbox de términos -->
-                    <label class="vs-checkbox" for="termsAcceptance">
-                        <input type="checkbox" class="vs-checkbox__input" id="termsAcceptance" required/>
-                        <span class="vs-checkbox__label">
-                            <strong>He leído y acepto los Términos y Condiciones.</strong>
-                            Comprendo que mis datos son legítimos, que usaré las evidencias con responsabilidad, y que el proceso es anónimo salvo orden judicial.
-                            <a href="#" onclick="showTermsModal(event)" class="vs-link">Leer términos completos</a>
-                        </span>
-                    </label>
-
-                    <!-- Botón Submit -->
-                    <button type="submit" class="vs-button vs-button--primary vs-button--block vs-button--lg" id="submitBtn" disabled>
-                        <span class="vs-button__icon">→</span>
-                        Iniciar Sesión Segura
-                    </button>
-                </form>
-
-                <!-- Aviso de Seguridad -->
-                <div class="vs-alert vs-alert--info" style="margin-top: var(--space-6);">
-                    <span class="vs-alert__icon">🛡️</span>
-                    <div>
-                        <strong>Sistema de Autenticación Unificado ZTA (Zero Trust Architecture)</strong>
-                        <p style="margin-top: var(--space-2); font-size: var(--font-size-xs);">
-                            Todos los usuarios son verificados contra el Registro Civil del Ecuador.<br/>
-                            El acceso Staff/Admin requiere verificación adicional mediante AWS Secrets Manager.<br/>
-                            Última actualización: Enero 2026
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script>
-    // Control del modal de términos
+<script>
     function showTermsModal(event) {
         if (event) event.preventDefault();
         document.getElementById('termsModal').classList.remove('vs-modal--hidden');
@@ -226,37 +199,32 @@
         closeTermsModal();
     }
 
-    // Habilitar botón cuando se aceptan términos
-    document.getElementById('termsAcceptance').addEventListener('change', function() {
+    document.getElementById('termsAcceptance').addEventListener('change', function () {
         document.getElementById('submitBtn').disabled = !this.checked;
     });
 
-    // Validar formulario antes de enviar
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
         const termsAccepted = document.getElementById('termsAcceptance').checked;
         if (!termsAccepted) {
             e.preventDefault();
-            alert('Debe aceptar los Términos y Condiciones para continuar');
+            alert('Debe aceptar los términos y condiciones para continuar.');
             return false;
         }
     });
 
-    // Cerrar modal con ESC
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             closeTermsModal();
         }
     });
 
-    // Cerrar modal al hacer clic fuera
-    document.getElementById('termsModal').addEventListener('click', function(e) {
+    document.getElementById('termsModal').addEventListener('click', function (e) {
         if (e.target === this) {
             closeTermsModal();
         }
     });
 
-    // Mostrar modal al cargar la página (primera vez)
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
         const hasSeenTerms = sessionStorage.getItem('termsShown');
         if (!hasSeenTerms) {
             showTermsModal();
@@ -264,11 +232,10 @@
         }
     });
 
-    // Validación de cédula ecuatoriana
-    document.getElementById('cedula').addEventListener('input', function(e) {
+    document.getElementById('cedula').addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '').slice(0, 10);
     });
-    </script>
+</script>
+
 </body>
 </html>
-
