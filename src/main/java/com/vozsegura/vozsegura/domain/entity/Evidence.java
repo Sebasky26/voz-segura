@@ -3,7 +3,7 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "evidence")
+@Table(name = "evidence", schema = "evidence_vault")
 public class Evidence {
 
     @Id
