@@ -36,12 +36,6 @@ public class Complaint {
     @Column(name = "company_contact", nullable = false, length = 255)
     private String companyContact;
 
-    @Column(name = "company_email", length = 255)
-    private String companyEmail;
-
-    @Column(name = "company_phone", length = 20)
-    private String companyPhone;
-
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 
@@ -74,12 +68,6 @@ public class Complaint {
 
     public String getCompanyContact() { return companyContact; }
     public void setCompanyContact(String companyContact) { this.companyContact = companyContact; }
-
-    public String getCompanyEmail() { return companyEmail; }
-    public void setCompanyEmail(String companyEmail) { this.companyEmail = companyEmail; }
-
-    public String getCompanyPhone() { return companyPhone; }
-    public void setCompanyPhone(String companyPhone) { this.companyPhone = companyPhone; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
