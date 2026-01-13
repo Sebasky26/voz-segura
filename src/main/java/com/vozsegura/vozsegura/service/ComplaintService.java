@@ -89,8 +89,6 @@ public class ComplaintService {
         complaint.setCompanyName(form.getCompanyName());
         complaint.setCompanyAddress(form.getCompanyAddress());
         complaint.setCompanyContact(form.getCompanyContact());
-        complaint.setCompanyEmail(form.getCompanyEmail());
-        complaint.setCompanyPhone(form.getCompanyPhone());
         complaint.setCreatedAt(OffsetDateTime.now());
         complaint.setUpdatedAt(OffsetDateTime.now());
 
