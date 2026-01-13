@@ -3,9 +3,9 @@ spring:
     # Configuración de Supabase usando variables de entorno
     # Configura estas variables en tu sistema o archivo .env:
     # SUPABASE_DB_URL, SUPABASE_DB_USERNAME, SUPABASE_DB_PASSWORD
-    url: ${SUPABASE_DB_URL:jdbc:postgresql://db.<your-project-ref>.supabase.co:5432/postgres?sslmode=require}
-    username: ${SUPABASE_DB_USERNAME:postgres}
-    password: ${SUPABASE_DB_PASSWORD:your-password-here}
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
@@ -23,6 +23,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    validate-on-migrate: false
+    baseline-on-migrate: true
 
 server:
   error:
