@@ -13,11 +13,10 @@
 
 - [Descripción](#-descripción)
 - [Arquitectura Zero Trust (ZTA)](#-arquitectura-zero-trust-zta)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación en Windows](#-instalación-en-windows)
-- [Configuración PostgreSQL Local](#-configuración-postgresql-local)
-- [Variables de Entorno](#-variables-de-entorno)
-- [Ejecución](#-ejecución)
+- [🚀 Setup e Instalación](#-setup-e-instalación)
+  - [Requisitos Previos](#requisitos-previos)
+  - [Pasos de Instalación](#pasos-de-instalación)
+  - [Configuración de Supabase](#configuración-de-supabase)
 - [Sistema de Autenticación Unificado](#-sistema-de-autenticación-unificado)
 - [Usuarios de Prueba](#-usuarios-de-prueba)
 - [API Gateway ZTA](#-api-gateway-zta)
@@ -96,192 +95,171 @@
 
 ---
 
-## 🔧 Requisitos Previos
+## � Setup e Instalación
 
-### Software Requerido
+### Requisitos Previos
 
-- **Java 21** ([Descargar](https://www.oracle.com/java/technologies/downloads/))
-- **Maven 3.8+** ([Descargar](https://maven.apache.org/download.cgi))
-- **PostgreSQL 16** ([Descargar para Windows](https://www.postgresql.org/download/windows/))
+#### Software Requerido
+
+- **Java 21+** ([Descargar desde Adoptium](https://adoptium.net/) o [Oracle](https://www.oracle.com/java/technologies/downloads/))
+- **Maven 3.6+** ([Descargar](https://maven.apache.org/download.cgi))
 - **Git** (opcional)
 
-### Verificar Instalaciones
+#### Verificar Instalaciones
 
-```powershell
+```bash
 # Verificar Java
 java -version
-# Debe mostrar: java version "21.x.x"
+# Debe mostrar: openjdk version "21.x.x" o superior
 
 # Verificar Maven
 mvn -version
-# Debe mostrar: Apache Maven 3.x.x
+# Debe mostrar: Apache Maven 3.6.x o superior
 
-# Verificar PostgreSQL
-psql --version
-# Debe mostrar: psql (PostgreSQL) 16.x
+# Verificar Git
+git --version
+# Debe mostrar: git version 2.x.x o superior
 ```
+
+⚠️ **Si no tienes Java 21 o Maven:**
+- **Java 21**: Descargar desde [Adoptium](https://adoptium.net/)
+- **Maven**: Descargar desde [Apache Maven](https://maven.apache.org/download.cgi)
 
 ---
 
-## 💻 Instalación en Windows
+### Pasos de Instalación
 
-### Paso 1: Descargar el Proyecto
+#### 1️⃣ Clonar el repositorio
 
-```powershell
-cd "C:\SOFTWARE SEGURO"
-git clone https://github.com/tu-usuario/voz-segura.git
+```bash
+git clone <url-del-repo>
 cd voz-segura
 ```
 
-O descarga el ZIP y extráelo en `C:\SOFTWARE SEGURO\vozSegura`
+#### 2️⃣ Configurar credenciales de Supabase
 
----
+1. **Copia el archivo de ejemplo:**
+   ```bash
+   # En Linux/Mac:
+   cp .env.example .env
+   
+   # En Windows PowerShell:
+   Copy-Item .env.example .env
+   ```
 
-## 🗄️ Configuración PostgreSQL Local
+2. **Edita el archivo `.env`** en la raíz del proyecto:
+   ```env
+   SUPABASE_DB_URL=jdbc:postgresql://db.xxxxx.supabase.co:5432/postgres?sslmode=require
+   SUPABASE_DB_USERNAME=postgres
+   SUPABASE_DB_PASSWORD=tu-password-aqui
+   VOZSEGURA_DATA_KEY_B64=clave-de-cifrado-aqui
+   ```
 
-### Paso 1: Instalar PostgreSQL 16
+   ⚠️ **Solicita estas credenciales al líder del proyecto por correo** (no están en Git por seguridad)
 
-1. Descarga el instalador desde [postgresql.org](https://www.postgresql.org/download/windows/)
-2. Ejecuta el instalador
-3. Durante la instalación:
-   - **Puerto**: `5432` (dejar por defecto)
-   - **Superuser password**: Crea una contraseña (ej: `postgres`)
-   - **Locale**: Spanish, Ecuador
-4. Instala Stack Builder (opcional, para pgAdmin)
+   📝 **Nota:** El proyecto usa `spring-dotenv` que carga automáticamente el archivo `.env` al iniciar.
 
-### Paso 2: Configurar pgAdmin
+#### 3️⃣ Ejecutar la aplicación
 
-1. Abre **pgAdmin 4**
-2. Conéctate al servidor local:
-   - **Host**: localhost
-   - **Port**: 5432
-   - **Username**: postgres
-   - **Password**: (la que configuraste)
+```bash
+# Descargar dependencias (opcional, mvn spring-boot:run lo hace automáticamente)
+mvn clean install
 
-### Paso 3: Crear la Base de Datos
-
-Opción A - Usando pgAdmin:
-1. Clic derecho en "Databases" → Create → Database
-2. **Name**: `voz_segura`
-3. **Owner**: postgres
-4. Save
-
-Opción B - Usando psql:
-```powershell
-# Abrir psql
-psql -U postgres
-
-# Crear base de datos
-CREATE DATABASE voz_segura;
-
-# Crear usuario
-CREATE USER voz_segura WITH PASSWORD 'voz_segura_dev';
-
-# Dar permisos
-GRANT ALL PRIVILEGES ON DATABASE voz_segura TO voz_segura;
-
-# Salir
-\q
-```
-
-### Paso 4: Configurar la Aplicación
-
-Edita `src/main/resources/application.yml`:
-
-```yaml
-spring:
-  profiles:
-    active: dev  # Cambiar de 'h2' a 'dev'
-```
-
-Edita `src/main/resources/application-dev.yml` (si necesitas cambiar credenciales):
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/voz_segura
-    username: voz_segura
-    password: voz_segura_dev
-    driver-class-name: org.postgresql.Driver
-```
-
----
-
-## 🔐 Variables de Entorno
-
-### Variable Obligatoria: Clave de Cifrado
-
-**Windows PowerShell:**
-```powershell
-$env:VOZSEGURA_DATA_KEY_B64="XP0OU/9rhJRkPgjUp1ncpQwCu+GwesQNwCQuv5gNkpY="
-```
-
-**CMD:**
-```cmd
-set VOZSEGURA_DATA_KEY_B64=XP0OU/9rhJRkPgjUp1ncpQwCu+GwesQNwCQuv5gNkpY=
-```
-
-### Variables Opcionales
-
-```powershell
-# Puerto del servidor (opcional, default: 8080)
-$env:SERVER_PORT="8080"
-
-# Perfil activo (opcional, default: h2)
-$env:SPRING_PROFILES_ACTIVE="dev"
-```
-
-### Configurar Permanentemente (Opcional)
-
-1. Buscar "Variables de entorno" en Windows
-2. Variables de entorno del sistema
-3. Nueva variable de usuario:
-   - **Nombre**: `VOZSEGURA_DATA_KEY_B64`
-   - **Valor**: `XP0OU/9rhJRkPgjUp1ncpQwCu+GwesQNwCQuv5gNkpY=`
-
----
-
-## ▶️ Ejecución
-
-### Método 1: Maven Direct
-
-```powershell
-# Configurar variable de entorno
-$env:VOZSEGURA_DATA_KEY_B64="XP0OU/9rhJRkPgjUp1ncpQwCu+GwesQNwCQuv5gNkpY="
-
-# Navegar al proyecto
-cd "C:\SOFTWARE SEGURO\vozSegura"
-
-# Ejecutar
+# Ejecutar la aplicación
 mvn spring-boot:run
 ```
 
-### Método 2: JAR Ejecutable
+**O desde el IDE:**
+- **IntelliJ IDEA**: Botón Run en la clase principal `VozSeguraApplication`
+- **Eclipse**: Run As → Spring Boot App
 
-```powershell
-# Compilar
-mvn clean package
+La aplicación arrancará en: **http://localhost:8080**
 
-# Ejecutar
-java -jar target\voz-segura-0.0.1-SNAPSHOT.jar
+#### ✅ Verificar que está funcionando
+
+Deberías ver en los logs:
 ```
-
-### Verificar que Inició Correctamente
-
-Debes ver:
-```
-===========================================
- API GATEWAY ZTA INITIALIZED - 2026
- Zero Trust Architecture Active
- All requests will be verified
-===========================================
-
+Database: jdbc:postgresql://db.xxxxx.supabase.co:5432/postgres (PostgreSQL 17.6)
 Started VozSeguraApplication in X.XXX seconds
-
 Tomcat started on port 8080 (http)
 ```
 
-Accede a: **http://localhost:8080/auth/login**
+---
+
+### Configuración de Supabase
+
+#### Arquitectura de Datos Separados
+
+La aplicación usa **Supabase** (PostgreSQL en la nube) con **esquemas separados** para diferentes tipos de datos:
+
+##### 📦 Esquemas de Base de Datos
+
+1. **`public`** (schema por defecto)
+   - `staff_user`: Usuarios del sistema
+   - `complaint`: Denuncias (solo texto cifrado)
+   - `derivation_rule`: Reglas de derivación
+   - `terms_acceptance`: Aceptación de términos
+
+2. **`secure_identities`** (datos del registro civil)
+   - `identity_vault`: Solo IDs y hashes de ciudadanos
+   - ⚠️ **NO guarda datos personales**, solo hashes SHA-256
+   - Con Row Level Security (RLS) habilitado
+
+3. **`evidence_vault`** (evidencias cifradas)
+   - `evidence`: Archivos y contenido cifrado
+   - Todo el contenido está cifrado con AES-256-GCM
+   - Con RLS habilitado
+
+4. **`audit_logs`** (logs de auditoría)
+   - `audit_event`: Registro de todas las acciones
+   - Con RLS habilitado para acceso restringido
+
+##### 🔒 Seguridad de Supabase
+
+**Cifrado en múltiples capas:**
+- **Cifrado en tránsito**: SSL/TLS obligatorio (`sslmode=require`)
+- **Cifrado en reposo**: Supabase cifra todos los datos en disco
+- **Cifrado a nivel de aplicación**: 
+  - Textos de denuncias cifrados con AES-256-GCM
+  - Evidencias cifradas con AES-256-GCM
+  - Hashes SHA-256 para identidades
+
+**Row Level Security (RLS):**
+- Solo la aplicación (service_role) puede acceder a datos sensibles
+- Imposible acceso directo desde consola SQL sin permisos
+
+**Separación de datos:**
+- Identidades del registro civil en schema separado
+- Evidencias en vault separado
+- Logs de auditoría aislados
+
+##### 🚀 Migraciones Automáticas
+
+Las migraciones de **Flyway** crean automáticamente al iniciar la aplicación:
+- ✅ Los esquemas separados (`secure_identities`, `evidence_vault`, `audit_logs`)
+- ✅ Las tablas en cada schema
+- ✅ Los índices de seguridad
+- ✅ Las políticas RLS
+
+**No necesitas ejecutar nada manualmente**, Flyway se encarga de todo.
+
+##### 🔍 Verificar en Supabase
+
+Ve a tu proyecto en Supabase:
+1. **SQL Editor** → Verifica que existen los schemas: `secure_identities`, `evidence_vault`, `audit_logs`
+2. **Database** → **Policies** → Verifica que RLS está habilitado
+
+##### ⚠️ Notas Importantes
+
+- ❌ **NUNCA** commitees el archivo `.env` con credenciales reales
+- ✅ El archivo `.env` ya está en `.gitignore`
+- ✅ La clave de cifrado (`VOZSEGURA_DATA_KEY_B64`) debe ser diferente en cada ambiente
+- ✅ Supabase hace backups automáticos
+- ✅ Revisa regularmente los `audit_logs` para detectar accesos no autorizados
+
+---
+
+## �🔧 Requisitos Previos
 
 ---
 
@@ -520,50 +498,23 @@ netstat -ano | findstr :8080
 taskkill /PID <PID> /F
 ```
 
-### PostgreSQL no se conecta
+### Error: "Could not resolve placeholder 'SUPABASE_DB_URL'"
+- **Causa:** El archivo `.env` no existe o está mal ubicado
+- **Solución:** Asegúrate de que `.env` esté en la **raíz del proyecto** (mismo nivel que `pom.xml`)
 
-**Verificar servicio:**
-```powershell
-Get-Service postgresql*
-```
+### Error: "Connection refused"
+- Verifica que las credenciales en `.env` sean correctas
+- Asegúrate de tener conexión a internet
+- Verifica que la URL de Supabase sea correcta (debe incluir `?sslmode=require`)
 
-Si está detenido:
-```powershell
-Start-Service postgresql-x64-16
-```
+### Error: "Flyway validation failed"
+- La base de datos ya tiene las migraciones aplicadas
+- Esto es normal, la app continuará normalmente
 
-**Verificar puerto:**
-```powershell
-netstat -an | findstr :5432
-```
-
-**Probar conexión:**
-```powershell
-psql -U voz_segura -d voz_segura -h localhost
-```
-
-### Migraciones Flyway fallan
-
-**Limpiar base de datos:**
-```sql
--- Conectar a PostgreSQL
-psql -U postgres
-
--- Eliminar y recrear
-DROP DATABASE IF EXISTS voz_segura;
-CREATE DATABASE voz_segura;
-GRANT ALL PRIVILEGES ON DATABASE voz_segura TO voz_segura;
-```
-
-### Variable de entorno no encontrada
-
-```powershell
-# Verificar que está configurada
-echo $env:VOZSEGURA_DATA_KEY_B64
-
-# Si no aparece nada, configurarla:
-$env:VOZSEGURA_DATA_KEY_B64="XP0OU/9rhJRkPgjUp1ncpQwCu+GwesQNwCQuv5gNkpY="
-```
+### Las variables de entorno no se cargan
+- Verifica que el archivo `.env` no tenga espacios extra en las líneas
+- No uses comillas en los valores: `PASSWORD=abc123` (✅) vs `PASSWORD="abc123"` (❌)
+- Reinicia el IDE después de crear el archivo `.env`
 
 ### CAPTCHA inválido
 
@@ -609,11 +560,7 @@ Los logs mostrarán:
 
 ## 📞 Soporte
 
-### Documentación Adicional
-
-- **README.md** - Este archivo
-- **QUICKSTART.md** - Guía rápida
-- **CHANGELOG.md** - Historial de cambios
+Para más información sobre arquitectura del sistema, consulta [ARQUITECTURA.md](ARQUITECTURA.md)
 
 ### Logs
 
