@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voz Segura — Denuncia enviada</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+</head>
+<body class="vs-app">
+
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-header__logo">Voz Segura</div>
+    </div>
+</header>
+
+<main class="vs-container">
+    <div class="vs-card" style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: var(--space-6);">✅</div>
+        
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Denuncia enviada exitosamente</h1>
+            <p class="vs-card__subtitle">Su caso ha sido registrado de forma segura y confidencial</p>
+        </div>
+
+        <div th:if="${trackingId}" class="vs-alert vs-alert--success" style="margin: var(--space-6) 0;">
+            <strong>Código de seguimiento:</strong>
+            <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); 
+                        margin-top: var(--space-2); font-family: monospace; 
+                        background: var(--gray-50); padding: var(--space-3); 
+                        border-radius: var(--radius-md); word-break: break-all;">
+                <span th:text="${trackingId}">XXXX-XXXX-XXXX</span>
+            </div>
+            <p style="margin-top: var(--space-3); font-size: var(--font-size-sm);">
+                <strong>⚠️ Importante:</strong> Guarde este código en un lugar seguro. 
+                Lo necesitará para dar seguimiento a su caso.
+            </p>
+        </div>
+
+        <div class="vs-alert vs-alert--info" style="margin: var(--space-6) 0; text-align: left;">
+            <h3 style="margin-bottom: var(--space-3);">¿Qué sigue ahora?</h3>
+            <ul style="margin: 0; padding-left: var(--space-5);">
+                <li style="margin-bottom: var(--space-2);">
+                    Su denuncia será revisada por nuestro equipo de analistas
+                </li>
+                <li style="margin-bottom: var(--space-2);">
+                    Toda la información está cifrada y protegida
+                </li>
+                <li style="margin-bottom: var(--space-2);">
+                    Su identidad permanece completamente anónima
+                </li>
+                <li>
+                    Recibirá actualizaciones sobre el estado de su caso
+                </li>
+            </ul>
+        </div>
+
+        <div style="margin-top: var(--space-8);">
+            <a th:href="@{/}" href="/" class="vs-button vs-button--primary vs-button--lg">
+                Volver al inicio
+            </a>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>
