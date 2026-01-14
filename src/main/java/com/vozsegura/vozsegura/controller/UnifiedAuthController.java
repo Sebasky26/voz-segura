@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Base64;
+
 /**
  * Controlador de Autenticación Unificada (ZTA - Zero Trust Architecture).
  *
@@ -106,7 +110,10 @@ public class UnifiedAuthController {
 
                 case DENUNCIANTE:
                 default:
-                    // Denunciante: Continuar a verificación biométrica
+                    // Denunciante: Generar hash anónimo y continuar a verificación biométrica
+                    String citizenHash = hashCedula(form.getCedula());
+                    session.setAttribute("citizenHash", citizenHash);
+                    System.out.println("[UNIFIED AUTH] Citizen hash generated and saved to session");
                     System.out.println("[UNIFIED AUTH] Redirecting to biometric verification");
                     return "redirect:/denuncia/biometric";
             }
@@ -200,6 +207,19 @@ public class UnifiedAuthController {
     public String logout(HttpSession session) {
         session.invalidate();
         return "redirect:/auth/login?logout";
+    }
+    
+    /**
+     * Genera un hash SHA-256 de la cédula para identificación anónima.
+     */
+    private String hashCedula(String cedula) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(cedula.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al generar hash", e);
+        }
     }
 }
 
