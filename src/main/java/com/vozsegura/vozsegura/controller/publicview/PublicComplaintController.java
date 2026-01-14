@@ -1,12 +1,9 @@
 package com.vozsegura.vozsegura.controller.publicview;
 
-import com.vozsegura.vozsegura.dto.forms.BiometricOtpForm;
-import com.vozsegura.vozsegura.dto.forms.ComplaintForm;
-import com.vozsegura.vozsegura.dto.forms.DenunciaAccessForm;
-import com.vozsegura.vozsegura.security.RateLimiter;
-import com.vozsegura.vozsegura.service.ComplaintService;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Base64;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -17,9 +14,14 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Base64;
+import com.vozsegura.vozsegura.dto.forms.BiometricOtpForm;
+import com.vozsegura.vozsegura.dto.forms.ComplaintForm;
+import com.vozsegura.vozsegura.dto.forms.DenunciaAccessForm;
+import com.vozsegura.vozsegura.security.RateLimiter;
+import com.vozsegura.vozsegura.service.ComplaintService;
+
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 
 @Controller
 @SessionAttributes({"denunciaAccessToken", "citizenHash"})
@@ -48,6 +50,13 @@ public class PublicComplaintController {
     public String verifyCitizen(@Valid @ModelAttribute("denunciaAccessForm") DenunciaAccessForm form,
                                 BindingResult bindingResult,
                                 Model model) {
+        // Rate limiting para prevenir abuso
+        String clientId = "verify-" + form.getCedula();
+        if (!rateLimiter.tryConsume(clientId)) {
+            model.addAttribute("error", "Demasiados intentos. Por favor espere un momento.");
+            return "public/denuncia-login";
+        }
+        
         if (!form.isTermsAccepted()) {
             bindingResult.rejectValue("termsAccepted", "terms.required", "Debe aceptar los términos y condiciones.");
         }

@@ -1,6 +1,14 @@
+# =============================================================================
+# VOZ SEGURA - GITIGNORE
+# =============================================================================
+# SEGURIDAD: Nunca subir archivos sensibles al repositorio
+# =============================================================================
+
 # Compiled class files
 *.class
 target/
+build/
+out/
 *.jar
 *.war
 *.ear
@@ -11,20 +19,70 @@ target/
 .vscode/
 *.swp
 *.swo
+.project
+.classpath
+.settings/
+*.code-workspace
 
-# Environment variables (IMPORTANTE: Nunca commitear credenciales)
+# ============================================
+# ARCHIVOS SENSIBLES - NUNCA COMMITEAR
+# ============================================
+# Variables de entorno y secretos
 .env
+.env.*
 .env.local
 .env.*.local
+*.env
 
-# Logs
+# Archivos de credenciales AWS
+.aws/
+credentials
+*.pem
+*.key
+*.crt
+
+# Archivos de configuración con secretos
+application-local.yml
+application-local.properties
+application-secrets.yml
+*-secrets.yml
+*-secrets.properties
+
+# ============================================
+# LOGS Y TEMPORALES
+# ============================================
 *.log
 logs/
+*.tmp
+*.temp
+*.bak
+*~
 
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
+ehthumbs.db
 
-# Spring Boot
-application-local.yml
-application-local.properties
+# Maven wrapper (opcional, algunos proyectos lo incluyen)
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# Node modules (si usas frontend)
+node_modules/
+npm-debug.log
+
+# Archivos de error de Windows
+nul
+
+# Test reports
+surefire-reports/
+test-output/
+*.exec
+
+# Spring Boot DevTools
+.springBeans
+
+# H2 database files
+*.db
+*.h2.db

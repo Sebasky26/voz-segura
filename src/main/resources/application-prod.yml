@@ -1,0 +1,69 @@
+# =============================================================================
+# CONFIGURACIÓN DE PRODUCCIÓN - VOZ SEGURA
+# =============================================================================
+# Este perfil utiliza AWS Secrets Manager para todas las credenciales
+# Cumple con el nodo "DB Secretos" del diagrama de arquitectura
+# =============================================================================
+
+spring:
+  datasource:
+    # Las credenciales se cargan dinámicamente desde AWS Secrets Manager
+    # Ver: AwsDatabaseConfig.java
+    url: ${AWS_DB_URL:jdbc:postgresql://db.vohvuygorfktvrnyudmy.supabase.co:5432/postgres?sslmode=require}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      minimum-idle: 3
+      idle-timeout: 300000
+      max-lifetime: 600000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: true
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
+      enabled: true
+
+server:
+  error:
+    whitelabel:
+      enabled: false
+    include-message: never
+
+# Configuración de AWS - us-east-1 (Virginia) donde tienes SMS y secretos
+aws:
+  region: us-east-1
+  secrets:
+    database: dev/VozSegura/Database
+
+# Configuración de Supabase (host público, credenciales desde AWS Secrets Manager)
+supabase:
+  host: db.vohvuygorfktvrnyudmy.supabase.co
+  port: 5432
+  database: postgres
+
+# Configuración de seguridad adicional para producción
+security:
+  headers:
+    csp: "default-src 'self'"
+    hsts:
+      enabled: true
+      max-age: 31536000
+      include-subdomains: true
+
+logging:
+  level:
+    root: WARN
+    com.vozsegura: INFO
+    software.amazon.awssdk: WARN
