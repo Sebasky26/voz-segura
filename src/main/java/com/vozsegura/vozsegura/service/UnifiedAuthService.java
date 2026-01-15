@@ -1,16 +1,24 @@
 package com.vozsegura.vozsegura.service;
 
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
 import com.vozsegura.vozsegura.client.CivilRegistryClient;
+import com.vozsegura.vozsegura.client.OtpClient;
 import com.vozsegura.vozsegura.client.SecretsManagerClient;
 import com.vozsegura.vozsegura.domain.entity.StaffUser;
 import com.vozsegura.vozsegura.repo.StaffUserRepository;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 /**
  * Servicio de autenticación unificada para todos los usuarios.
  * Todos los usuarios (denunciantes, staff, admin) están registrados en el Registro Civil.
+ * 
+ * FLUJO MFA PARA STAFF/ADMIN:
+ * 1. Verificar cédula + código dactilar (Registro Civil)
+ * 2. Verificar clave secreta (AWS Secrets Manager)
+ * 3. Enviar OTP por email (AWS SES) - MFA
+ * 4. Verificar OTP ingresado
  */
 @Service
 public class UnifiedAuthService {
@@ -19,16 +27,19 @@ public class UnifiedAuthService {
     private final SecretsManagerClient secretsManagerClient;
     private final StaffUserRepository staffUserRepository;
     private final CaptchaService captchaService;
+    private final OtpClient otpClient;
 
     public UnifiedAuthService(
             CivilRegistryClient civilRegistryClient,
             SecretsManagerClient secretsManagerClient,
             StaffUserRepository staffUserRepository,
-            CaptchaService captchaService) {
+            CaptchaService captchaService,
+            OtpClient otpClient) {
         this.civilRegistryClient = civilRegistryClient;
         this.secretsManagerClient = secretsManagerClient;
         this.staffUserRepository = staffUserRepository;
         this.captchaService = captchaService;
+        this.otpClient = otpClient;
     }
 
     /**
@@ -82,6 +93,32 @@ public class UnifiedAuthService {
         }
 
         return expectedSecretKey.equals(secretKey);
+    }
+
+    /**
+     * Obtiene el email del staff user para envío de OTP.
+     */
+    public String getStaffEmail(String cedula) {
+        Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(cedula);
+        return staffUser.map(StaffUser::getEmail).orElse(null);
+    }
+
+    /**
+     * Paso 4: Enviar OTP por email usando AWS SES.
+     * Retorna el token de sesión para verificar el OTP posteriormente.
+     */
+    public String sendEmailOtp(String email) {
+        if (email == null || email.isBlank()) {
+            throw new SecurityException("Email no configurado para este usuario");
+        }
+        return otpClient.sendOtp(email);
+    }
+
+    /**
+     * Paso 5: Verificar el código OTP ingresado.
+     */
+    public boolean verifyOtp(String otpToken, String otpCode) {
+        return otpClient.verifyOtp(otpToken, otpCode);
     }
 
     /**
