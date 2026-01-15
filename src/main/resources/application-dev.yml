@@ -31,6 +31,12 @@ spring:
       max-request-size: 30MB
       enabled: true
 
+# Configuracion AWS
+aws:
+  region: us-east-1
+  ses:
+    from-email: ${AWS_SES_FROM_EMAIL:stalin.yungan@epn.edu.ec}
+
 server:
   error:
     whitelabel:
