@@ -1,13 +1,19 @@
 package com.vozsegura.vozsegura.config;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
+
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * API Gateway Filter - Implementación de Zero Trust Architecture (ZTA).
@@ -106,9 +112,9 @@ public class ApiGatewayFilter implements Filter {
             return;
         }
 
-        // 5. Verificar que Staff/Admin usaron autenticación ZTA completa
+        // 5. Verificar que Staff/Admin usaron autenticación ZTA completa (con o sin MFA)
         if (("ADMIN".equals(userType) || "ANALYST".equals(userType)) &&
-            !"UNIFIED_ZTA".equals(authMethod)) {
+            !("UNIFIED_ZTA".equals(authMethod) || "UNIFIED_ZTA_MFA".equals(authMethod))) {
             System.out.println("[API GATEWAY ZTA] BLOCKED - Staff/Admin must use ZTA auth");
             session.invalidate();
             httpResponse.sendRedirect("/auth/login");
