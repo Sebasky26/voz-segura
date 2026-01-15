@@ -19,6 +19,7 @@
   - [Configuración de Supabase](#configuración-de-supabase)
 - [Sistema de Autenticación Unificado](#-sistema-de-autenticación-unificado)
 - [Usuarios de Prueba](#-usuarios-de-prueba)
+- [Configuración AWS (MFA con Email OTP)](#️-configuración-aws-mfa-con-email-otp)
 - [API Gateway ZTA](#-api-gateway-zta)
 - [Endpoints y Rutas](#-endpoints-y-rutas)
 - [Seguridad](#-seguridad)
@@ -38,7 +39,8 @@
 - **🔐 Cifrado de Extremo a Extremo**: AES-256-GCM para todas las denuncias y evidencias
 - **👤 Identity Vault**: Separación total entre identidad real y denuncias
 - **📱 Verificación Biométrica**: Autenticación facial (integrable con servicios reales)
-- **🔑 MFA para Staff/Admin**: Clave secreta de AWS Secrets Manager
+- **🔑 MFA para Staff/Admin**: Autenticación de dos factores con código OTP por email (AWS SES)
+- **☁️ AWS Integration**: Secrets Manager + SES para gestión segura de credenciales y MFA
 - **📊 Auditoría Completa**: Todos los accesos y acciones son registrados
 - **📜 Términos y Condiciones**: Aceptación obligatoria con explicaciones claras
 
@@ -122,6 +124,7 @@ git --version
 ```
 
 ⚠️ **Si no tienes Java 21 o Maven:**
+
 - **Java 21**: Descargar desde [Adoptium](https://adoptium.net/)
 - **Maven**: Descargar desde [Apache Maven](https://maven.apache.org/download.cgi)
 
@@ -139,15 +142,17 @@ cd voz-segura
 #### 2️⃣ Configurar credenciales de Supabase
 
 1. **Copia el archivo de ejemplo:**
+
    ```bash
    # En Linux/Mac:
    cp .env.example .env
-   
+
    # En Windows PowerShell:
    Copy-Item .env.example .env
    ```
 
 2. **Edita el archivo `.env`** en la raíz del proyecto:
+
    ```env
    SUPABASE_DB_URL=jdbc:postgresql://db.xxxxx.supabase.co:5432/postgres?sslmode=require
    SUPABASE_DB_USERNAME=postgres
@@ -170,6 +175,7 @@ mvn spring-boot:run
 ```
 
 **O desde el IDE:**
+
 - **IntelliJ IDEA**: Botón Run en la clase principal `VozSeguraApplication`
 - **Eclipse**: Run As → Spring Boot App
 
@@ -178,6 +184,7 @@ La aplicación arrancará en: **http://localhost:8080**
 #### ✅ Verificar que está funcionando
 
 Deberías ver en los logs:
+
 ```
 Database: jdbc:postgresql://db.xxxxx.supabase.co:5432/postgres (PostgreSQL 17.6)
 Started VozSeguraApplication in X.XXX seconds
@@ -195,17 +202,20 @@ La aplicación usa **Supabase** (PostgreSQL en la nube) con **esquemas separados
 ##### 📦 Esquemas de Base de Datos
 
 1. **`public`** (schema por defecto)
+
    - `staff_user`: Usuarios del sistema
    - `complaint`: Denuncias (solo texto cifrado)
    - `derivation_rule`: Reglas de derivación
    - `terms_acceptance`: Aceptación de términos
 
 2. **`secure_identities`** (datos del registro civil)
+
    - `identity_vault`: Solo IDs y hashes de ciudadanos
    - ⚠️ **NO guarda datos personales**, solo hashes SHA-256
    - Con Row Level Security (RLS) habilitado
 
 3. **`evidence_vault`** (evidencias cifradas)
+
    - `evidence`: Archivos y contenido cifrado
    - Todo el contenido está cifrado con AES-256-GCM
    - Con RLS habilitado
@@ -217,18 +227,21 @@ La aplicación usa **Supabase** (PostgreSQL en la nube) con **esquemas separados
 ##### 🔒 Seguridad de Supabase
 
 **Cifrado en múltiples capas:**
+
 - **Cifrado en tránsito**: SSL/TLS obligatorio (`sslmode=require`)
 - **Cifrado en reposo**: Supabase cifra todos los datos en disco
-- **Cifrado a nivel de aplicación**: 
+- **Cifrado a nivel de aplicación**:
   - Textos de denuncias cifrados con AES-256-GCM
   - Evidencias cifradas con AES-256-GCM
   - Hashes SHA-256 para identidades
 
 **Row Level Security (RLS):**
+
 - Solo la aplicación (service_role) puede acceder a datos sensibles
 - Imposible acceso directo desde consola SQL sin permisos
 
 **Separación de datos:**
+
 - Identidades del registro civil en schema separado
 - Evidencias en vault separado
 - Logs de auditoría aislados
@@ -236,6 +249,7 @@ La aplicación usa **Supabase** (PostgreSQL en la nube) con **esquemas separados
 ##### 🚀 Migraciones Automáticas
 
 Las migraciones de **Flyway** crean automáticamente al iniciar la aplicación:
+
 - ✅ Los esquemas separados (`secure_identities`, `evidence_vault`, `audit_logs`)
 - ✅ Las tablas en cada schema
 - ✅ Los índices de seguridad
@@ -246,6 +260,7 @@ Las migraciones de **Flyway** crean automáticamente al iniciar la aplicación:
 ##### 🔍 Verificar en Supabase
 
 Ve a tu proyecto en Supabase:
+
 1. **SQL Editor** → Verifica que existen los schemas: `secure_identities`, `evidence_vault`, `audit_logs`
 2. **Database** → **Policies** → Verifica que RLS está habilitado
 
@@ -280,6 +295,10 @@ Ve a tu proyecto en Supabase:
    │   ↓
    │   Verificar contra AWS Secrets Manager
    │   ↓
+   │   Enviar código OTP por email (AWS SES)
+   │   ↓
+   │   Verificar código OTP (MFA)
+   │   ↓
    │   Acceso a Panel Staff/Admin
    │
    └─→ NO: Continuar con Verificación Biométrica
@@ -305,15 +324,16 @@ Ve a tu proyecto en Supabase:
 
 ### Datos de Acceso (2026)
 
-| Cédula | Código Dactilar | Rol | Clave Secreta AWS | Acceso |
-|--------|----------------|-----|-------------------|--------|
-| `1234567890` | Cualquiera (ej: `ABC123`) | **ADMIN** | `admin_secret_2026` | Panel completo |
-| `0987654321` | Cualquiera (ej: `XYZ789`) | **ANALYST** | `analyst_secret_2026` | Gestión denuncias |
-| Cualquier otra | Cualquiera | **DENUNCIANTE** | - | Formulario denuncia |
+| Cédula         | Código Dactilar           | Rol             | Clave Secreta AWS     | Acceso              |
+| -------------- | ------------------------- | --------------- | --------------------- | ------------------- |
+| `1234567890`   | Cualquiera (ej: `ABC123`) | **ADMIN**       | `admin_secret_2026`   | Panel completo      |
+| `0987654321`   | Cualquiera (ej: `XYZ789`) | **ANALYST**     | `analyst_secret_2026` | Gestión denuncias   |
+| Cualquier otra | Cualquiera                | **DENUNCIANTE** | -                     | Formulario denuncia |
 
 ### Pasos para Probar
 
 #### Como Admin:
+
 1. Ir a http://localhost:8080/auth/login
 2. Aceptar términos y condiciones
 3. Ingresar:
@@ -326,15 +346,148 @@ Ve a tu proyecto en Supabase:
 7. Acceso a `/admin`
 
 #### Como Analista:
+
 1-4. Igual que admin, pero con cédula `0987654321`
-5-6. Clave secreta: `analyst_secret_2026`
-7. Acceso a `/staff/casos`
+5-6. Clave secreta: `analyst_secret_2026` 7. Acceso a `/staff/casos`
 
 #### Como Denunciante:
-1-4. Igual, pero con cualquier otra cédula (ej: `9999999999`)
-5. No solicita clave secreta
-6. Verificación biométrica (subir cualquier foto)
-7. Acceso a formulario de denuncia
+
+1-4. Igual, pero con cualquier otra cédula (ej: `9999999999`) 5. No solicita clave secreta 6. Verificación biométrica (subir cualquier foto) 7. Acceso a formulario de denuncia
+
+---
+
+## ☁️ Configuración AWS (MFA con Email OTP)
+
+### Servicios AWS Utilizados
+
+El proyecto utiliza los siguientes servicios de AWS para autenticación MFA:
+
+| Servicio                | Propósito                                  | Región    |
+| ----------------------- | ------------------------------------------ | --------- |
+| **AWS SES**             | Envío de códigos OTP por email             | us-east-1 |
+| **AWS Secrets Manager** | Almacenamiento de claves secretas de staff | us-east-1 |
+| **AWS IAM**             | Gestión de permisos y usuarios             | Global    |
+
+### Flujo de Autenticación MFA
+
+```
+1. Usuario Staff/Admin ingresa credenciales
+   ↓
+2. Verifica cédula + código dactilar (Registro Civil)
+   ↓
+3. Verifica clave secreta (AWS Secrets Manager)
+   ↓
+4. Envía código OTP de 6 dígitos (AWS SES)
+   ↓
+5. Usuario ingresa código OTP
+   ↓
+6. Acceso autorizado con authMethod: UNIFIED_ZTA_MFA
+```
+
+### Configuración de Credenciales AWS
+
+#### Opción 1: Variables de Entorno (Recomendado para desarrollo)
+
+```bash
+# En Windows PowerShell:
+$env:AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+$env:AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+$env:AWS_REGION="us-east-1"
+
+# En Linux/Mac:
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+```
+
+#### Opción 2: AWS CLI (Más seguro)
+
+```bash
+aws configure
+# Ingresar: Access Key ID, Secret Access Key, Region (us-east-1), Output (json)
+```
+
+#### Verificar Configuración
+
+```bash
+aws sts get-caller-identity
+# Debe mostrar: Account ID, User ARN
+```
+
+### Configuración AWS SES
+
+#### Emails Verificados
+
+Los siguientes emails están verificados en AWS SES para envío de OTP:
+
+| Email                           | Staff              | Estado        |
+| ------------------------------- | ------------------ | ------------- |
+| `stalin.yungan@epn.edu.ec`      | stalin.yungan      | ✅ Verificado |
+| `mario.aisalla@epn.edu.ec`      | sebastian.aisalla  | ✅ Verificado |
+| `francis.velastegui@epn.edu.ec` | francis.velastegui | ✅ Verificado |
+| `marlon.vinueza@epn.edu.ec`     | marlon.vinueza     | ✅ Verificado |
+| `no-reply@vozsegura.com`        | (Remitente)        | ✅ Verificado |
+
+#### Verificar Nuevo Email en SES
+
+```bash
+aws ses verify-email-identity --email-address nuevo-email@epn.edu.ec --region us-east-1
+```
+
+### Configuración AWS Secrets Manager
+
+#### Secretos Configurados
+
+| Secret Name                   | Staff              | Cédula     |
+| ----------------------------- | ------------------ | ---------- |
+| `STAFF_SECRET_KEY_1728848274` | stalin.yungan      | 1728848274 |
+| `STAFF_SECRET_KEY_1726383514` | sebastian.aisalla  | 1726383514 |
+| `STAFF_SECRET_KEY_1754644415` | francis.velastegui | 1754644415 |
+| `STAFF_SECRET_KEY_1753848637` | marlon.vinueza     | 1753848637 |
+
+⚠️ **IMPORTANTE**: Estas claves NO deben borrarse de AWS Secrets Manager. Si se eliminan, los usuarios perderán acceso al sistema.
+
+#### Crear Nuevo Secreto
+
+```bash
+aws secretsmanager create-secret \
+    --name "STAFF_SECRET_KEY_NUEVA_CEDULA" \
+    --secret-string "clave_secreta_segura" \
+    --region us-east-1
+```
+
+### Usuarios Staff Configurados
+
+| Cédula     | Username           | Rol     | Email                         | Secret AWS                  |
+| ---------- | ------------------ | ------- | ----------------------------- | --------------------------- |
+| 1728848274 | stalin.yungan      | ADMIN   | stalin.yungan@epn.edu.ec      | STAFF_SECRET_KEY_1728848274 |
+| 1726383514 | sebastian.aisalla  | ADMIN   | mario.aisalla@epn.edu.ec      | STAFF_SECRET_KEY_1726383514 |
+| 1754644415 | francis.velastegui | ANALYST | francis.velastegui@epn.edu.ec | STAFF_SECRET_KEY_1754644415 |
+| 1753848637 | marlon.vinueza     | ANALYST | marlon.vinueza@epn.edu.ec     | STAFF_SECRET_KEY_1753848637 |
+
+### Troubleshooting AWS
+
+#### Error: "Email not verified"
+
+```bash
+# Verificar email en SES
+aws ses verify-email-identity --email-address email@ejemplo.com --region us-east-1
+# El usuario recibirá un email de confirmación
+```
+
+#### Error: "Access Denied"
+
+```bash
+# Verificar permisos del usuario IAM
+aws iam list-attached-user-policies --user-name tu-usuario
+```
+
+#### Error: "Secret not found"
+
+```bash
+# Listar secretos disponibles
+aws secretsmanager list-secrets --region us-east-1
+```
 
 ---
 
@@ -345,6 +498,7 @@ Ve a tu proyecto en Supabase:
 El `ApiGatewayFilter` intercepta **TODAS** las peticiones y aplica:
 
 #### 1. Validación de Autenticación
+
 ```java
 // Verifica que el usuario tenga sesión autenticada
 if (session == null || session.getAttribute("authenticated") == null) {
@@ -353,6 +507,7 @@ if (session == null || session.getAttribute("authenticated") == null) {
 ```
 
 #### 2. Verificación de Autorización (RBAC)
+
 ```java
 // Control de Acceso Basado en Roles
 switch (userType) {
@@ -363,6 +518,7 @@ switch (userType) {
 ```
 
 #### 3. Validación de Método de Autenticación
+
 ```java
 // Staff/Admin DEBEN usar autenticación ZTA completa
 if (isStaff && authMethod != "UNIFIED_ZTA") {
@@ -371,6 +527,7 @@ if (isStaff && authMethod != "UNIFIED_ZTA") {
 ```
 
 #### 4. Headers de Seguridad
+
 ```java
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
@@ -382,6 +539,7 @@ Content-Security-Policy: default-src 'self'
 ### Logs de Auditoría
 
 Todos los accesos se registran:
+
 ```
 [API GATEWAY ZTA] GET /staff/casos | Session: abc123 | IP: 192.168.1.100
 [API GATEWAY ZTA] ALLOWED - ANALYST accessing /staff/casos
@@ -393,21 +551,21 @@ Todos los accesos se registran:
 
 ### Públicas (No requieren autenticación)
 
-| Ruta | Descripción |
-|------|-------------|
-| `/auth/login` | Login unificado (punto de entrada) |
-| `/auth/unified-login` | Procesar login POST |
-| `/css/**`, `/js/**` | Recursos estáticos |
+| Ruta                  | Descripción                        |
+| --------------------- | ---------------------------------- |
+| `/auth/login`         | Login unificado (punto de entrada) |
+| `/auth/unified-login` | Procesar login POST                |
+| `/css/**`, `/js/**`   | Recursos estáticos                 |
 
 ### Requieren Autenticación
 
-| Ruta | Rol | Descripción |
-|------|-----|-------------|
-| `/auth/secret-key` | Staff/Admin | Pantalla clave secreta |
-| `/denuncia/biometric` | Denunciante | Verificación biométrica |
-| `/denuncia/submit` | Denunciante | Enviar denuncia |
-| `/staff/casos` | Analyst, Admin | Listado denuncias |
-| `/admin` | Admin | Panel administración |
+| Ruta                  | Rol            | Descripción             |
+| --------------------- | -------------- | ----------------------- |
+| `/auth/secret-key`    | Staff/Admin    | Pantalla clave secreta  |
+| `/denuncia/biometric` | Denunciante    | Verificación biométrica |
+| `/denuncia/submit`    | Denunciante    | Enviar denuncia         |
+| `/staff/casos`        | Analyst, Admin | Listado denuncias       |
+| `/admin`              | Admin          | Panel administración    |
 
 ---
 
@@ -426,7 +584,7 @@ Todos los accesos se registran:
 Identidad Real → SHA-256 Hash → Identity Vault
                        ↓
               (nunca se almacena)
-                       
+
 Denuncia → Linked to → Hash (no a identidad real)
 ```
 
@@ -439,6 +597,7 @@ Denuncia → Linked to → Hash (no a identidad real)
 ### Headers de Seguridad
 
 Implementados en API Gateway:
+
 - Content Security Policy (CSP)
 - X-Frame-Options: DENY
 - X-Content-Type-Options: nosniff
@@ -447,6 +606,7 @@ Implementados en API Gateway:
 ### Auditoría
 
 Todos los eventos se registran en `audit_event`:
+
 - Login attempts
 - Accesos a recursos
 - Cambios de estado
@@ -479,11 +639,13 @@ El checkbox de términos **DEBE** estar marcado para habilitar el botón de logi
 **Síntoma:** El API Gateway bloquea todas las peticiones
 
 **Solución:** Esto es normal si intentas acceder sin aceptar términos. Verifica los logs:
+
 ```
 [API GATEWAY ZTA] GET /auth/login | Session: XXX | IP: XXX
 ```
 
 Si ves "BLOCKED", verifica que:
+
 1. La ruta `/auth/` esté en la lista de rutas públicas
 2. El navegador no tenga cache antiguo (Ctrl + F5)
 3. Revisa los logs de la aplicación para más detalles
@@ -499,19 +661,23 @@ taskkill /PID <PID> /F
 ```
 
 ### Error: "Could not resolve placeholder 'SUPABASE_DB_URL'"
+
 - **Causa:** El archivo `.env` no existe o está mal ubicado
 - **Solución:** Asegúrate de que `.env` esté en la **raíz del proyecto** (mismo nivel que `pom.xml`)
 
 ### Error: "Connection refused"
+
 - Verifica que las credenciales en `.env` sean correctas
 - Asegúrate de tener conexión a internet
 - Verifica que la URL de Supabase sea correcta (debe incluir `?sslmode=require`)
 
 ### Error: "Flyway validation failed"
+
 - La base de datos ya tiene las migraciones aplicadas
 - Esto es normal, la app continuará normalmente
 
 ### Las variables de entorno no se cargan
+
 - Verifica que el archivo `.env` no tenga espacios extra en las líneas
 - No uses comillas en los valores: `PASSWORD=abc123` (✅) vs `PASSWORD="abc123"` (❌)
 - Reinicia el IDE después de crear el archivo `.env`
@@ -519,6 +685,7 @@ taskkill /PID <PID> /F
 ### CAPTCHA inválido
 
 El CAPTCHA es único por sesión y se regenera en cada carga de página.
+
 - Copiar el código exactamente como aparece
 - Si da error, recarga la página para obtener uno nuevo
 - Los espacios o mayúsculas/minúsculas importan
@@ -526,15 +693,18 @@ El CAPTCHA es único por sesión y se regenera en cada carga de página.
 ### Error al procesar autenticación
 
 **Síntomas:**
+
 - Vuelve al login después de enviar
 - Mensaje "Error al procesar la autenticación"
 
 **Causas comunes:**
+
 1. **CAPTCHA incorrecto**: El código debe coincidir exactamente
 2. **Sesión expirada**: Recarga la página para nueva sesión
 3. **Servicios mock no funcionan**: Revisa los logs para detalles
 
 **Solución:**
+
 ```powershell
 # Ver logs detallados
 mvn spring-boot:run
@@ -543,6 +713,7 @@ mvn spring-boot:run
 ```
 
 Los logs mostrarán:
+
 ```
 [UNIFIED AUTH] Processing login for cedula: XXXXXXXXXX
 [UNIFIED AUTH] Verifying identity...
@@ -553,6 +724,7 @@ Los logs mostrarán:
 ### Clave secreta incorrecta
 
 **Valores mock para desarrollo:**
+
 - Admin: `admin_secret_2026`
 - Analista: `analyst_secret_2026`
 
@@ -565,6 +737,7 @@ Para más información sobre arquitectura del sistema, consulta [ARQUITECTURA.md
 ### Logs
 
 Los logs se muestran en consola. Para guardarlos:
+
 ```powershell
 mvn spring-boot:run > logs.txt 2>&1
 ```
@@ -592,4 +765,3 @@ MIT License - 2026
 **Voz Segura - Plataforma Segura de Denuncias Anónimas**  
 **Zero Trust Architecture - 2026**  
 **¡Protegiendo tu identidad, protegiendo tu voz!** 🛡️
-
