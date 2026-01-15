@@ -1,11 +1,9 @@
 package com.vozsegura.vozsegura.controller;
 
-import com.vozsegura.vozsegura.dto.forms.SecretKeyForm;
-import com.vozsegura.vozsegura.dto.forms.UnifiedLoginForm;
-import com.vozsegura.vozsegura.service.CaptchaService;
-import com.vozsegura.vozsegura.service.UnifiedAuthService;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Base64;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -15,9 +13,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Base64;
+import com.vozsegura.vozsegura.dto.forms.SecretKeyForm;
+import com.vozsegura.vozsegura.dto.forms.UnifiedLoginForm;
+import com.vozsegura.vozsegura.service.CaptchaService;
+import com.vozsegura.vozsegura.service.UnifiedAuthService;
+
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 
 /**
  * Controlador de Autenticación Unificada (ZTA - Zero Trust Architecture).
@@ -26,8 +28,9 @@ import java.util.Base64;
  * 1. Todos los usuarios (denunciantes, staff, admin) ingresan por /denuncia
  * 2. Se verifica contra Registro Civil + CAPTCHA
  * 3. Si es Staff/Admin -> Solicitar clave secreta AWS
- * 4. Si es Denunciante -> Continuar a verificación biométrica
- * 5. Enrutamiento según rol (API Gateway pattern)
+ * 4. Si es Staff/Admin -> Enviar OTP por email (MFA)
+ * 5. Si es Denunciante -> Continuar a verificación biométrica
+ * 6. Enrutamiento según rol (API Gateway pattern)
  */
 @Controller
 @RequestMapping("/auth")
@@ -180,12 +183,95 @@ public class UnifiedAuthController {
                 return "redirect:/auth/secret-key?error";
             }
 
-            // Autenticación exitosa - Crear sesión Spring Security
+            // Clave secreta válida - Enviar OTP por email (MFA)
             String userType = (String) session.getAttribute("userType");
+            String email = unifiedAuthService.getStaffEmail(cedula);
+            
+            System.out.println("[UNIFIED AUTH] Staff email for " + cedula + ": " + (email != null ? maskEmail(email) : "NOT CONFIGURED"));
+            
+            if (email == null || email.isBlank()) {
+                // Si no tiene email configurado, mostrar error - MFA es obligatorio
+                System.err.println("[UNIFIED AUTH] ERROR: No email configured for staff " + cedula);
+                redirectAttributes.addFlashAttribute("error", "Error de configuracion: Email no configurado para MFA. Contacte al administrador.");
+                return "redirect:/auth/secret-key?error";
+            }
+            
+            // Enviar OTP por email
+            try {
+                System.out.println("[UNIFIED AUTH] Sending OTP to " + maskEmail(email) + "...");
+                String otpToken = unifiedAuthService.sendEmailOtp(email);
+                
+                if (otpToken == null) {
+                    System.err.println("[UNIFIED AUTH] ERROR: OTP token is null - email sending failed");
+                    redirectAttributes.addFlashAttribute("error", "Error al enviar codigo de verificacion. Intente nuevamente.");
+                    return "redirect:/auth/secret-key?error";
+                }
+                
+                session.setAttribute("otpToken", otpToken);
+                session.setAttribute("otpEmail", maskEmail(email));
+                System.out.println("[UNIFIED AUTH] OTP sent successfully to " + maskEmail(email));
+                return "redirect:/auth/verify-otp";
+            } catch (Exception e) {
+                System.err.println("[UNIFIED AUTH] ERROR sending OTP: " + e.getMessage());
+                e.printStackTrace();
+                redirectAttributes.addFlashAttribute("error", "Error al enviar codigo de verificacion: " + e.getMessage());
+                return "redirect:/auth/secret-key?error";
+            }
 
-            // Marcar como autenticado
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al verificar la clave secreta");
+            return "redirect:/auth/secret-key?error";
+        }
+    }
+
+    /**
+     * Pantalla de verificación OTP (Paso 3 para Staff/Admin - MFA).
+     */
+    @GetMapping("/verify-otp")
+    public String showOtpPage(Model model, HttpSession session) {
+        String otpToken = (String) session.getAttribute("otpToken");
+        if (otpToken == null) {
+            return "redirect:/auth/login";
+        }
+        
+        String maskedEmail = (String) session.getAttribute("otpEmail");
+        model.addAttribute("maskedEmail", maskedEmail);
+        model.addAttribute("otpForm", new OtpForm());
+        return "auth/verify-otp";
+    }
+
+    /**
+     * Verificar código OTP (Paso 3 para Staff/Admin - MFA).
+     */
+    @PostMapping("/verify-otp")
+    public String verifyOtp(
+            @ModelAttribute OtpForm form,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+        
+        String otpToken = (String) session.getAttribute("otpToken");
+        String cedula = (String) session.getAttribute("cedula");
+        
+        if (otpToken == null || cedula == null) {
+            return "redirect:/auth/login";
+        }
+
+        try {
+            boolean isValid = unifiedAuthService.verifyOtp(otpToken, form.getOtpCode());
+            
+            if (!isValid) {
+                redirectAttributes.addFlashAttribute("error", "Código incorrecto o expirado");
+                return "redirect:/auth/verify-otp?error";
+            }
+
+            // MFA exitoso - Crear sesión autenticada
+            String userType = (String) session.getAttribute("userType");
             session.setAttribute("authenticated", true);
-            session.setAttribute("authMethod", "UNIFIED_ZTA");
+            session.setAttribute("authMethod", "UNIFIED_ZTA_MFA");
+            session.removeAttribute("otpToken");
+            session.removeAttribute("otpEmail");
+
+            System.out.println("[UNIFIED AUTH] MFA successful for " + cedula);
 
             // Redirigir según rol
             if ("ADMIN".equals(userType)) {
@@ -195,9 +281,59 @@ public class UnifiedAuthController {
             }
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al verificar la clave secreta");
-            return "redirect:/auth/secret-key?error";
+            System.err.println("[UNIFIED AUTH] Error verifying OTP: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al verificar el código");
+            return "redirect:/auth/verify-otp?error";
         }
+    }
+
+    /**
+     * Reenviar código OTP.
+     */
+    @PostMapping("/resend-otp")
+    public String resendOtp(HttpSession session, RedirectAttributes redirectAttributes) {
+        String cedula = (String) session.getAttribute("cedula");
+        if (cedula == null) {
+            return "redirect:/auth/login";
+        }
+
+        try {
+            String email = unifiedAuthService.getStaffEmail(cedula);
+            String otpToken = unifiedAuthService.sendEmailOtp(email);
+            session.setAttribute("otpToken", otpToken);
+            redirectAttributes.addFlashAttribute("success", "Código reenviado exitosamente");
+            return "redirect:/auth/verify-otp";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al reenviar el código. Intente en unos minutos.");
+            return "redirect:/auth/verify-otp?error";
+        }
+    }
+
+    /**
+     * Enmascara el email para mostrar al usuario (ej: s***n@epn.edu.ec).
+     */
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***@***.***";
+        }
+        String[] parts = email.split("@");
+        String local = parts[0];
+        String domain = parts[1];
+        
+        if (local.length() <= 2) {
+            return local.charAt(0) + "***@" + domain;
+        }
+        return local.charAt(0) + "***" + local.charAt(local.length() - 1) + "@" + domain;
+    }
+
+    /**
+     * DTO simple para el formulario OTP.
+     */
+    public static class OtpForm {
+        private String otpCode;
+        
+        public String getOtpCode() { return otpCode; }
+        public void setOtpCode(String otpCode) { this.otpCode = otpCode; }
     }
 
     /**
