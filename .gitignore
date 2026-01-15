@@ -40,6 +40,9 @@ credentials
 *.pem
 *.key
 *.crt
+*_accessKeys.csv
+*_credentials.csv
+aws-credentials*.csv
 
 # Archivos de configuración con secretos
 application-local.yml
