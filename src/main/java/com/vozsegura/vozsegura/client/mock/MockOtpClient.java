@@ -1,14 +1,15 @@
 package com.vozsegura.vozsegura.client.mock;
 
-import com.vozsegura.vozsegura.client.OtpClient;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
-
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+import com.vozsegura.vozsegura.client.OtpClient;
 
 /**
  * Implementación Mock de OTP con protecciones de seguridad reales.
@@ -72,15 +73,32 @@ public class MockOtpClient implements OtpClient {
         // Guardar token con su estado
         tokensActivos.put(otpId, new TokenData(codigo, destination));
         
-        // Simulación de envío (en producción: AWS SNS, Twilio, etc.)
-        System.out.println("╔══════════════════════════════════════════╗");
-        System.out.println("║  [OTP MOCK] Código enviado a: " + destination);
-        System.out.println("║  Código: " + codigo);
-        System.out.println("║  ID: " + otpId.substring(0, 8) + "...");
-        System.out.println("║  Expira en: " + MINUTOS_EXPIRACION + " minutos");
-        System.out.println("╚══════════════════════════════════════════╝");
+        // Simulacion de envio (en produccion: AWS SES, SNS, Twilio, etc.)
+        // SEGURIDAD: NUNCA imprimir el codigo OTP en logs
+        System.out.println("============================================");
+        System.out.println(" [OTP MOCK] Codigo enviado a: " + maskDestination(destination));
+        System.out.println(" ID: " + otpId.substring(0, 8) + "...");
+        System.out.println(" Expira en: " + MINUTOS_EXPIRACION + " minutos");
+        System.out.println("============================================");
         
         return otpId;
+    }
+
+    /**
+     * Enmascara el destino para los logs (seguridad).
+     */
+    private String maskDestination(String destination) {
+        if (destination == null || destination.length() < 6) {
+            return "***";
+        }
+        if (destination.contains("@")) {
+            // Es email
+            String[] parts = destination.split("@");
+            String local = parts[0];
+            return local.substring(0, Math.min(3, local.length())) + "***@" + parts[1];
+        }
+        // Es telefono u otro
+        return destination.substring(0, 3) + "****" + destination.substring(destination.length() - 2);
     }
 
     @Override

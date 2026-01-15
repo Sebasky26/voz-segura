@@ -129,13 +129,13 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
      */
     private String getStaffSecretFromAws(String secretName) {
         if (!awsAvailable || awsClient == null) {
-            System.err.println("[HYBRID] ⚠️  AWS not available for staff secret: " + secretName);
-            System.err.println("[HYBRID] ⚠️  SECURITY RISK: Cannot authenticate staff securely");
+            System.err.println("[HYBRID] WARNING: AWS not available for staff secret: " + secretName);
+            System.err.println("[HYBRID] SECURITY RISK: Cannot authenticate staff securely");
             return null; // Fallar de forma segura - no usar fallbacks para credenciales
         }
 
         try {
-            System.out.println("[HYBRID] 🔐 Fetching staff secret from AWS: " + secretName);
+            System.out.println("[HYBRID] Fetching staff secret from AWS: " + secretName);
 
             GetSecretValueRequest request = GetSecretValueRequest.builder()
                     .secretId(secretName)
@@ -144,7 +144,7 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
             GetSecretValueResponse response = awsClient.getSecretValue(request);
             String secretValue = response.secretString();
 
-            System.out.println("[HYBRID] ✅ Staff secret retrieved securely from AWS");
+            System.out.println("[HYBRID] Staff secret retrieved securely from AWS");
             return secretValue;
 
         } catch (SecretsManagerException e) {
