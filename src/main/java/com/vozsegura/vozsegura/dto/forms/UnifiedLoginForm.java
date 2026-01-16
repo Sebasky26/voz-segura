@@ -1,6 +1,7 @@
 package com.vozsegura.vozsegura.dto.forms;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -17,6 +18,11 @@ public class UnifiedLoginForm {
     private String cedula;
 
     @NotBlank(message = "El código dactilar es requerido")
+    @Size(min = 10, max = 10, message = "El código dactilar debe tener exactamente 10 caracteres")
+    @Pattern(
+            regexp = "^[A-Z][1-9]{4}[A-Z][1-9]{4}$",
+            message = "Formato inválido. Debe ser: 1 letra, 4 números, 1 letra, 4 números (ej: A1234B5678)"
+    )
     private String codigoDactilar;
 
     // Getters y Setters

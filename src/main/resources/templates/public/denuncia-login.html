@@ -124,13 +124,21 @@
                 </label>
                 <div class="vs-input-wrapper">
                     <input
-                            type="password"
+                            type="text"
                             th:field="*{codigoDactilar}"
                             id="codigoDactilar"
                             class="vs-input"
                             required
+                            maxlength="10"
+                            pattern="^[A-Za-z][1-9]{4}[A-Za-z][1-9]{4}$"
+                            placeholder="A1234B5678"
+                            autocomplete="off"
+                            inputmode="text"
                     />
                 </div>
+                <span class="vs-form__help">
+                    Formato: 1 letra + 4 números + 1 letra + 4 números (ej: A1234B5678)
+                </span>
             </div>
 
             <!-- Cloudflare Turnstile -->
@@ -283,6 +291,109 @@
     document.getElementById('cedula').addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '').slice(0, 10);
     });
+
+    /**
+     * ============================================
+     * VALIDACIÓN Y TRANSFORMACIÓN DE CÓDIGO DACTILAR
+     * ============================================
+     * 
+     * Seguridad implementada:
+     * - Validación de patrón: 1 letra, 4 números, 1 letra, 4 números
+     * - Conversión automática a mayúsculas
+     * - Prevención de inyección de caracteres especiales (XSS mitigation)
+     * - Bloqueo de drag & drop para evitar inyección
+     * - Sanitización de paste para evitar contenido malicioso
+     * - Límite de 10 caracteres máximo
+     * - Validación visual en tiempo real
+     * 
+     * La validación final se realiza en el servidor (no confiar solo en cliente)
+     */
+    (function() {
+        'use strict';
+        
+        const codigoDactilarInput = document.getElementById('codigoDactilar');
+        if (!codigoDactilarInput) return;
+        
+        // Validación y transformación del código dactilar
+        codigoDactilarInput.addEventListener('input', function(e) {
+            // Permitir solo letras A-Z/a-z y números 1-9
+            // Esto previene inyección de caracteres especiales (XSS mitigation)
+            let valor = this.value.replace(/[^A-Za-z1-9]/g, '');
+            
+            // Limitar a máximo 10 caracteres
+            valor = valor.substring(0, 10);
+            
+            // Convertir a mayúsculas
+            valor = valor.toUpperCase();
+            
+            // Validar patrón: A1234B5678 (1 letra, 4 números, 1 letra, 4 números)
+            const patronValido = /^[A-Z][1-9]{4}[A-Z][1-9]{4}$/.test(valor);
+            
+            // Actualizar valor del input
+            this.value = valor;
+            
+            // Actualizar validez del campo (visual feedback)
+            if (valor.length === 10 && !patronValido) {
+                this.style.borderColor = '#d32f2f'; // Rojo para error
+                this.classList.add('vs-input--error');
+            } else if (valor.length === 10 && patronValido) {
+                this.style.borderColor = '#4caf50'; // Verde para válido
+                this.classList.remove('vs-input--error');
+            } else if (valor.length > 0 && valor.length < 10) {
+                this.style.borderColor = '#ffa500'; // Naranja para incompleto
+                this.classList.remove('vs-input--error');
+            } else {
+                this.style.borderColor = ''; // Default
+                this.classList.remove('vs-input--error');
+            }
+        });
+        
+        /**
+         * Prevenir ataques de drag & drop
+         * Desabilitar el evento para evitar inyección de contenido
+         */
+        codigoDactilarInput.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.warn('[SECURITY] Intento de drag & drop bloqueado en código dactilar');
+            return false;
+        });
+        
+        /**
+         * Sanitizar contenido de portapapeles (Paste)
+         * Previene inyección de código malicioso al pegar
+         */
+        codigoDactilarInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Obtener contenido del portapapeles de forma segura
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            if (pasteData) {
+                // Sanitizar: solo permitir letras y números 1-9
+                let valor = pasteData.replace(/[^A-Za-z1-9]/g, '');
+                valor = valor.substring(0, 10);
+                valor = valor.toUpperCase();
+                
+                this.value = valor;
+                
+                // Disparar evento input para validación
+                const event = new Event('input', { bubbles: true });
+                this.dispatchEvent(event);
+            }
+            
+            return false;
+        });
+        
+        /**
+         * Bloquear eventos maliciosos
+         */
+        codigoDactilarInput.addEventListener('contextmenu', function(e) {
+            // Permitir menú contextual pero no afecta la seguridad
+            return true;
+        });
+    })();
+
 </script>
 
 </body>

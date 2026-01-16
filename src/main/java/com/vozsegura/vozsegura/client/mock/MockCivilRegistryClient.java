@@ -31,15 +31,16 @@ public class MockCivilRegistryClient implements CivilRegistryClient {
             return null;
         }
         
-        // PASO 2: Validar código dactilar (en mock, aceptamos cualquier valor no vacío)
-        if (codigoDactilar == null || codigoDactilar.isBlank()) {
-            System.err.println("[REGISTRO CIVIL] Código dactilar vacío");
+        // PASO 2: Validar código dactilar (formato: 1 letra, 4 números, 1 letra, 4 números)
+        if (!validarCodigoDactilar(codigoDactilar)) {
+            System.err.println("[REGISTRO CIVIL] Código dactilar inválido: " + codigoDactilar);
             return null;
         }
         
         // PASO 3: Simulación de consulta exitosa al Registro Civil
         String citizenRef = "CITIZEN-" + cedula;
         System.out.println("[REGISTRO CIVIL] Identidad verificada: " + citizenRef);
+        System.out.println("[REGISTRO CIVIL] Código dactilar validado correctamente");
         
         return citizenRef;
     }
@@ -121,5 +122,52 @@ public class MockCivilRegistryClient implements CivilRegistryClient {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    /**
+     * Valida el código dactilar con el formato especificado.
+     * 
+     * Formato esperado: 1 letra (A-Z) + 4 números (1-9) + 1 letra (A-Z) + 4 números (1-9)
+     * Ejemplo válido: A1234B5678
+     * 
+     * Seguridad implementada:
+     * - Rechaza valores nulos o vacíos
+     * - Valida patrón regex estricto
+     * - Rechaza caracteres especiales (prevención de inyección)
+     * - Solo permite mayúsculas (normalización)
+     * - No permite números 0 en posiciones de dígitos
+     * 
+     * @param codigoDactilar Código dactilar a validar
+     * @return true si el código dactilar cumple el formato especificado
+     */
+    private boolean validarCodigoDactilar(String codigoDactilar) {
+        // VALIDACIÓN 1: No nulo y no vacío
+        if (codigoDactilar == null || codigoDactilar.isBlank()) {
+            System.err.println("[VALIDACIÓN DACTILAR] Código dactilar nulo o vacío");
+            return false;
+        }
+        
+        // VALIDACIÓN 2: Tiene exactamente 10 caracteres
+        if (codigoDactilar.length() != 10) {
+            System.err.println("[VALIDACIÓN DACTILAR] Longitud inválida: " + codigoDactilar.length() + " (esperado: 10)");
+            return false;
+        }
+        
+        // VALIDACIÓN 3: Contiene solo mayúsculas y números (sin caracteres especiales)
+        // Previene inyección de caracteres maliciosos (XSS, SQLi, etc.)
+        if (!codigoDactilar.matches("[A-Z0-9]{10}")) {
+            System.err.println("[VALIDACIÓN DACTILAR] Contiene caracteres inválidos: " + codigoDactilar);
+            return false;
+        }
+        
+        // VALIDACIÓN 4: Patrón específico: [A-Z][1-9][1-9][1-9][1-9][A-Z][1-9][1-9][1-9][1-9]
+        if (!codigoDactilar.matches("^[A-Z][1-9]{4}[A-Z][1-9]{4}$")) {
+            System.err.println("[VALIDACIÓN DACTILAR] Patrón inválido: " + codigoDactilar);
+            System.err.println("[VALIDACIÓN DACTILAR] Esperado: 1 letra, 4 números (1-9), 1 letra, 4 números (1-9)");
+            return false;
+        }
+        
+        System.out.println("[VALIDACIÓN DACTILAR] ✓ Código dactilar válido: " + codigoDactilar);
+        return true;
     }
 }
