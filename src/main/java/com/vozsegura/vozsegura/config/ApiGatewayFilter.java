@@ -126,7 +126,12 @@ public class ApiGatewayFilter implements Filter {
         httpResponse.setHeader("X-Frame-Options", "DENY");
         httpResponse.setHeader("X-XSS-Protection", "1; mode=block");
         httpResponse.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-        httpResponse.setHeader("Content-Security-Policy", "default-src 'self'");
+        httpResponse.setHeader("Content-Security-Policy", 
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "frame-src https://challenges.cloudflare.com; " +
+            "connect-src 'self' https://challenges.cloudflare.com");
 
         // 7. Petición autorizada - continuar
         System.out.println("[API GATEWAY ZTA] ALLOWED - " + userType + " accessing " + requestUri);

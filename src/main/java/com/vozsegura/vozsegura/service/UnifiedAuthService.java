@@ -44,14 +44,10 @@ public class UnifiedAuthService {
 
     /**
      * Paso 1: Verificar cédula y código dactilar contra Registro Civil.
+     * La validación de Turnstile se realiza en el controlador antes de este paso.
      * Retorna el citizenRef si es válido.
      */
-    public String verifyCitizenIdentity(String cedula, String codigoDactilar, String captcha, String sessionId) {
-        // Validar CAPTCHA
-        if (!captchaService.validateCaptcha(sessionId, captcha)) {
-            throw new SecurityException("CAPTCHA inválido");
-        }
-
+    public String verifyCitizenIdentity(String cedula, String codigoDactilar) {
         // Verificar contra Registro Civil (API Externa)
         String citizenRef = civilRegistryClient.verifyCitizen(cedula, codigoDactilar);
         if (citizenRef == null) {

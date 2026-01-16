@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Acceso - Voz Segura</title>
     <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+    <!-- Cloudflare Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="vs-app">
 
@@ -131,24 +133,19 @@
                 </div>
             </div>
 
-            <!-- CAPTCHA -->
+            <!-- Cloudflare Turnstile -->
             <div class="vs-form__group">
-                <label class="vs-form__label vs-form__label--required" for="captcha">
-                    Código de seguridad
+                <label class="vs-form__label vs-form__label--required">
+                    Verificación de seguridad
                 </label>
-                <div class="vs-captcha">
-                    <div class="vs-captcha__code" th:text="${captchaCode}">XXXXXX</div>
-                    <input
-                            type="text"
-                            th:field="*{captcha}"
-                            id="captcha"
-                            class="vs-input vs-captcha__input"
-                            required
-                            maxlength="6"
-                    />
+                <div class="cf-turnstile" 
+                     th:data-sitekey="${turnstileSiteKey}"
+                     data-theme="light"
+                     data-callback="onTurnstileSuccess"
+                     data-error-callback="onTurnstileError">
                 </div>
-                <span class="vs-form__help">
-                    Escriba el código mostrado.
+                <span class="vs-form__help" id="turnstileError" style="display: none; color: #d32f2f;">
+                    Error en la verificación de Turnstile. Por favor intente nuevamente.
                 </span>
             </div>
 
@@ -184,6 +181,47 @@
 </main>
 
 <script>
+    // Variables globales para Turnstile
+    let turnstileValid = false;
+
+    /**
+     * Callback cuando Turnstile se valida exitosamente
+     */
+    function onTurnstileSuccess(token) {
+        console.log("[TURNSTILE] Validación exitosa");
+        turnstileValid = true;
+        document.getElementById('turnstileError').style.display = 'none';
+    }
+
+    /**
+     * Callback cuando Turnstile falla
+     */
+    function onTurnstileError() {
+        console.error("[TURNSTILE] Error en validación");
+        turnstileValid = false;
+        document.getElementById('turnstileError').style.display = 'block';
+    }
+
+    // Debugging - verificar que Turnstile se está cargando
+    window.addEventListener('load', function () {
+        console.log("[DEBUG] Página cargada");
+        const turnstileDiv = document.querySelector('.cf-turnstile');
+        if (turnstileDiv) {
+            console.log("[DEBUG] Div Turnstile encontrado");
+            console.log("[DEBUG] Data-sitekey:", turnstileDiv.getAttribute('data-sitekey'));
+            console.log("[DEBUG] Cloudflare API:", window.grecaptcha !== undefined ? "Disponible" : "No disponible");
+            
+            if (window.turnstile) {
+                console.log("[DEBUG] Turnstile API cargada correctamente");
+            } else {
+                console.warn("[DEBUG] Turnstile API no está disponible");
+            }
+        } else {
+            console.error("[DEBUG] Div Turnstile NO encontrado");
+        }
+    });
+
+    // Funciones de modal de términos
     function showTermsModal(event) {
         if (event) event.preventDefault();
         document.getElementById('termsModal').classList.remove('vs-modal--hidden');
@@ -199,6 +237,7 @@
         closeTermsModal();
     }
 
+    // Event listeners
     document.getElementById('termsAcceptance').addEventListener('change', function () {
         document.getElementById('submitBtn').disabled = !this.checked;
     });
@@ -208,6 +247,13 @@
         if (!termsAccepted) {
             e.preventDefault();
             alert('Debe aceptar los términos y condiciones para continuar.');
+            return false;
+        }
+
+        // Verificar que Turnstile fue validado
+        if (!turnstileValid) {
+            e.preventDefault();
+            document.getElementById('turnstileError').style.display = 'block';
             return false;
         }
     });
@@ -224,6 +270,7 @@
         }
     });
 
+    // Mostrar términos al cargar la página
     window.addEventListener('load', function () {
         const hasSeenTerms = sessionStorage.getItem('termsShown');
         if (!hasSeenTerms) {
@@ -232,6 +279,7 @@
         }
     });
 
+    // Permitir solo dígitos en cédula
     document.getElementById('cedula').addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '').slice(0, 10);
     });

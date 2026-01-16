@@ -15,9 +15,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.vozsegura.vozsegura.dto.forms.SecretKeyForm;
 import com.vozsegura.vozsegura.dto.forms.UnifiedLoginForm;
-import com.vozsegura.vozsegura.service.CaptchaService;
+import com.vozsegura.vozsegura.service.CloudflareTurnstileService;
 import com.vozsegura.vozsegura.service.UnifiedAuthService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
@@ -26,7 +27,7 @@ import jakarta.validation.Valid;
  *
  * Flujo de autenticación:
  * 1. Todos los usuarios (denunciantes, staff, admin) ingresan por /denuncia
- * 2. Se verifica contra Registro Civil + CAPTCHA
+ * 2. Se verifica contra Registro Civil + Cloudflare Turnstile
  * 3. Si es Staff/Admin -> Solicitar clave secreta AWS
  * 4. Si es Staff/Admin -> Enviar OTP por email (MFA)
  * 5. Si es Denunciante -> Continuar a verificación biométrica
@@ -37,11 +38,11 @@ import jakarta.validation.Valid;
 public class UnifiedAuthController {
 
     private final UnifiedAuthService unifiedAuthService;
-    private final CaptchaService captchaService;
+    private final CloudflareTurnstileService turnstileService;
 
-    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CaptchaService captchaService) {
+    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService) {
         this.unifiedAuthService = unifiedAuthService;
-        this.captchaService = captchaService;
+        this.turnstileService = turnstileService;
     }
 
     /**
@@ -49,46 +50,62 @@ public class UnifiedAuthController {
      */
     @GetMapping("/login")
     public String showLoginPage(Model model, HttpSession session) {
-        // Generar CAPTCHA único para esta sesión
-        String captchaCode = captchaService.generateCaptcha(session.getId());
-
+        // Inyectar site key de Turnstile (pública, segura en frontend)
+        model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
         model.addAttribute("unifiedLoginForm", new UnifiedLoginForm());
-        model.addAttribute("captchaCode", captchaCode);
 
         return "public/denuncia-login";
     }
 
     /**
-     * Procesar login unificado (Paso 1: Verificación Registro Civil).
+     * Procesar login unificado (Paso 1: Verificación Registro Civil + Turnstile).
      */
     @PostMapping("/unified-login")
     public String processUnifiedLogin(
             @Valid @ModelAttribute UnifiedLoginForm form,
             BindingResult result,
             HttpSession session,
+            HttpServletRequest request,
             RedirectAttributes redirectAttributes,
             Model model) {
 
         System.out.println("[UNIFIED AUTH] Processing login for cedula: " + form.getCedula());
 
+        // Validaciones básicas del formulario
         if (result.hasErrors()) {
             System.out.println("[UNIFIED AUTH] Validation errors: " + result.getAllErrors());
-            // Regenerar CAPTCHA en caso de error
-            String captchaCode = captchaService.generateCaptcha(session.getId());
-            model.addAttribute("captchaCode", captchaCode);
+            model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Por favor complete todos los campos correctamente");
+            return "public/denuncia-login";
+        }
+
+        // Validar token de Turnstile
+        String turnstileToken = request.getParameter("cf-turnstile-response");
+        if (turnstileToken == null || turnstileToken.isBlank()) {
+            System.out.println("[UNIFIED AUTH] Turnstile token no proporcionado");
+            model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
+            model.addAttribute("error", "Verificación de Turnstile fallida. Por favor intente nuevamente.");
+            return "public/denuncia-login";
+        }
+
+        // Obtener IP del cliente para validación adicional
+        String clientIp = getClientIp(request);
+        
+        // Verificar token Turnstile
+        if (!turnstileService.verifyTurnstileToken(turnstileToken, clientIp)) {
+            System.out.println("[UNIFIED AUTH] Turnstile validation failed for IP: " + clientIp);
+            model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
+            model.addAttribute("error", "No se pudo verificar que eres una persona. Por favor intenta de nuevo.");
             return "public/denuncia-login";
         }
 
         try {
             System.out.println("[UNIFIED AUTH] Verifying identity...");
 
-            // Paso 1: Verificar identidad contra Registro Civil
+            // Paso 1: Verificar identidad contra Registro Civil (sin CAPTCHA)
             String citizenRef = unifiedAuthService.verifyCitizenIdentity(
                 form.getCedula(),
-                form.getCodigoDactilar(),
-                form.getCaptcha(),
-                session.getId()
+                form.getCodigoDactilar()
             );
 
             System.out.println("[UNIFIED AUTH] Identity verified: " + citizenRef);
@@ -123,20 +140,34 @@ public class UnifiedAuthController {
 
         } catch (SecurityException e) {
             System.err.println("[UNIFIED AUTH] Security exception: " + e.getMessage());
-            // Regenerar CAPTCHA en caso de error
-            String captchaCode = captchaService.generateCaptcha(session.getId());
-            model.addAttribute("captchaCode", captchaCode);
+            model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", e.getMessage());
             return "public/denuncia-login";
         } catch (Exception e) {
             System.err.println("[UNIFIED AUTH] Unexpected error: " + e.getMessage());
             e.printStackTrace();
-            // Regenerar CAPTCHA en caso de error
-            String captchaCode = captchaService.generateCaptcha(session.getId());
-            model.addAttribute("captchaCode", captchaCode);
+            model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Error al procesar la autenticación. Por favor intente nuevamente.");
             return "public/denuncia-login";
         }
+    }
+
+    /**
+     * Extrae la IP real del cliente considerando proxies (X-Forwarded-For, etc)
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            // En caso de múltiples proxies, tomar la primera IP
+            return xForwardedFor.split(",")[0].trim();
+        }
+
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+
+        return request.getRemoteAddr();
     }
 
     /**

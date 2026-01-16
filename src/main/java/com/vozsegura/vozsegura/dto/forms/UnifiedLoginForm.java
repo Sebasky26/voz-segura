@@ -5,7 +5,10 @@ import jakarta.validation.constraints.Size;
 
 /**
  * DTO para el formulario de login unificado (denunciantes, staff, admin).
- * Todos los usuarios se autentican primero contra el Registro Civil.
+ * Todos los usuarios se autentican primero contra el Registro Civil + Cloudflare Turnstile.
+ * 
+ * Nota: La validación de Turnstile se realiza en el controlador,
+ * no en este DTO, ya que es un token de cliente no incluido en el formulario HTML tradicional.
  */
 public class UnifiedLoginForm {
 
@@ -15,10 +18,6 @@ public class UnifiedLoginForm {
 
     @NotBlank(message = "El código dactilar es requerido")
     private String codigoDactilar;
-
-    @NotBlank(message = "El CAPTCHA es requerido")
-    @Size(min = 6, max = 6, message = "El CAPTCHA debe tener 6 caracteres")
-    private String captcha;
 
     // Getters y Setters
     public String getCedula() {
@@ -35,14 +34,6 @@ public class UnifiedLoginForm {
 
     public void setCodigoDactilar(String codigoDactilar) {
         this.codigoDactilar = codigoDactilar;
-    }
-
-    public String getCaptcha() {
-        return captcha;
-    }
-
-    public void setCaptcha(String captcha) {
-        this.captcha = captcha;
     }
 }
 
