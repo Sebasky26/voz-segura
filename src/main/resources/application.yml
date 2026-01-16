@@ -19,12 +19,16 @@ voice:
   encryption-key-secret-name: VOZSEGURA_DATA_KEY_B64
 
 # Cloudflare Turnstile Configuration
+# Las claves se leen de variables de entorno (.env)
 cloudflare:
   turnstile:
     # Site key (pública - seguro en frontend)
-    site-key: "0x4AAAAAACMxvT24oFdFEy77"
+    # Se lee de: CLOUDFLARE_SITE_KEY (en .env)
+    site-key: "${CLOUDFLARE_SITE_KEY:}"
     # Secret key (privada - solo en backend)
-    secret-key: "0x4AAAAAACMxvUBhEqbJRyAEZNU3E7xmSRA"
+    # Se lee de: CLOUDFLARE_SECRET_KEY (en .env)
+    # NUNCA incluir valor por defecto aquí - debe venir del .env
+    secret-key: "${CLOUDFLARE_SECRET_KEY:}"
 
 logging:
   level:
