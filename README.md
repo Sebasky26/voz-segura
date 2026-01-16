@@ -158,9 +158,15 @@ cd voz-segura
    SUPABASE_DB_USERNAME=postgres
    SUPABASE_DB_PASSWORD=tu-password-aqui
    VOZSEGURA_DATA_KEY_B64=clave-de-cifrado-aqui
+   CLOUDFLARE_SITE_KEY=0x4AAAAAACMxvT24oFdFEy77
+   CLOUDFLARE_SECRET_KEY=tu-secret-key-cloudflare-aqui
    ```
 
    ⚠️ **Solicita estas credenciales al líder del proyecto por correo** (no están en Git por seguridad)
+   
+   ℹ️ **Sobre Cloudflare Turnstile:**
+   - `CLOUDFLARE_SITE_KEY`: Clave pública (se puede exponer en el frontend)
+   - `CLOUDFLARE_SECRET_KEY`: Clave privada (solo en el backend, MUY sensible)
 
    📝 **Nota:** El proyecto usa `spring-dotenv` que carga automáticamente el archivo `.env` al iniciar.
 
