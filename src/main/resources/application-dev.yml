@@ -16,10 +16,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: false
+    show-sql: true
     properties:
       hibernate:
-        format_sql: false
+        format_sql: true
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -30,15 +30,56 @@ spring:
       max-file-size: 25MB
       max-request-size: 30MB
       enabled: true
+  thymeleaf:
+    cache: false
+
+# JWT Development
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-change-in-production-32-chars}
+  expiration: 86400000
+
+# Supabase
+supabase:
+  project-url: ${SUPABASE_PROJECT_URL:}
+  anon-key: ${SUPABASE_ANON_KEY:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
 
 # Configuracion AWS
 aws:
   region: us-east-1
   ses:
     from-email: ${AWS_SES_FROM_EMAIL:stalin.yungan@epn.edu.ec}
+  access:
+    key-id: ${AWS_ACCESS_KEY_ID:}
+  secret:
+    access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+# Encryption
+vozsegura:
+  encryption:
+    key-b64: ${VOZSEGURA_DATA_KEY_B64:}
+
+# Cloudflare
+cloudflare:
+  turnstile:
+    site-key: ${CLOUDFLARE_SITE_KEY:}
+    secret-key: ${CLOUDFLARE_SECRET_KEY:}
 
 server:
+  port: 8082
   error:
     whitelabel:
       enabled: false
     include-message: never
+
+# Development Logging
+logging:
+  level:
+    root: INFO
+    com.vozsegura.vozsegura: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  file:
+    name: logs/core-dev.log

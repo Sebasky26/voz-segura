@@ -12,24 +12,42 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
+/**
+ * Configuración de Seguridad - VOZ SEGURA CORE
+ * 
+ * Con Spring Cloud Gateway en el frontend (puerto 8080):
+ * - El gateway valida JWT
+ * - El gateway agrega headers: X-User-Cedula, X-User-Type, X-Api-Key
+ * - Esta aplicación (puerto 8082) confía en esos headers
+ * - Este SecurityConfig es el segundo nivel de defensa
+ * 
+ * @author Voz Segura Team
+ * @version 2.0 - 2026
+ */
 @Configuration
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // CSRF habilitado (el gateway valida tokens)
             .csrf(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
-                // Rutas públicas (manejadas por API Gateway)
-                .requestMatchers("/auth/**", "/denuncia/**", "/terms", "/css/**", "/js/**", "/images/**").permitAll()
-                // El resto será validado por el API Gateway Filter
+                // Rutas públicas (mantenidas sin cambios)
+                .requestMatchers("/auth/**", "/denuncia/**", "/terms", "/terms/**", 
+                    "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error", "/error/**")
+                .permitAll()
+                // El resto es validado por ApiGatewayFilter
+                // que verifica los headers del gateway
                 .anyRequest().permitAll()
             )
-            .formLogin(form -> form.disable()) // Deshabilitado, usamos autenticación unificada
+            // Deshabilitado - usamos autenticación unificada con JWT en el gateway
+            .formLogin(form -> form.disable())
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
                 .logoutSuccessUrl("/auth/login?logout")
             )
+            // Headers de seguridad
             .headers(headers -> headers
                 .xssProtection(Customizer.withDefaults())
                 .contentSecurityPolicy(csp -> csp

@@ -3,6 +3,7 @@ package com.vozsegura.vozsegura.service;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import com.vozsegura.vozsegura.client.CivilRegistryClient;
 import com.vozsegura.vozsegura.client.OtpClient;
@@ -78,17 +79,55 @@ public class UnifiedAuthService {
     }
 
     /**
-     * Paso 3: Validar clave secreta de AWS Secrets Manager (solo para Staff/Admin).
+     * Paso 3: Validar contraseña del usuario contra password_hash en la base de datos (solo para Staff/Admin).
+     * Si el hash es "NOT_USED_AWS_SECRET", busca en AWS Secrets Manager.
+     * Si es un hash BCrypt válido, usa BCrypt.
      */
     public boolean validateSecretKey(String cedula, String secretKey) {
-        // Obtener la clave secreta desde AWS Secrets Manager
-        String expectedSecretKey = secretsManagerClient.getSecretString("STAFF_SECRET_KEY_" + cedula);
+        // Obtener el usuario de staff desde la base de datos
+        Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(cedula);
 
-        if (expectedSecretKey == null) {
+        if (!staffUser.isPresent()) {
+            System.out.println("[AUTH DEBUG] Staff user not found for cedula: " + cedula);
             return false;
         }
 
-        return expectedSecretKey.equals(secretKey);
+        // Validar la contraseña contra el hash usando BCrypt
+        String passwordHash = staffUser.get().getPasswordHash();
+        System.out.println("[AUTH DEBUG] Password hash from DB: " + (passwordHash != null ? passwordHash.substring(0, Math.min(30, passwordHash.length())) + "..." : "NULL"));
+        System.out.println("[AUTH DEBUG] Secret key length: " + secretKey.length());
+        
+        if (passwordHash == null || passwordHash.isEmpty()) {
+            System.out.println("[AUTH DEBUG] Password hash is null or empty!");
+            return false;
+        }
+        
+        // Si el hash dice "NOT_USED_AWS_SECRET", buscar en AWS Secrets Manager
+        if (passwordHash.contains("NOT_USED_AWS_SECRET")) {
+            System.out.println("[AUTH DEBUG] Using AWS Secrets Manager for validation");
+            String expectedSecretKey = secretsManagerClient.getSecretString("STAFF_SECRET_KEY_" + cedula);
+            if (expectedSecretKey != null && expectedSecretKey.equals(secretKey)) {
+                System.out.println("[AUTH DEBUG] AWS Secrets Manager validation: SUCCESS");
+                return true;
+            } else {
+                System.out.println("[AUTH DEBUG] AWS Secrets Manager validation: FAILED");
+                return false;
+            }
+        }
+        
+        // Si es un hash BCrypt válido (comienza con $2a$ o $2b$), usar BCrypt
+        if (passwordHash.startsWith("$2a$") || passwordHash.startsWith("$2b$")) {
+            System.out.println("[AUTH DEBUG] Using BCrypt for validation");
+            boolean isValid = BCrypt.checkpw(secretKey, passwordHash);
+            System.out.println("[AUTH DEBUG] BCrypt validation result: " + isValid);
+            return isValid;
+        }
+        
+        // Si es texto plano (compatibilidad)
+        System.out.println("[AUTH DEBUG] Using plaintext comparison (legacy)");
+        boolean isValid = passwordHash.equals(secretKey);
+        System.out.println("[AUTH DEBUG] Plaintext comparison result: " + isValid);
+        return isValid;
     }
 
     /**
@@ -125,5 +164,6 @@ public class UnifiedAuthService {
         ANALYST,
         ADMIN
     }
+    
 }
 

@@ -1,0 +1,40 @@
+# ============================================
+# VOZ SEGURA - GATEWAY - Development Profile
+# ============================================
+
+server:
+  port: 8080
+
+# JWT Development
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-change-in-production-32-chars}
+  expiration: 86400000
+
+# Supabase
+supabase:
+  project-url: ${SUPABASE_PROJECT_URL:}
+  anon-key: ${SUPABASE_ANON_KEY:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10000ms
+
+# Development Logging
+logging:
+  level:
+    root: INFO
+    com.vozsegura.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+  file:
+    name: logs/gateway-dev.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,gateway

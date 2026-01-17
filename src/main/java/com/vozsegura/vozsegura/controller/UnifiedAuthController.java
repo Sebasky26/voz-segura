@@ -17,9 +17,12 @@ import com.vozsegura.vozsegura.dto.forms.SecretKeyForm;
 import com.vozsegura.vozsegura.dto.forms.UnifiedLoginForm;
 import com.vozsegura.vozsegura.service.CloudflareTurnstileService;
 import com.vozsegura.vozsegura.service.UnifiedAuthService;
+import com.vozsegura.vozsegura.service.JwtTokenProvider;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
 
 /**
@@ -39,10 +42,12 @@ public class UnifiedAuthController {
 
     private final UnifiedAuthService unifiedAuthService;
     private final CloudflareTurnstileService turnstileService;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService) {
+    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService, JwtTokenProvider jwtTokenProvider) {
         this.unifiedAuthService = unifiedAuthService;
         this.turnstileService = turnstileService;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     /**
@@ -207,9 +212,12 @@ public class UnifiedAuthController {
 
         try {
             // Verificar clave secreta contra AWS Secrets Manager
+            System.out.println("[CONTROLLER DEBUG] Validating secret key for cedula: " + cedula);
             boolean isValid = unifiedAuthService.validateSecretKey(cedula, form.getSecretKey());
+            System.out.println("[CONTROLLER DEBUG] Secret key validation result: " + isValid);
 
             if (!isValid) {
+                System.out.println("[CONTROLLER DEBUG] Secret key is invalid, redirecting...");
                 redirectAttributes.addFlashAttribute("error", "Clave secreta incorrecta");
                 return "redirect:/auth/secret-key?error";
             }
@@ -278,6 +286,7 @@ public class UnifiedAuthController {
     public String verifyOtp(
             @ModelAttribute OtpForm form,
             HttpSession session,
+            HttpServletResponse response,
             RedirectAttributes redirectAttributes) {
         
         String otpToken = (String) session.getAttribute("otpToken");
@@ -288,32 +297,56 @@ public class UnifiedAuthController {
         }
 
         try {
+            System.out.println("[UNIFIED AUTH] Verifying OTP code...");
             boolean isValid = unifiedAuthService.verifyOtp(otpToken, form.getOtpCode());
+            System.out.println("[UNIFIED AUTH] OTP verification result: " + isValid);
             
             if (!isValid) {
+                System.out.println("[UNIFIED AUTH] OTP code invalid or expired");
                 redirectAttributes.addFlashAttribute("error", "Código incorrecto o expirado");
                 return "redirect:/auth/verify-otp?error";
             }
 
-            // MFA exitoso - Crear sesión autenticada
+            // MFA exitoso - Generar JWT
             String userType = (String) session.getAttribute("userType");
+            String apiKey = ""; // o obtenerlo de la configuración
+            
+            System.out.println("[UNIFIED AUTH] Generating JWT for " + cedula + ", user type: " + userType);
+            String jwt = jwtTokenProvider.generateToken(cedula, userType, apiKey);
+            System.out.println("[UNIFIED AUTH] JWT generated successfully");
+            
+            // Guardar JWT en una cookie HttpOnly que se envíe automáticamente
+            // IMPORTANTE: Sin "Bearer " porque las cookies no permiten espacios
+            Cookie jwtCookie = new Cookie("Authorization", jwt);
+            jwtCookie.setHttpOnly(true);
+            jwtCookie.setSecure(false); // true en HTTPS, false en desarrollo local
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(86400); // 24 horas
+            response.addCookie(jwtCookie);
+            
+            System.out.println("[UNIFIED AUTH] JWT saved in cookie");
+            
+            // Limpiar sesión
             session.setAttribute("authenticated", true);
             session.setAttribute("authMethod", "UNIFIED_ZTA_MFA");
             session.removeAttribute("otpToken");
             session.removeAttribute("otpEmail");
 
-            System.out.println("[UNIFIED AUTH] MFA successful for " + cedula);
+            System.out.println("[UNIFIED AUTH] MFA successful for " + cedula + ", user type: " + userType);
 
-            // Redirigir según rol
+            // Redirigir según rol - A través del Gateway para que propague JWT
             if ("ADMIN".equals(userType)) {
-                return "redirect:/admin";
+                System.out.println("[UNIFIED AUTH] Redirecting ADMIN to Gateway /admin");
+                return "redirect:http://localhost:8080/admin/panel";
             } else {
-                return "redirect:/staff/casos";
+                System.out.println("[UNIFIED AUTH] Redirecting STAFF to Gateway /staff");
+                return "redirect:http://localhost:8080/staff/casos-list";
             }
 
         } catch (Exception e) {
             System.err.println("[UNIFIED AUTH] Error verifying OTP: " + e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "Error al verificar el código");
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "Error al verificar el código: " + e.getMessage());
             return "redirect:/auth/verify-otp?error";
         }
     }
@@ -388,5 +421,6 @@ public class UnifiedAuthController {
             throw new RuntimeException("Error al generar hash", e);
         }
     }
+   
 }
 

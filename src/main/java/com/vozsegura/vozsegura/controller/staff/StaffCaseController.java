@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/staff")
 public class StaffCaseController {
 
-    @GetMapping("/casos")
+    @GetMapping({"/casos", "/casos-list"})
     public String listCases() {
         return "staff/casos-list";
     }

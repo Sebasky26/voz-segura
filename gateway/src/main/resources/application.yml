@@ -1,0 +1,99 @@
+# ============================================
+# VOZ SEGURA - API GATEWAY
+# Spring Cloud Gateway Configuration
+# ============================================
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    min-response-size: 1024
+
+spring:
+  application:
+    name: voz-segura-gateway
+  
+  # ============================================
+  # Logging Configuration
+  # ============================================
+  output:
+    ansi:
+      enabled: always
+  
+  # ============================================
+  # Cloud Gateway Configuration
+  # ============================================
+  cloud:
+    gateway:
+      # Filtros globales
+      default-filters:
+        # Eliminar headers duplicados de Access-Control
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+        
+        # Agregar headers de seguridad global
+        - AddResponseHeader=X-Content-Type-Options,nosniff
+        - AddResponseHeader=X-Frame-Options,DENY
+        - AddResponseHeader=X-XSS-Protection,1; mode=block
+        - AddResponseHeader=Strict-Transport-Security,max-age=31536000; includeSubDomains
+        - AddResponseHeader=Content-Security-Policy,default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; frame-src https://challenges.cloudflare.com
+        - AddResponseHeader=Access-Control-Allow-Origin,*
+        - AddResponseHeader=Access-Control-Allow-Methods,GET;POST;PUT;DELETE;PATCH;OPTIONS
+        - AddResponseHeader=Access-Control-Allow-Headers,Content-Type;Authorization;X-Api-Key;X-User-Cedula;X-User-Type
+
+      # Timeouts
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10000ms
+
+      # Estadísticas
+      metrics:
+        enabled: true
+
+# ============================================
+# JWT Configuration
+# ============================================
+jwt:
+  # Generar con: openssl rand -base64 32
+  secret: ${JWT_SECRET:voz-segura-jwt-secret-key-2026-change-in-production}
+  expiration: 86400000  # 24 horas en milisegundos
+
+# ============================================
+# Supabase Configuration
+# ============================================
+supabase:
+  project-url: ${SUPABASE_PROJECT_URL:https://yqpgdxezqiptjjkqmebu.supabase.co}
+  anon-key: ${SUPABASE_ANON_KEY:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+
+# ============================================
+# Logging
+# ============================================
+logging:
+  level:
+    root: INFO
+    com.vozsegura.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/gateway.log
+    max-size: 10MB
+    max-history: 30
+
+# ============================================
+# Management (Actuator)
+# ============================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    enabled: true

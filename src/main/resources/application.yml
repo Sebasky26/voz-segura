@@ -1,35 +1,148 @@
-spring:
-  application:
-    name: voz-segura
-  profiles:
-    active: dev
+# ============================================
+# VOZ SEGURA - CORE SERVICE
+# Aplicación Principal sin API Gateway
+# ============================================
 
 server:
-  port: 8080
+  port: 8082
   servlet:
+    context-path: /
     session:
       timeout: 30m
+  compression:
+    enabled: true
 
+spring:
+  application:
+    name: voz-segura-core
+  profiles:
+    active: dev
+  
+  # ============================================
+  # Database Configuration
+  # ============================================
+  datasource:
+    url: ${SUPABASE_DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${SUPABASE_DB_USERNAME:postgres}
+    password: ${SUPABASE_DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # ============================================
+  # Thymeleaf Configuration
+  # ============================================
+  thymeleaf:
+    cache: false
+    mode: HTML
+    check-template-location: true
+
+  # ============================================
+  # Flyway Configuration
+  # ============================================
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  # ============================================
+  # Output Configuration
+  # ============================================
+  output:
+    ansi:
+      enabled: always
+
+# ============================================
+# JWT Configuration
+# ============================================
+jwt:
+  # Debe coincidir con la configuración del gateway
+  secret: ${JWT_SECRET:voz-segura-jwt-secret-key-2026-change-in-production}
+  expiration: 86400000  # 24 horas
+
+# ============================================
+# Supabase Configuration
+# ============================================
+supabase:
+  project-url: ${SUPABASE_PROJECT_URL:https://yqpgdxezqiptjjkqmebu.supabase.co}
+  anon-key: ${SUPABASE_ANON_KEY:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+
+# ============================================
+# Encryption Configuration
+# ============================================
+vozsegura:
+  encryption:
+    key-b64: ${VOZSEGURA_DATA_KEY_B64:}
+
+# ============================================
+# AWS Configuration
+# ============================================
+aws:
+  ses:
+    from-email: ${AWS_SES_FROM_EMAIL:}
+  access:
+    key-id: ${AWS_ACCESS_KEY_ID:}
+  secret:
+    access-key: ${AWS_SECRET_ACCESS_KEY:}
+  region: ${AWS_REGION:us-east-1}
+
+# ============================================
+# Cloudflare Turnstile
+# ============================================
+cloudflare:
+  turnstile:
+    site-key: ${CLOUDFLARE_SITE_KEY:}
+    secret-key: ${CLOUDFLARE_SECRET_KEY:}
+
+# ============================================
+# Security Headers
+# ============================================
 security:
   headers:
-    csp: "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com"
+    csp: "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com"
 
+# ============================================
+# Voice Retention & Encryption
+# ============================================
 voice:
   retention-days: 30
   encryption-key-secret-name: VOZSEGURA_DATA_KEY_B64
 
-# Cloudflare Turnstile Configuration
-# Las claves se leen de variables de entorno (.env)
-cloudflare:
-  turnstile:
-    # Site key (pública - seguro en frontend)
-    # Se lee de: CLOUDFLARE_SITE_KEY (en .env)
-    site-key: "${CLOUDFLARE_SITE_KEY:}"
-    # Secret key (privada - solo en backend)
-    # Se lee de: CLOUDFLARE_SECRET_KEY (en .env)
-    # NUNCA incluir valor por defecto aquí - debe venir del .env
-    secret-key: "${CLOUDFLARE_SECRET_KEY:}"
-
+# ============================================
+# Logging
+# ============================================
 logging:
   level:
     root: INFO
+    com.vozsegura.vozsegura: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/core.log
+    max-size: 10MB
+    max-history: 30
+
+# ============================================
+# Management (Actuator)
+# ============================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: always
+    secret-key: "${CLOUDFLARE_SECRET_KEY:}"
