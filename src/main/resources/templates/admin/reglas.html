@@ -51,7 +51,7 @@
                         </label>
                         <select id="destination" name="destination" class="vs-select" required>
                             <option value="">Seleccionar entidad...</option>
-                            <option th:each="e : ${entidades}" th:value="${e[0]}" th:text="${e[1]}"></option>
+                            <option th:each="e : ${entidades}" th:value="${e.code}" th:text="${e.name}"></option>
                         </select>
                     </div>
                     <div class="vs-form__group">

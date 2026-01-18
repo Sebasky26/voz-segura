@@ -1,7 +1,6 @@
 package com.vozsegura.vozsegura.controller.admin;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,30 +16,27 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.vozsegura.vozsegura.domain.entity.AuditEvent;
 import com.vozsegura.vozsegura.domain.entity.DerivationRule;
+import com.vozsegura.vozsegura.domain.entity.DestinationEntity;
 import com.vozsegura.vozsegura.repo.AuditEventRepository;
+import com.vozsegura.vozsegura.repo.DestinationEntityRepository;
 import com.vozsegura.vozsegura.service.DerivationService;
 
 import jakarta.servlet.http.HttpSession;
 
-/**
- * Controlador de Administración.
- *
- * Funciones del Administrador:
- * - Gestionar reglas de derivación (crear, editar, desactivar)
- * - Ver logs del sistema (sin datos personales)
- * - Panel de control general
- */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
     private final DerivationService derivationService;
     private final AuditEventRepository auditEventRepository;
+    private final DestinationEntityRepository destinationEntityRepository;
 
     public AdminController(DerivationService derivationService,
-                           AuditEventRepository auditEventRepository) {
+                           AuditEventRepository auditEventRepository,
+                           DestinationEntityRepository destinationEntityRepository) {
         this.derivationService = derivationService;
         this.auditEventRepository = auditEventRepository;
+        this.destinationEntityRepository = destinationEntityRepository;
     }
 
     @GetMapping({"", "/panel"})
@@ -65,11 +61,13 @@ public class AdminController {
         }
 
         List<DerivationRule> rules = derivationService.findAllRules();
+        // Cargar entidades desde BD, no hardcodeadas
+        List<DestinationEntity> entidades = destinationEntityRepository.findByActiveTrueOrderByNameAsc();
+
         model.addAttribute("rules", rules);
         model.addAttribute("complaintTypes", getComplaintTypes());
-        model.addAttribute("severities", getSeverities());
         model.addAttribute("priorities", getPriorities());
-        model.addAttribute("entidades", getEntidadesEcuatorianas());
+        model.addAttribute("entidades", entidades);
 
         return "admin/reglas";
     }
@@ -234,16 +232,6 @@ public class AdminController {
         };
     }
 
-    private String[][] getSeverities() {
-        return new String[][] {
-            {"", "Cualquiera"},
-            {"LOW", "Baja"},
-            {"MEDIUM", "Media"},
-            {"HIGH", "Alta"},
-            {"CRITICAL", "Crítica"}
-        };
-    }
-
     private String[][] getPriorities() {
         return new String[][] {
             {"", "Cualquiera"},
@@ -268,23 +256,6 @@ public class AdminController {
             {"RULE_DELETED", "Regla eliminada"},
             {"LOGIN_SUCCESS", "Inicio de sesión"},
             {"LOGIN_FAILED", "Intento fallido"}
-        };
-    }
-
-    private String[][] getEntidadesEcuatorianas() {
-        return new String[][] {
-            {"Ministerio del Trabajo", "Ministerio del Trabajo"},
-            {"Ministerio del Trabajo - Inspectoría", "Ministerio del Trabajo - Inspectoría"},
-            {"Defensoría del Pueblo", "Defensoría del Pueblo"},
-            {"Fiscalía General del Estado", "Fiscalía General del Estado"},
-            {"IESS - Riesgos del Trabajo", "IESS - Riesgos del Trabajo"},
-            {"Superintendencia de Compañías", "Superintendencia de Compañías"},
-            {"Consejo de la Judicatura", "Consejo de la Judicatura"},
-            {"Contraloría General del Estado", "Contraloría General del Estado"},
-            {"Procuraduría General del Estado", "Procuraduría General del Estado"},
-            {"Ministerio de Inclusión Económica y Social", "Ministerio de Inclusión Económica y Social"},
-            {"Consejo Nacional para la Igualdad de Género", "Consejo Nacional para la Igualdad de Género"},
-            {"Consejo Nacional para la Igualdad de Discapacidades", "Consejo Nacional para la Igualdad de Discapacidades"}
         };
     }
 }

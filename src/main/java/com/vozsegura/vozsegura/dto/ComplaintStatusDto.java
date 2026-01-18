@@ -34,8 +34,11 @@ public class ComplaintStatusDto {
         return switch (status) {
             case "PENDING" -> "Pendiente de revisión";
             case "IN_REVIEW" -> "En revisión";
-            case "RESOLVED" -> "Resuelto";
+            case "NEEDS_INFO" -> "Requiere información adicional";
+            case "APPROVED" -> "Aprobado";
+            case "REJECTED" -> "No procede";
             case "DERIVED" -> "Derivado a autoridad competente";
+            case "RESOLVED" -> "Resuelto";
             case "ARCHIVED" -> "Archivado";
             default -> status;
         };
