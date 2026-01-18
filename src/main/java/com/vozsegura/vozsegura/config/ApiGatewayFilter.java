@@ -2,6 +2,8 @@ package com.vozsegura.vozsegura.config;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -21,17 +23,14 @@ import jakarta.servlet.http.HttpServletResponse;
  * desde el API Gateway, y los agrega al request para que puedan ser
  * utilizados por los controladores.
  * 
- * El verdadero gateway (validación JWT, auditoría, etc.) está en
- * voz-segura-gateway (puerto 8080).
- * 
- * Este filtro es el último nivel de validación en la aplicación Core.
- * 
  * @author Voz Segura Team
- * @version 2.0 - 2026 (Migrado a Spring Cloud Gateway)
+ * @version 2.0 - 2026
  */
 @Component
 @Order(1)
 public class ApiGatewayFilter implements Filter {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiGatewayFilter.class);
 
     private static final String[] PUBLIC_PATHS = {
         "/auth/",
@@ -55,26 +54,21 @@ public class ApiGatewayFilter implements Filter {
 
         String requestUri = httpRequest.getRequestURI();
 
-        System.out.println("[CORE SECURITY] === Processing request: " + requestUri + " ===");
-
         // 1. Permitir rutas públicas
         if (isPublicPath(requestUri)) {
-            System.out.println("[CORE SECURITY] Public path allowed: " + requestUri);
             chain.doFilter(request, response);
             return;
         }
-
-        System.out.println("[CORE SECURITY] Protected path, checking auth: " + requestUri);
 
         // 2. Verificar autenticación (múltiples métodos)
         String cedula = null;
         String userType = null;
 
-        // Método 1: Headers del Gateway (cuando viene desde el Gateway)
+        // Método 1: Headers del Gateway
         cedula = httpRequest.getHeader("X-User-Cedula");
         userType = httpRequest.getHeader("X-User-Type");
 
-        // Método 2: Sesión HTTP (cuando el usuario se autentica directamente en Core)
+        // Método 2: Sesión HTTP
         if (cedula == null || userType == null) {
             jakarta.servlet.http.HttpSession session = httpRequest.getSession(false);
             if (session != null) {
@@ -82,19 +76,16 @@ public class ApiGatewayFilter implements Filter {
                 if (authenticated != null && authenticated) {
                     cedula = (String) session.getAttribute("cedula");
                     userType = (String) session.getAttribute("userType");
-                    System.out.println("[CORE SECURITY] Auth via SESSION - cedula: " + cedula + ", type: " + userType);
                 }
             }
         }
 
-        // Método 3: Cookie JWT (cuando hay cookie de autenticación)
+        // Método 3: Cookie JWT
         if (cedula == null || userType == null) {
             jakarta.servlet.http.Cookie[] cookies = httpRequest.getCookies();
             if (cookies != null) {
                 for (jakarta.servlet.http.Cookie cookie : cookies) {
                     if ("Authorization".equals(cookie.getName())) {
-                        // Hay una cookie JWT - permitir acceso (el JWT ya fue validado en el login)
-                        System.out.println("[CORE SECURITY] Auth via JWT COOKIE detected");
                         jakarta.servlet.http.HttpSession session = httpRequest.getSession(false);
                         if (session != null) {
                             cedula = (String) session.getAttribute("cedula");
@@ -106,17 +97,15 @@ public class ApiGatewayFilter implements Filter {
             }
         }
 
-        // Si no hay autenticación, bloquear
+        // Si no hay autenticación, redirigir a login
         if (cedula == null || userType == null) {
-            System.out.println("[CORE SECURITY] BLOCKED - No authentication for " + requestUri);
             httpResponse.sendRedirect("/auth/login?error=session_expired");
             return;
         }
 
-        // 3. Validar que el usuario tenga acceso a la ruta solicitada
+        // 3. Validar autorización
         if (!isAuthorized(requestUri, userType)) {
-            System.out.println("[CORE SECURITY] BLOCKED - Unauthorized access by " +
-                             userType + " to " + requestUri);
+            log.warn("Acceso no autorizado: {} intentó acceder a {}", userType, requestUri);
             httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                 "No tiene permisos para acceder a este recurso");
             return;
@@ -128,24 +117,13 @@ public class ApiGatewayFilter implements Filter {
         httpResponse.setHeader("X-XSS-Protection", "1; mode=block");
         httpResponse.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
-        System.out.println("[CORE SECURITY] ALLOWED - " + userType + " (" + cedula + ") accessing " + requestUri);
-        
         chain.doFilter(request, response);
     }
 
-    /**
-     * Verifica si la ruta es pública (no requiere autenticación).
-     */
     private boolean isPublicPath(String requestUri) {
-        // Ruta raíz es pública (redirige a login)
-        if (requestUri.equals("/")) {
+        if (requestUri.equals("/") || requestUri.equals("/favicon.ico")) {
             return true;
         }
-
-        if (requestUri.equals("/favicon.ico")) {
-            return true;
-        }
-
         for (String publicPath : PUBLIC_PATHS) {
             if (requestUri.startsWith(publicPath)) {
                 return true;
@@ -154,28 +132,22 @@ public class ApiGatewayFilter implements Filter {
         return false;
     }
 
-    /**
-     * Verifica si el usuario tiene autorización para acceder al recurso.
-     */
     private boolean isAuthorized(String requestUri, String userType) {
         if (userType == null) {
             return false;
         }
 
         if ("ADMIN".equals(userType)) {
-            // Admin tiene acceso a /admin y /staff (con o sin barra final)
             return requestUri.equals("/admin") || requestUri.startsWith("/admin/") ||
                    requestUri.equals("/staff") || requestUri.startsWith("/staff/");
         }
 
         if ("ANALYST".equals(userType)) {
-            // Analyst (Staff) tiene acceso a /staff/ y /denuncia/
             return requestUri.equals("/staff") || requestUri.startsWith("/staff/") ||
                    requestUri.startsWith("/denuncia/");
         }
 
         if ("DENUNCIANTE".equals(userType)) {
-            // Denunciante solo tiene acceso a /denuncia/
             return requestUri.startsWith("/denuncia/");
         }
 
@@ -184,16 +156,12 @@ public class ApiGatewayFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        System.out.println("===========================================");
-        System.out.println(" VOZ SEGURA - CORE SERVICE INITIALIZED");
-        System.out.println(" Spring Cloud Gateway Architecture v2.0");
-        System.out.println(" JWT + API Keys validation enabled");
-        System.out.println("===========================================");
+        log.info("Voz Segura Core Service initialized - Security Filter active");
     }
 
     @Override
     public void destroy() {
-        System.out.println("[CORE SERVICE] Shutting down...");
+        log.info("Voz Segura Core Service shutting down");
     }
 }
 

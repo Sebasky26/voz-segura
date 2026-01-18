@@ -73,14 +73,12 @@ public class MockOtpClient implements OtpClient {
         // Guardar token con su estado
         tokensActivos.put(otpId, new TokenData(codigo, destination));
         
-        // Simulacion de envio (en produccion: AWS SES, SNS, Twilio, etc.)
-        // SEGURIDAD: NUNCA imprimir el codigo OTP en logs
-        System.out.println("============================================");
-        System.out.println(" [OTP MOCK] Codigo enviado a: " + maskDestination(destination));
-        System.out.println(" ID: " + otpId.substring(0, 8) + "...");
-        System.out.println(" Expira en: " + MINUTOS_EXPIRACION + " minutos");
-        System.out.println("============================================");
-        
+        // En desarrollo: imprimir código para testing (SOLO en dev)
+        // En producción esto se envía vía AWS SES/SNS
+        if (Boolean.parseBoolean(System.getenv().getOrDefault("DEV_SHOW_OTP", "false"))) {
+            System.out.println("[DEV] OTP Code: " + codigo);
+        }
+
         return otpId;
     }
 
@@ -92,49 +90,35 @@ public class MockOtpClient implements OtpClient {
             return "***";
         }
         if (destination.contains("@")) {
-            // Es email
             String[] parts = destination.split("@");
             String local = parts[0];
             return local.substring(0, Math.min(3, local.length())) + "***@" + parts[1];
         }
-        // Es telefono u otro
         return destination.substring(0, 3) + "****" + destination.substring(destination.length() - 2);
     }
 
     @Override
     public boolean verifyOtp(String otpId, String code) {
-        // Validar que existe el token
         TokenData token = tokensActivos.get(otpId);
         if (token == null) {
-            System.out.println("[OTP] ALERTA: Intento con ID inexistente: " + otpId);
             return false;
         }
         
-        // Verificar expiración
         if (token.estaExpirado()) {
-            System.out.println("[OTP] Token expirado para: " + token.destino);
             tokensActivos.remove(otpId);
             return false;
         }
         
-        // Verificar bloqueo por intentos fallidos
         if (token.estaBloqueado()) {
-            System.out.println("[OTP] BLOQUEO: Demasiados intentos fallidos para: " + token.destino);
             tokensActivos.remove(otpId);
             return false;
         }
         
-        // Verificar código
         if (token.codigo.equals(code)) {
-            // Éxito - eliminar token (anti-replay)
             tokensActivos.remove(otpId);
-            System.out.println("[OTP] Verificación exitosa para: " + token.destino);
             return true;
         } else {
-            // Fallo - incrementar contador
             token.intentosFallidos++;
-            System.out.println("[OTP] Código incorrecto. Intento " + 
-                             token.intentosFallidos + "/" + MAX_INTENTOS);
             return false;
         }
     }
