@@ -1,125 +1,74 @@
-﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Voz Segura — Logs del Sistema</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voz Segura — Logs del sistema</title>
     <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
-
 <body class="vs-app">
-
 <a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
         <div class="vs-brand" aria-label="Voz Segura">
-            <img class="vs-brand__logo"
-                 th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
-                 alt="Logo de Voz Segura">
+            <img class="vs-brand__logo" th:src="@{/img/logo-voz-segura.svg?v=4}" alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
-                <div class="vs-brand__subtitle">Auditoría y trazabilidad del sistema</div>
+                <div class="vs-brand__subtitle">Logs del sistema</div>
             </div>
         </div>
-
         <nav class="vs-nav" aria-label="Navegación">
-            <a class="vs-nav__link" th:href="@{/admin}" href="/admin">Panel</a>
-            <a class="vs-nav__link" th:href="@{/logout}" href="/logout">Salir</a>
+            <a th:href="@{/admin/panel}" class="vs-nav__link">Panel</a>
+            <a th:href="@{/admin/reglas}" class="vs-nav__link">Reglas</a>
+            <a th:href="@{/admin/logs}" class="vs-nav__link">Logs</a>
+            <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
         </nav>
     </div>
 </header>
-
 <main id="contenido" class="vs-container vs-container-wide">
-
     <section class="vs-card" aria-labelledby="titulo-logs">
-
         <div class="vs-card__header">
             <h1 id="titulo-logs" class="vs-card__title">Logs del sistema</h1>
-            <p class="vs-card__subtitle">Revisa eventos de auditoría registrados (solo lectura)</p>
+            <p class="vs-card__subtitle">Registro de actividad (sin datos personales)</p>
         </div>
-
-        <!-- (Opcional) Filtros visuales: déjalos aunque aún no haya lógica -->
-        <div class="vs-section vs-mb-6" aria-label="Filtros de búsqueda">
-            <div class="vs-grid vs-grid--2cols">
+        <form th:action="@{/admin/logs}" method="get" class="vs-filters vs-mb-6">
+            <div class="vs-grid vs-grid--3cols">
                 <div class="vs-form__group">
-                    <label class="vs-form__label" for="filtro-accion">Acción</label>
-                    <select class="vs-select" id="filtro-accion" name="accion">
-                        <option value="">Todas</option>
-                        <option value="LOGIN">Login</option>
-                        <option value="DENUNCIA">Denuncia</option>
-                        <option value="ADMIN">Administración</option>
+                    <label class="vs-form__label" for="eventType">Tipo de evento</label>
+                    <select id="eventType" name="eventType" class="vs-select">
+                        <option th:each="t : ${eventTypes}" th:value="${t[0]}" th:text="${t[1]}" th:selected="${selectedEventType == t[0]}"></option>
                     </select>
-                    <div class="vs-form__help">Filtra por tipo de evento</div>
                 </div>
-
-                <div class="vs-form__group">
-                    <label class="vs-form__label" for="filtro-estado">Estado</label>
-                    <select class="vs-select" id="filtro-estado" name="estado">
-                        <option value="">Todos</option>
-                        <option value="OK">OK</option>
-                        <option value="FALLIDO">Fallido</option>
-                    </select>
-                    <div class="vs-form__help">Filtra por resultado del evento</div>
+                <div class="vs-form__group vs-filters__actions">
+                    <button type="submit" class="vs-button vs-button--primary">Filtrar</button>
+                    <a th:href="@{/admin/logs}" class="vs-button vs-button--secondary">Limpiar</a>
                 </div>
             </div>
-
-            <div class="vs-button-group vs-mt-4">
-                <button type="button" class="vs-button vs-button--primary">Aplicar</button>
-                <button type="button" class="vs-button vs-button--secondary">Limpiar</button>
-            </div>
-        </div>
-
-        <!-- Tabla -->
-        <div class="vs-table-wrapper" role="region" aria-label="Tabla de logs" tabindex="0">
+        </form>
+        <div class="vs-table-wrapper">
             <table class="vs-table">
-                <caption class="vs-sr-only">Listado de eventos de auditoría del sistema</caption>
-                <thead>
-                <tr>
-                    <th scope="col">Fecha</th>
-                    <th scope="col">Acción</th>
-                    <th scope="col">Rol</th>
-                    <th scope="col">Estado</th>
-                </tr>
-                </thead>
-
+                <thead><tr><th>Fecha/Hora</th><th>Tipo</th><th>Rol</th><th>Referencia</th><th>Detalle</th></tr></thead>
                 <tbody>
-                <!-- Si no hay registros -->
-                <tr>
-                    <td colspan="4" class="vs-table-empty">
-                        <strong>No hay registros por mostrar.</strong><br>
-                        Cuando el sistema genere eventos, aparecerán aquí.
-                    </td>
-                </tr>
+                    <tr th:if="${events.isEmpty()}"><td colspan="5" class="vs-table-empty">No hay eventos.</td></tr>
+                    <tr th:each="event : ${events}">
+                        <td th:text="${#temporals.format(event.eventTime, 'dd MMM yyyy HH:mm:ss')}">01 ene 2026</td>
+                        <td><span class="vs-badge" th:text="${event.eventType}">EVENTO</span></td>
+                        <td th:text="${event.actorRole ?: 'SYSTEM'}">ANALYST</td>
+                        <td><code class="vs-code-pill" th:if="${event.trackingIdRef}" th:text="${#strings.abbreviate(event.trackingIdRef, 15)}">ABC</code><span th:unless="${event.trackingIdRef}">-</span></td>
+                        <td th:text="${event.details ?: '-'}">Detalle</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
-
-        <div class="vs-divider"></div>
-
-        <!-- Paginación -->
-        <div class="vs-button-group vs-button-group--space-between" aria-label="Paginación">
-            <button class="vs-button vs-button--secondary" type="button" disabled aria-disabled="true">
-                Anterior
-            </button>
-            <button class="vs-button vs-button--secondary" type="button" disabled aria-disabled="true">
-                Siguiente
-            </button>
+        <div class="vs-list-footer vs-mt-4" th:if="${totalPages > 1}">
+            <div class="vs-button-group">
+                <a th:if="${currentPage > 0}" th:href="@{/admin/logs(page=${currentPage - 1}, eventType=${selectedEventType})}" class="vs-button vs-button--secondary vs-button--sm">Anterior</a>
+                <span class="vs-form__help">Página <span th:text="${currentPage + 1}">1</span> de <span th:text="${totalPages}">10</span></span>
+                <a th:if="${currentPage < totalPages - 1}" th:href="@{/admin/logs(page=${currentPage + 1}, eventType=${selectedEventType})}" class="vs-button vs-button--secondary vs-button--sm">Siguiente</a>
+            </div>
         </div>
-
+        <div class="vs-button-group vs-mt-6"><a th:href="@{/admin/panel}" class="vs-button vs-button--secondary">Volver al panel</a></div>
     </section>
-
 </main>
-
 </body>
 </html>
-
-
-
-
-
-
-
-

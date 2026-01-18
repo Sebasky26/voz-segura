@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -57,9 +57,10 @@
                         <option value="">Todos</option>
                         <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Pendiente</option>
                         <option value="IN_REVIEW" th:selected="${selectedStatus == 'IN_REVIEW'}">En revisión</option>
-                        <option value="RESOLVED" th:selected="${selectedStatus == 'RESOLVED'}">Resuelto</option>
+                        <option value="NEEDS_INFO" th:selected="${selectedStatus == 'NEEDS_INFO'}">Requiere info</option>
+                        <option value="APPROVED" th:selected="${selectedStatus == 'APPROVED'}">Aprobado</option>
+                        <option value="REJECTED" th:selected="${selectedStatus == 'REJECTED'}">Rechazado</option>
                         <option value="DERIVED" th:selected="${selectedStatus == 'DERIVED'}">Derivado</option>
-                        <option value="ARCHIVED" th:selected="${selectedStatus == 'ARCHIVED'}">Archivado</option>
                     </select>
                 </div>
 

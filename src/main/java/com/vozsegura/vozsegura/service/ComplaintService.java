@@ -196,8 +196,68 @@ public class ComplaintService {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setStatus(newStatus);
             complaint.setUpdatedAt(OffsetDateTime.now());
+
+            // Si se cambia de NEEDS_INFO a otro estado, limpiar el flag
+            if (!"NEEDS_INFO".equals(newStatus)) {
+                complaint.setRequiresMoreInfo(false);
+            }
+
             complaintRepository.save(complaint);
             auditService.logEvent(actorRole, actorUsername, "STATUS_CHANGED", trackingId, "Nuevo estado: " + newStatus);
+        });
+    }
+
+    /**
+     * Clasifica una denuncia con tipo, prioridad y notas del analista.
+     */
+    @Transactional
+    public void classifyComplaint(String trackingId, String complaintType, String priority,
+                                   String analystNotes, String analystUsername) {
+        complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
+            complaint.setComplaintType(complaintType);
+            complaint.setPriority(priority);
+            if (analystNotes != null && !analystNotes.isBlank()) {
+                complaint.setAnalystNotes(analystNotes);
+            }
+            complaint.setUpdatedAt(OffsetDateTime.now());
+            complaintRepository.save(complaint);
+            auditService.logEvent("ANALYST", analystUsername, "COMPLAINT_CLASSIFIED", trackingId,
+                    "Tipo: " + complaintType + ", Prioridad: " + priority);
+        });
+    }
+
+    /**
+     * Solicita más información al denunciante.
+     */
+    @Transactional
+    public void requestMoreInfo(String trackingId, String motivo, String analystUsername) {
+        complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
+            complaint.setStatus("NEEDS_INFO");
+            complaint.setRequiresMoreInfo(true);
+            if (motivo != null && !motivo.isBlank()) {
+                String notes = complaint.getAnalystNotes();
+                complaint.setAnalystNotes((notes != null ? notes + "\n" : "") + "[Solicitud] " + motivo);
+            }
+            complaint.setUpdatedAt(OffsetDateTime.now());
+            complaintRepository.save(complaint);
+            auditService.logEvent("ANALYST", analystUsername, "MORE_INFO_REQUESTED", trackingId, motivo);
+        });
+    }
+
+    /**
+     * Rechaza una denuncia.
+     */
+    @Transactional
+    public void rejectComplaint(String trackingId, String motivo, String analystUsername) {
+        complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
+            complaint.setStatus("REJECTED");
+            if (motivo != null && !motivo.isBlank()) {
+                String notes = complaint.getAnalystNotes();
+                complaint.setAnalystNotes((notes != null ? notes + "\n" : "") + "[Rechazo] " + motivo);
+            }
+            complaint.setUpdatedAt(OffsetDateTime.now());
+            complaintRepository.save(complaint);
+            auditService.logEvent("ANALYST", analystUsername, "COMPLAINT_REJECTED", trackingId, motivo);
         });
     }
 
@@ -208,6 +268,8 @@ public class ComplaintService {
     public void derive(String trackingId, String destination, String actorUsername, String actorRole) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setStatus("DERIVED");
+            complaint.setDerivedTo(destination);
+            complaint.setDerivedAt(OffsetDateTime.now());
             complaint.setUpdatedAt(OffsetDateTime.now());
             complaintRepository.save(complaint);
             auditService.logEvent(actorRole, actorUsername, "CASE_DERIVED", trackingId, "Derivado a: " + destination);

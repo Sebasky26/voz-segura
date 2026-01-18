@@ -1,73 +1,127 @@
 package com.vozsegura.vozsegura.service;
 
-import com.vozsegura.vozsegura.domain.entity.DerivationRule;
-import com.vozsegura.vozsegura.repo.DerivationRuleRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.vozsegura.vozsegura.domain.entity.Complaint;
+import com.vozsegura.vozsegura.domain.entity.DerivationRule;
+import com.vozsegura.vozsegura.repo.ComplaintRepository;
+import com.vozsegura.vozsegura.repo.DerivationRuleRepository;
+
 /**
- * Servicio para gestión de reglas de derivación.
+ * Servicio para gestionar reglas de derivación y derivar denuncias automáticamente.
  */
 @Service
 public class DerivationService {
 
-    private final DerivationRuleRepository derivationRuleRepository;
+    private final DerivationRuleRepository ruleRepository;
+    private final ComplaintRepository complaintRepository;
+    private final AuditService auditService;
 
-    public DerivationService(DerivationRuleRepository derivationRuleRepository) {
-        this.derivationRuleRepository = derivationRuleRepository;
+    public DerivationService(DerivationRuleRepository ruleRepository,
+                             ComplaintRepository complaintRepository,
+                             AuditService auditService) {
+        this.ruleRepository = ruleRepository;
+        this.complaintRepository = complaintRepository;
+        this.auditService = auditService;
     }
 
-    /**
-     * Lista todas las reglas de derivación.
-     */
     public List<DerivationRule> findAllRules() {
-        return derivationRuleRepository.findAll();
+        return ruleRepository.findAllByOrderByNameAsc();
     }
 
-    /**
-     * Lista reglas activas.
-     */
     public List<DerivationRule> findActiveRules() {
-        return derivationRuleRepository.findByActiveTrue();
+        return ruleRepository.findByActiveTrue();
     }
 
-    /**
-     * Busca una regla por ID.
-     */
     public Optional<DerivationRule> findById(Long id) {
-        return derivationRuleRepository.findById(id);
+        return ruleRepository.findById(id);
     }
 
-    /**
-     * Crea o actualiza una regla.
-     */
     @Transactional
-    public DerivationRule save(DerivationRule rule) {
-        return derivationRuleRepository.save(rule);
+    public DerivationRule createRule(DerivationRule rule, String adminUsername) {
+        rule.setCreatedAt(OffsetDateTime.now());
+        rule.setUpdatedAt(OffsetDateTime.now());
+        DerivationRule saved = ruleRepository.save(rule);
+        auditService.logEvent("ADMIN", adminUsername, "RULE_CREATED", null,
+                "Regla creada: " + rule.getName());
+        return saved;
     }
 
-    /**
-     * Desactiva una regla (no se elimina por trazabilidad).
-     */
     @Transactional
-    public void deactivate(Long id) {
-        derivationRuleRepository.findById(id).ifPresent(rule -> {
+    public DerivationRule updateRule(Long id, DerivationRule updated, String adminUsername) {
+        return ruleRepository.findById(id).map(rule -> {
+            rule.setName(updated.getName());
+            rule.setComplaintTypeMatch(updated.getComplaintTypeMatch());
+            rule.setSeverityMatch(updated.getSeverityMatch());
+            rule.setPriorityMatch(updated.getPriorityMatch());
+            rule.setDestination(updated.getDestination());
+            rule.setDescription(updated.getDescription());
+            rule.setActive(updated.isActive());
+            rule.setUpdatedAt(OffsetDateTime.now());
+            DerivationRule saved = ruleRepository.save(rule);
+            auditService.logEvent("ADMIN", adminUsername, "RULE_UPDATED", null,
+                    "Regla actualizada: " + rule.getName());
+            return saved;
+        }).orElseThrow(() -> new IllegalArgumentException("Regla no encontrada"));
+    }
+
+    @Transactional
+    public void deleteRule(Long id, String adminUsername) {
+        ruleRepository.findById(id).ifPresent(rule -> {
             rule.setActive(false);
-            derivationRuleRepository.save(rule);
+            rule.setUpdatedAt(OffsetDateTime.now());
+            ruleRepository.save(rule);
+            auditService.logEvent("ADMIN", adminUsername, "RULE_DELETED", null,
+                    "Regla desactivada: " + rule.getName());
         });
     }
 
     /**
-     * Busca destino de derivación según severidad.
+     * Encuentra la entidad de destino para una denuncia basándose en las reglas activas.
      */
-    public Optional<String> findDestinationBySeverity(String severity) {
-        return derivationRuleRepository.findByActiveTrue().stream()
-                .filter(r -> r.getSeverityMatch() == null || r.getSeverityMatch().equalsIgnoreCase(severity))
-                .map(DerivationRule::getDestination)
-                .findFirst();
+    public String findDestinationForComplaint(Complaint complaint) {
+        List<DerivationRule> matchingRules = ruleRepository.findMatchingRules(
+                complaint.getComplaintType(),
+                complaint.getSeverity(),
+                complaint.getPriority()
+        );
+
+        if (matchingRules.isEmpty()) {
+            return "Ministerio del Trabajo del Ecuador";
+        }
+
+        return matchingRules.get(0).getDestination();
+    }
+
+    /**
+     * Deriva una denuncia automáticamente basándose en las reglas configuradas.
+     */
+    @Transactional
+    public String deriveComplaint(String trackingId, String analystUsername) {
+        Optional<Complaint> complaintOpt = complaintRepository.findByTrackingId(trackingId);
+
+        if (complaintOpt.isEmpty()) {
+            throw new IllegalArgumentException("Denuncia no encontrada");
+        }
+
+        Complaint complaint = complaintOpt.get();
+        String destination = findDestinationForComplaint(complaint);
+
+        complaint.setStatus("DERIVED");
+        complaint.setDerivedTo(destination);
+        complaint.setDerivedAt(OffsetDateTime.now());
+        complaint.setUpdatedAt(OffsetDateTime.now());
+        complaintRepository.save(complaint);
+
+        auditService.logEvent("ANALYST", analystUsername, "COMPLAINT_DERIVED", trackingId,
+                "Derivado a: " + destination);
+
+        return destination;
     }
 }
 

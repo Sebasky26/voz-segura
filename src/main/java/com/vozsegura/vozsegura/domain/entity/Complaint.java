@@ -24,6 +24,24 @@ public class Complaint {
     @Column(nullable = false, length = 16)
     private String severity;
 
+    @Column(name = "complaint_type", length = 64)
+    private String complaintType;
+
+    @Column(name = "priority", length = 16)
+    private String priority = "MEDIUM";
+
+    @Column(name = "analyst_notes", columnDefinition = "text")
+    private String analystNotes;
+
+    @Column(name = "derived_to", length = 255)
+    private String derivedTo;
+
+    @Column(name = "derived_at")
+    private OffsetDateTime derivedAt;
+
+    @Column(name = "requires_more_info")
+    private boolean requiresMoreInfo = false;
+
     @Column(name = "encrypted_text", nullable = false, columnDefinition = "text")
     private String encryptedText;
 
@@ -42,6 +60,7 @@ public class Complaint {
     @Column(nullable = false)
     private OffsetDateTime updatedAt;
 
+    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -56,6 +75,24 @@ public class Complaint {
 
     public String getSeverity() { return severity; }
     public void setSeverity(String severity) { this.severity = severity; }
+
+    public String getComplaintType() { return complaintType; }
+    public void setComplaintType(String complaintType) { this.complaintType = complaintType; }
+
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+
+    public String getAnalystNotes() { return analystNotes; }
+    public void setAnalystNotes(String analystNotes) { this.analystNotes = analystNotes; }
+
+    public String getDerivedTo() { return derivedTo; }
+    public void setDerivedTo(String derivedTo) { this.derivedTo = derivedTo; }
+
+    public OffsetDateTime getDerivedAt() { return derivedAt; }
+    public void setDerivedAt(OffsetDateTime derivedAt) { this.derivedAt = derivedAt; }
+
+    public boolean isRequiresMoreInfo() { return requiresMoreInfo; }
+    public void setRequiresMoreInfo(boolean requiresMoreInfo) { this.requiresMoreInfo = requiresMoreInfo; }
 
     public String getEncryptedText() { return encryptedText; }
     public void setEncryptedText(String encryptedText) { this.encryptedText = encryptedText; }

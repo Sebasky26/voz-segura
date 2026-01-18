@@ -1,97 +1,67 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Panel de Administración</title>
-
     <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
-
 <body class="vs-app">
-
 <a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
-
         <div class="vs-brand" aria-label="Voz Segura">
-            <img class="vs-brand__logo"
-                 th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
-                 alt="Logo de Voz Segura">
+            <img class="vs-brand__logo" th:src="@{/img/logo-voz-segura.svg?v=4}" alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
-                <div class="vs-brand__subtitle">Panel de administración</div>
+                <div class="vs-brand__subtitle">Administración</div>
             </div>
         </div>
-
         <nav class="vs-nav" aria-label="Navegación">
-            <a class="vs-nav__link" th:href="@{/}" href="/">Inicio</a>
-            <a class="vs-nav__link" th:href="@{/logout}" href="/logout">Salir</a>
+            <a th:href="@{/admin/panel}" class="vs-nav__link">Panel</a>
+            <a th:href="@{/admin/reglas}" class="vs-nav__link">Reglas</a>
+            <a th:href="@{/admin/logs}" class="vs-nav__link">Logs</a>
+            <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
         </nav>
-
     </div>
 </header>
-
 <main id="contenido" class="vs-container vs-container-wide">
-
-    <section class="vs-card" aria-labelledby="titulo-admin">
+    <section class="vs-card" aria-labelledby="titulo-panel">
         <div class="vs-card__header">
-            <h1 id="titulo-admin" class="vs-card__title">Panel de administración</h1>
-            <p class="vs-card__subtitle">
-                Accesos internos para gestionar reglas y revisar auditoría. Solo personal autorizado.
-            </p>
+            <h1 id="titulo-panel" class="vs-card__title">Panel de Administración</h1>
+            <p class="vs-card__subtitle">Gestione las configuraciones del sistema</p>
         </div>
-
-        <!-- Acciones principales -->
-        <div class="vs-grid vs-grid--2cols">
-
-            <a th:href="@{/admin/reglas}" href="/admin/reglas"
-               class="vs-action-card"
-               aria-label="Ir a Definición de Reglas">
-                <div class="vs-action-card__title">Definición de reglas</div>
-                <div class="vs-action-card__text">
-                    Configura criterios, categorías y validaciones del sistema.
-                </div>
-                <div class="vs-action-card__cta">Abrir</div>
+        <div class="vs-grid vs-grid--3cols vs-mb-6">
+            <a th:href="@{/admin/reglas}" class="vs-action-card">
+                <div class="vs-action-card__title">Reglas de derivación</div>
+                <p class="vs-action-card__text">Configure las reglas para derivar denuncias automáticamente a las entidades correspondientes.</p>
+                <span class="vs-action-card__cta">Gestionar reglas →</span>
             </a>
-
-            <a th:href="@{/admin/logs}" href="/admin/logs"
-               class="vs-action-card"
-               aria-label="Ir a Logs del Sistema">
+            <a th:href="@{/admin/logs}" class="vs-action-card">
                 <div class="vs-action-card__title">Logs del sistema</div>
-                <div class="vs-action-card__text">
-                    Revisa eventos de auditoría (solo lectura) para trazabilidad.
+                <p class="vs-action-card__text">Consulte el registro de actividad del sistema sin exponer datos personales.</p>
+                <span class="vs-action-card__cta">Ver logs →</span>
+            </a>
+            <a th:href="@{/staff/casos}" class="vs-action-card">
+                <div class="vs-action-card__title">Supervisar casos</div>
+                <p class="vs-action-card__text">Acceda al listado de denuncias para supervisión general.</p>
+                <span class="vs-action-card__cta">Ver casos →</span>
+            </a>
+        </div>
+        <div class="vs-section">
+            <h3 class="vs-section__title">Resumen</h3>
+            <div class="vs-grid vs-grid--2cols">
+                <div class="vs-summary-card">
+                    <div class="vs-summary-card__label">Reglas activas</div>
+                    <div class="vs-summary-card__value" th:text="${activeRules}">0</div>
                 </div>
-                <div class="vs-action-card__cta">Abrir</div>
-            </a>
-
+                <div class="vs-summary-card">
+                    <div class="vs-summary-card__label">Total de reglas</div>
+                    <div class="vs-summary-card__value" th:text="${totalRules}">0</div>
+                </div>
+            </div>
         </div>
-
-        <div class="vs-divider"></div>
-
-        <!-- Acciones secundarias (opcional) -->
-        <div class="vs-button-group vs-button-group--space-between">
-            <a th:href="@{/admin/logs}" href="/admin/logs" class="vs-button vs-button--secondary">
-                Ver auditoría
-            </a>
-            <a th:href="@{/admin/reglas}" href="/admin/reglas" class="vs-button vs-button--primary">
-                Gestionar reglas
-            </a>
-        </div>
-
     </section>
-
 </main>
-
 </body>
 </html>
-
-
-
-
-
-
-
-
