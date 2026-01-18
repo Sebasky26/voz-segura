@@ -36,7 +36,7 @@ public class StaffCaseController {
      */
     @GetMapping({"/casos", "/casos-list"})
     public String listCases(
-            @RequestParam(required = false) String status,
+            @RequestParam(name = "status", required = false) String status,
             Model model) {
 
         List<Complaint> complaints;
@@ -58,7 +58,7 @@ public class StaffCaseController {
      * El texto se descifra para mostrarlo al analista.
      */
     @GetMapping("/casos/{trackingId}")
-    public String viewCase(@PathVariable String trackingId, Model model, RedirectAttributes redirectAttributes) {
+    public String viewCase(@PathVariable("trackingId") String trackingId, Model model, RedirectAttributes redirectAttributes) {
         Optional<Complaint> complaintOpt = complaintService.findByTrackingId(trackingId);
 
         if (complaintOpt.isEmpty()) {
@@ -82,8 +82,8 @@ public class StaffCaseController {
      */
     @PostMapping("/casos/{trackingId}/estado")
     public String updateEstado(
-            @PathVariable String trackingId,
-            @RequestParam String newStatus,
+            @PathVariable("trackingId") String trackingId,
+            @RequestParam("newStatus") String newStatus,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -104,8 +104,8 @@ public class StaffCaseController {
      */
     @PostMapping("/casos/{trackingId}/derivar")
     public String derivar(
-            @PathVariable String trackingId,
-            @RequestParam String destination,
+            @PathVariable("trackingId") String trackingId,
+            @RequestParam("destination") String destination,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 

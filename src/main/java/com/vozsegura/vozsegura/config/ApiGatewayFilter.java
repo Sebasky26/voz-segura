@@ -52,23 +52,62 @@ public class ApiGatewayFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String requestUri = httpRequest.getRequestURI();
-        String method = httpRequest.getMethod();
+
+        System.out.println("[CORE SECURITY] === Processing request: " + requestUri + " ===");
 
         // 1. Permitir rutas públicas
         if (isPublicPath(requestUri)) {
+            System.out.println("[CORE SECURITY] Public path allowed: " + requestUri);
             chain.doFilter(request, response);
             return;
         }
 
-        // 2. Para rutas protegidas, validar headers del Gateway
-        String cedula = httpRequest.getHeader("X-User-Cedula");
-        String userType = httpRequest.getHeader("X-User-Type");
-        String apiKey = httpRequest.getHeader("X-Api-Key");
+        System.out.println("[CORE SECURITY] Protected path, checking auth: " + requestUri);
 
-        if (cedula == null || userType == null || apiKey == null) {
-            System.out.println("[CORE SECURITY] BLOCKED - Missing headers from Gateway for " + requestUri);
-            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                "Petición debe venir desde el API Gateway");
+        // 2. Verificar autenticación (múltiples métodos)
+        String cedula = null;
+        String userType = null;
+
+        // Método 1: Headers del Gateway (cuando viene desde el Gateway)
+        cedula = httpRequest.getHeader("X-User-Cedula");
+        userType = httpRequest.getHeader("X-User-Type");
+
+        // Método 2: Sesión HTTP (cuando el usuario se autentica directamente en Core)
+        if (cedula == null || userType == null) {
+            jakarta.servlet.http.HttpSession session = httpRequest.getSession(false);
+            if (session != null) {
+                Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+                if (authenticated != null && authenticated) {
+                    cedula = (String) session.getAttribute("cedula");
+                    userType = (String) session.getAttribute("userType");
+                    System.out.println("[CORE SECURITY] Auth via SESSION - cedula: " + cedula + ", type: " + userType);
+                }
+            }
+        }
+
+        // Método 3: Cookie JWT (cuando hay cookie de autenticación)
+        if (cedula == null || userType == null) {
+            jakarta.servlet.http.Cookie[] cookies = httpRequest.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if ("Authorization".equals(cookie.getName())) {
+                        // Hay una cookie JWT - permitir acceso (el JWT ya fue validado en el login)
+                        System.out.println("[CORE SECURITY] Auth via JWT COOKIE detected");
+                        jakarta.servlet.http.HttpSession session = httpRequest.getSession(false);
+                        if (session != null) {
+                            cedula = (String) session.getAttribute("cedula");
+                            userType = (String) session.getAttribute("userType");
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Si no hay autenticación, bloquear
+        if (cedula == null || userType == null) {
+            System.out.println("[CORE SECURITY] BLOCKED - No authentication for " + requestUri);
+            httpResponse.sendRedirect("/auth/login?error=session_expired");
             return;
         }
 
@@ -122,13 +161,15 @@ public class ApiGatewayFilter implements Filter {
         }
 
         if ("ADMIN".equals(userType)) {
-            // Admin tiene acceso a todo excepto rutas públicas
-            return requestUri.startsWith("/admin/") || requestUri.startsWith("/staff/");
+            // Admin tiene acceso a /admin y /staff (con o sin barra final)
+            return requestUri.equals("/admin") || requestUri.startsWith("/admin/") ||
+                   requestUri.equals("/staff") || requestUri.startsWith("/staff/");
         }
 
         if ("ANALYST".equals(userType)) {
             // Analyst (Staff) tiene acceso a /staff/ y /denuncia/
-            return requestUri.startsWith("/staff/") || requestUri.startsWith("/denuncia/");
+            return requestUri.equals("/staff") || requestUri.startsWith("/staff/") ||
+                   requestUri.startsWith("/denuncia/");
         }
 
         if ("DENUNCIANTE".equals(userType)) {

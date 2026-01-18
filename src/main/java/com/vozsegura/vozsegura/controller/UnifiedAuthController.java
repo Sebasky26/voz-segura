@@ -334,13 +334,13 @@ public class UnifiedAuthController {
 
             System.out.println("[UNIFIED AUTH] MFA successful for " + cedula + ", user type: " + userType);
 
-            // Redirigir según rol - A través del Gateway para que propague JWT
+            // Redirigir según rol - Directamente al Core (sin Gateway)
             if ("ADMIN".equals(userType)) {
-                System.out.println("[UNIFIED AUTH] Redirecting ADMIN to Gateway /admin");
-                return "redirect:http://localhost:8080/admin/panel";
+                System.out.println("[UNIFIED AUTH] Redirecting ADMIN to /admin");
+                return "redirect:/admin";
             } else {
-                System.out.println("[UNIFIED AUTH] Redirecting STAFF to Gateway /staff");
-                return "redirect:http://localhost:8080/staff/casos-list";
+                System.out.println("[UNIFIED AUTH] Redirecting STAFF to /staff/casos");
+                return "redirect:/staff/casos";
             }
 
         } catch (Exception e) {

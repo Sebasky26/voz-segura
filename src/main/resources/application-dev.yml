@@ -1,8 +1,6 @@
 spring:
   datasource:
-    # Configuración de Supabase usando variables de entorno
-    # Configura estas variables en tu sistema o archivo .env:
-    # SUPABASE_DB_URL, SUPABASE_DB_USERNAME, SUPABASE_DB_PASSWORD
+    # Configuración de Supabase desde .env
     url: ${SUPABASE_DB_URL}
     username: ${SUPABASE_DB_USERNAME}
     password: ${SUPABASE_DB_PASSWORD}
@@ -33,37 +31,37 @@ spring:
   thymeleaf:
     cache: false
 
-# JWT Development
+# JWT Development (desde .env)
 jwt:
-  secret: ${JWT_SECRET:dev-secret-key-change-in-production-32-chars}
+  secret: ${JWT_SECRET}
   expiration: 86400000
 
-# Supabase
+# Supabase (desde .env)
 supabase:
-  project-url: ${SUPABASE_PROJECT_URL:}
-  anon-key: ${SUPABASE_ANON_KEY:}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  project-url: https://yqpgdxezqiptjjkqmebu.supabase.co
+  anon-key: ${SUPABASE_ANON_KEY}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 
-# Configuracion AWS
+# Configuracion AWS (desde .env)
 aws:
-  region: us-east-1
+  region: ${AWS_REGION}
   ses:
-    from-email: ${AWS_SES_FROM_EMAIL:stalin.yungan@epn.edu.ec}
+    from-email: ${AWS_SES_FROM_EMAIL}
   access:
-    key-id: ${AWS_ACCESS_KEY_ID:}
+    key-id: ${AWS_ACCESS_KEY_ID}
   secret:
-    access-key: ${AWS_SECRET_ACCESS_KEY:}
+    access-key: ${AWS_SECRET_ACCESS_KEY}
 
-# Encryption
+# Encryption (desde .env)
 vozsegura:
   encryption:
-    key-b64: ${VOZSEGURA_DATA_KEY_B64:}
+    key-b64: ${VOZSEGURA_DATA_KEY_B64}
 
-# Cloudflare
+# Cloudflare (desde .env)
 cloudflare:
   turnstile:
-    site-key: ${CLOUDFLARE_SITE_KEY:}
-    secret-key: ${CLOUDFLARE_SECRET_KEY:}
+    site-key: ${CLOUDFLARE_SITE_KEY}
+    secret-key: ${CLOUDFLARE_SECRET_KEY}
 
 server:
   port: 8082

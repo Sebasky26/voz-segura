@@ -19,12 +19,12 @@ spring:
     active: dev
   
   # ============================================
-  # Database Configuration
+  # Database Configuration (desde .env)
   # ============================================
   datasource:
-    url: ${SUPABASE_DB_URL:jdbc:postgresql://localhost:5432/postgres}
-    username: ${SUPABASE_DB_USERNAME:postgres}
-    password: ${SUPABASE_DB_PASSWORD:password}
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -60,47 +60,46 @@ spring:
       enabled: always
 
 # ============================================
-# JWT Configuration
+# JWT Configuration (desde .env)
 # ============================================
 jwt:
-  # Debe coincidir con la configuración del gateway
-  secret: ${JWT_SECRET:voz-segura-jwt-secret-key-2026-change-in-production}
+  secret: ${JWT_SECRET}
   expiration: 86400000  # 24 horas
 
 # ============================================
-# Supabase Configuration
+# Supabase Configuration (desde .env)
 # ============================================
 supabase:
-  project-url: ${SUPABASE_PROJECT_URL:https://yqpgdxezqiptjjkqmebu.supabase.co}
-  anon-key: ${SUPABASE_ANON_KEY:}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  project-url: https://yqpgdxezqiptjjkqmebu.supabase.co
+  anon-key: ${SUPABASE_ANON_KEY}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 
 # ============================================
-# Encryption Configuration
+# Encryption Configuration (desde .env)
 # ============================================
 vozsegura:
   encryption:
-    key-b64: ${VOZSEGURA_DATA_KEY_B64:}
+    key-b64: ${VOZSEGURA_DATA_KEY_B64}
 
 # ============================================
-# AWS Configuration
+# AWS Configuration (desde .env)
 # ============================================
 aws:
   ses:
-    from-email: ${AWS_SES_FROM_EMAIL:}
+    from-email: ${AWS_SES_FROM_EMAIL}
   access:
-    key-id: ${AWS_ACCESS_KEY_ID:}
+    key-id: ${AWS_ACCESS_KEY_ID}
   secret:
-    access-key: ${AWS_SECRET_ACCESS_KEY:}
-  region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_SECRET_ACCESS_KEY}
+  region: ${AWS_REGION}
 
 # ============================================
-# Cloudflare Turnstile
+# Cloudflare Turnstile (desde .env)
 # ============================================
 cloudflare:
   turnstile:
-    site-key: ${CLOUDFLARE_SITE_KEY:}
-    secret-key: ${CLOUDFLARE_SECRET_KEY:}
+    site-key: ${CLOUDFLARE_SITE_KEY}
+    secret-key: ${CLOUDFLARE_SECRET_KEY}
 
 # ============================================
 # Security Headers
@@ -145,4 +144,3 @@ management:
   endpoint:
     health:
       show-details: always
-    secret-key: "${CLOUDFLARE_SECRET_KEY:}"
