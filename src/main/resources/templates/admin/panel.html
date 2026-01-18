@@ -31,7 +31,7 @@
             <h1 id="titulo-panel" class="vs-card__title">Panel de Administración</h1>
             <p class="vs-card__subtitle">Gestione las configuraciones del sistema</p>
         </div>
-        <div class="vs-grid vs-grid--3cols vs-mb-6">
+        <div class="vs-grid vs-grid--2cols vs-mb-6">
             <a th:href="@{/admin/reglas}" class="vs-action-card">
                 <div class="vs-action-card__title">Reglas de derivación</div>
                 <p class="vs-action-card__text">Configure las reglas para derivar denuncias automáticamente a las entidades correspondientes.</p>
@@ -41,11 +41,6 @@
                 <div class="vs-action-card__title">Logs del sistema</div>
                 <p class="vs-action-card__text">Consulte el registro de actividad del sistema sin exponer datos personales.</p>
                 <span class="vs-action-card__cta">Ver logs →</span>
-            </a>
-            <a th:href="@{/staff/casos}" class="vs-action-card">
-                <div class="vs-action-card__title">Supervisar casos</div>
-                <p class="vs-action-card__text">Acceda al listado de denuncias para supervisión general.</p>
-                <span class="vs-action-card__cta">Ver casos →</span>
             </a>
         </div>
         <div class="vs-section">

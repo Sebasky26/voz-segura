@@ -81,6 +81,17 @@ public class DerivationService {
         });
     }
 
+    @Transactional
+    public void activateRule(Long id, String adminUsername) {
+        ruleRepository.findById(id).ifPresent(rule -> {
+            rule.setActive(true);
+            rule.setUpdatedAt(OffsetDateTime.now());
+            ruleRepository.save(rule);
+            auditService.logEvent("ADMIN", adminUsername, "RULE_UPDATED", null,
+                    "Regla activada: " + rule.getName());
+        });
+    }
+
     /**
      * Encuentra la entidad de destino para una denuncia basándose en las reglas activas.
      */

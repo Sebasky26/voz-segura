@@ -1333,311 +1333,84 @@ code {
 }
 
 /* ============================================
-   DENUNCIA: PROGRESO
+   REGLAS DE DERIVACIÓN - TARJETAS
    ============================================ */
-.vs-progress {
-    margin-bottom: var(--space-6);
+.vs-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4);
 }
 
-.vs-progress__steps {
+.vs-rule-card {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.vs-rule-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+}
+
+.vs-rule-card--inactive {
+    border-color: var(--gray-300);
+    opacity: 0.7;
+}
+
+.vs-rule-card__header {
     display: flex;
     justify-content: space-between;
-    position: relative;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.vs-progress__steps::before {
-    content: '';
-    position: absolute;
-    top: 16px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--gray-300);
-    z-index: 0;
-}
-
-.vs-progress__step {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: var(--space-2);
-    position: relative;
-    z-index: 1;
-    flex: 1;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    color: white;
 }
 
-.vs-progress__step-circle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: white;
-    border: 2px solid var(--gray-300);
+.vs-rule-card--inactive .vs-rule-card__header {
+    background: linear-gradient(135deg, var(--gray-400) 0%, var(--gray-500) 100%);
+}
+
+.vs-rule-card__name {
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+}
+
+.vs-rule-card__body {
+    padding: var(--space-4);
+}
+
+.vs-rule-card__item {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: var(--font-size-sm);
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.vs-rule-card__item:last-child {
+    border-bottom: none;
+}
+
+.vs-rule-card__label {
     color: var(--gray-500);
+    font-size: var(--font-size-sm);
 }
 
-.vs-progress__step.active .vs-progress__step-circle {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
+.vs-rule-card__value {
+    font-weight: 500;
+    color: var(--gray-900);
+    text-align: right;
 }
 
-.vs-progress__step.completed .vs-progress__step-circle {
-    background: var(--success);
-    border-color: var(--success);
-    color: white;
-}
-
-.vs-progress__step-label {
-    font-size: var(--font-size-xs);
-    color: var(--gray-600);
-    text-align: center;
-}
-
-.vs-progress__step.active .vs-progress__step-label {
-    color: var(--accent);
-    font-weight: 700;
-}
-
-/* contador */
-.vs-muted-row {
+.vs-rule-card__actions {
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
     display: flex;
     justify-content: flex-end;
 }
 
-/* Link como botón (para "Ver términos") */
-.vs-link-btn {
-    border: none;
-    background: transparent;
-    color: var(--accent);
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-    padding: 0;
-    text-decoration: underline;
-}
-
-.vs-link-btn:hover {
-    text-decoration: none;
-}
-
-/* Texto pequeño en info */
-.vs-small-muted {
-    font-size: var(--font-size-xs);
-    color: var(--gray-700);
-    margin: 0;
-}
-
-/* Estados visuales (sin inline styles) */
-.vs-field--valid {
-    border-color: rgba(16, 185, 129, 0.8) !important;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
-}
-
-.vs-field--invalid {
-    border-color: rgba(239, 68, 68, 0.85) !important;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
-}
-
-/* (Opcional) Botón cerrar del modal si no lo tenías */
-.vs-modal__close {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    border: 1px solid var(--gray-200);
-    background: white;
-    cursor: pointer;
-    font-size: 26px;
-    line-height: 1;
-}
-
-.vs-modal__close:hover {
-    background: var(--gray-50);
-}
-
-.vs-modal__close:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
-}
-
-/* ============================================
-   TÉRMINOS: bloques y listas
-   ============================================ */
-.vs-terms-block {
-    padding: var(--space-4);
-    border: 1px solid var(--gray-200);
-    background: var(--gray-50);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-4);
-}
-
-.vs-terms-block h3 {
-    margin: 0 0 var(--space-2);
-    font-size: var(--font-size-lg);
-    font-weight: 800;
-    color: var(--gray-800);
-}
-
-.vs-terms-block p {
-    margin: 0 0 var(--space-3);
-    color: var(--gray-700);
-    font-size: var(--font-size-sm);
-    line-height: 1.65;
-}
-
-.vs-terms-block ul {
-    margin: 0;
-    padding-left: 1.25rem;
-    color: var(--gray-700);
-    font-size: var(--font-size-sm);
-}
-
-.vs-terms-block li {
-    margin-bottom: var(--space-2);
-}
-
-/* ============================================
-   STAFF: Detalle caso (resumen / acciones)
-   ============================================ */
-.vs-code-pill {
-    padding: 0.12rem 0.45rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--gray-200);
-    background: var(--gray-50);
-}
-
-.vs-summary-card {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-md);
-    padding: var(--space-4);
-}
-
-.vs-summary-card__label {
-    font-size: var(--font-size-xs);
-    color: var(--gray-600);
-    margin-bottom: var(--space-2);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.vs-summary-card__value {
-    font-weight: 700;
-    color: var(--gray-800);
-}
-
-.vs-action-box {
-    border: 1px solid var(--gray-200);
-    background: white;
-    border-radius: var(--radius-md);
-    padding: var(--space-4);
-}
-
-/* ============================================
-   STAFF: filtros + pie del listado
-   ============================================ */
-.vs-filters {
-    padding: var(--space-4);
-    border: 1px solid var(--gray-200);
-    background: var(--gray-50);
-    border-radius: var(--radius-md);
-}
-
-.vs-filters__actions {
-    display: flex;
-    gap: var(--space-3);
-    align-items: flex-end;
-}
-
-.vs-list-footer {
-    margin-top: var(--space-4);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.vs-table-actions {
-    display: flex;
-    gap: var(--space-2);
-    flex-wrap: wrap;
-}
-
-/* ============================================
-   UTILIDADES DE TEXTO
-   ============================================ */
-.vs-text-warning {
-    color: var(--warning) !important;
-}
-
-.vs-text-success {
-    color: var(--success) !important;
-}
-
-.vs-text-error {
-    color: var(--danger) !important;
-}
-
-.vs-text-muted {
-    color: var(--gray-500) !important;
-}
-
-/* ============================================
-   LISTA DE ARCHIVOS MEJORADA
-   ============================================ */
-.vs-file-list {
-    margin-top: var(--space-3);
-}
-
-.vs-file-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-3);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-2);
-}
-
-.vs-file-item__info {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-}
-
-.vs-file-item__icon {
-    font-size: 1.5rem;
-}
-
-.vs-file-item__name {
-    font-weight: 500;
-    color: var(--gray-900);
-}
-
-.vs-file-item__size {
-    font-size: var(--font-size-sm);
-    color: var(--gray-500);
-}
-
-.vs-file-item__remove {
-    background: none;
-    border: none;
-    color: var(--danger);
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
-    transition: background var(--transition-fast);
-}
-
-.vs-file-item__remove:hover {
-    background: rgba(239, 68, 68, 0.1);
+.vs-inline {
+    display: inline;
 }

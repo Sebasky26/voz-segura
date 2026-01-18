@@ -69,6 +69,7 @@ public class AdminController {
         model.addAttribute("complaintTypes", getComplaintTypes());
         model.addAttribute("severities", getSeverities());
         model.addAttribute("priorities", getPriorities());
+        model.addAttribute("entidades", getEntidadesEcuatorianas());
 
         return "admin/reglas";
     }
@@ -150,6 +151,22 @@ public class AdminController {
         String username = getUsername(session);
         derivationService.deleteRule(id, username);
         redirectAttributes.addFlashAttribute("success", "Regla desactivada correctamente");
+        return "redirect:/admin/reglas";
+    }
+
+    @PostMapping("/reglas/{id}/activar")
+    public String activarRegla(
+            @PathVariable("id") Long id,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        if (!isAuthenticated(session)) {
+            return "redirect:/auth/login?session_expired";
+        }
+
+        String username = getUsername(session);
+        derivationService.activateRule(id, username);
+        redirectAttributes.addFlashAttribute("success", "Regla activada correctamente");
         return "redirect:/admin/reglas";
     }
 
@@ -251,6 +268,23 @@ public class AdminController {
             {"RULE_DELETED", "Regla eliminada"},
             {"LOGIN_SUCCESS", "Inicio de sesión"},
             {"LOGIN_FAILED", "Intento fallido"}
+        };
+    }
+
+    private String[][] getEntidadesEcuatorianas() {
+        return new String[][] {
+            {"Ministerio del Trabajo", "Ministerio del Trabajo"},
+            {"Ministerio del Trabajo - Inspectoría", "Ministerio del Trabajo - Inspectoría"},
+            {"Defensoría del Pueblo", "Defensoría del Pueblo"},
+            {"Fiscalía General del Estado", "Fiscalía General del Estado"},
+            {"IESS - Riesgos del Trabajo", "IESS - Riesgos del Trabajo"},
+            {"Superintendencia de Compañías", "Superintendencia de Compañías"},
+            {"Consejo de la Judicatura", "Consejo de la Judicatura"},
+            {"Contraloría General del Estado", "Contraloría General del Estado"},
+            {"Procuraduría General del Estado", "Procuraduría General del Estado"},
+            {"Ministerio de Inclusión Económica y Social", "Ministerio de Inclusión Económica y Social"},
+            {"Consejo Nacional para la Igualdad de Género", "Consejo Nacional para la Igualdad de Género"},
+            {"Consejo Nacional para la Igualdad de Discapacidades", "Consejo Nacional para la Igualdad de Discapacidades"}
         };
     }
 }
