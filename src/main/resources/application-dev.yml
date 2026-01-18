@@ -6,14 +6,15 @@ spring:
     password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      # Pool suficiente para Flyway + Hibernate + operaciones
-      maximum-pool-size: 5
+      # Pool reducido para evitar conflictos con PgBouncer
+      maximum-pool-size: 3
       minimum-idle: 1
       connection-timeout: 60000
       idle-timeout: 30000
       max-lifetime: 180000
       keepalive-time: 30000
       validation-timeout: 5000
+      auto-commit: true
   jpa:
     hibernate:
       ddl-auto: none
@@ -26,6 +27,9 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: false
     baseline-on-migrate: true
+    # Configuración para PgBouncer
+    connect-retries: 3
+    lock-retry-count: 50
   servlet:
     multipart:
       max-file-size: 25MB
