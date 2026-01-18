@@ -72,7 +72,7 @@ public class VozSeguraGatewayApplication {
                 // RUTA 4: Recursos Estáticos (Pública)
                 // ============================================
                 .route("static-resources", r -> r
-                        .path("/css/**", "/js/**", "/images/**", "/favicon.ico")
+                        .path("/css/**", "/js/**", "/images/**", "/img/**", "/favicon.ico")
                         .uri("http://localhost:8082")
                 )
 

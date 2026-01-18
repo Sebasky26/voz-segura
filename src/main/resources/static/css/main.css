@@ -140,7 +140,7 @@ a:focus-visible {
 }
 
 /* ============================================
-   HEADER
+   HEADER + BRAND (único)
    ============================================ */
 .vs-header {
     padding: var(--space-4) 0;
@@ -153,45 +153,62 @@ a:focus-visible {
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-.vs-header .vs-container {
+.vs-header .vs-container,
+.vs-header .vs-container-wide {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     gap: var(--space-4);
 }
 
-/* Marca con logo */
+/* Link completo del brand */
 .vs-brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: var(--space-3);
+    text-decoration: none;
+    color: white;
+    min-height: 64px;
     min-width: 220px;
 }
 
 .vs-brand__logo {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
+    width: 76px;
+    height: 76px;
+    padding: 4px; /* antes 8px */
     background: #ffffff;
-    border-radius: var(--radius-lg);
-    padding: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 14px;
+    object-fit: contain;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .2);
 }
 
+/* Texto junto al logo */
 .vs-brand__text {
-    line-height: 1.15;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
 }
 
 .vs-brand__title {
-    font-size: var(--font-size-lg);
     font-weight: 800;
-    letter-spacing: 0.2px;
+    font-size: 1.25rem;
+    letter-spacing: 0.01em;
 }
 
 .vs-brand__subtitle {
-    font-size: var(--font-size-xs);
-    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.82);
+    margin-top: 2px;
 }
+
+@media (max-width: 640px) {
+    .vs-brand__logo {
+        width: 64px;
+        height: 64px;
+        padding: 3px;
+    }
+}
+
 
 /* ============================================
    CARD
@@ -969,29 +986,30 @@ code {
 /* ============================================
    LISTA SIMPLE (bullets bonitos y sobrios)
    ============================================ */
-.vs-bullets{
+.vs-bullets {
     margin: 0;
     padding-left: 1.1rem;
     color: var(--gray-700);
     font-size: var(--font-size-sm);
     line-height: 1.6;
 }
-.vs-bullets li{
+
+.vs-bullets li {
     margin-bottom: var(--space-2);
 }
 
 /* ============================================
    INPUT CON ACCIÓN (mostrar/ocultar)
    ============================================ */
-.vs-input-with-action{
+.vs-input-with-action {
     position: relative;
 }
 
-.vs-input-with-action .vs-input{
+.vs-input-with-action .vs-input {
     padding-right: 92px; /* espacio para el botón */
 }
 
-.vs-input-action{
+.vs-input-action {
     position: absolute;
     top: 50%;
     right: 10px;
@@ -1006,17 +1024,17 @@ code {
     cursor: pointer;
 }
 
-.vs-input-action:hover{
+.vs-input-action:hover {
     background: var(--gray-50);
     border-color: var(--gray-400);
 }
 
-.vs-input-action:focus-visible{
+.vs-input-action:focus-visible {
     outline: none;
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
 }
 
-.vs-login-footnote{
+.vs-login-footnote {
     margin-top: var(--space-4);
     display: flex;
     align-items: center;
@@ -1028,14 +1046,14 @@ code {
 /* ============================================
    OTP
    ============================================ */
-.vs-otp-input{
+.vs-otp-input {
     font-size: 1.5rem;
     letter-spacing: 0.45rem;
     text-align: center;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-.vs-email-badge{
+.vs-email-badge {
     background: rgba(59, 130, 246, 0.12);
     color: var(--accent-hover);
     padding: 0.5rem 1rem;
@@ -1044,13 +1062,13 @@ code {
     display: inline-block;
 }
 
-.vs-timer{
+.vs-timer {
     font-size: var(--font-size-sm);
     color: var(--gray-600);
 }
 
 /* Bloque de error más “amable” */
-.vs-card__subtitle{
+.vs-card__subtitle {
     max-width: 48ch;
     margin-left: auto;
     margin-right: auto;
@@ -1059,7 +1077,7 @@ code {
 /* ============================================
    BIOMETRÍA (UI de captura/preview)
    ============================================ */
-.vs-camera-container{
+.vs-camera-container {
     position: relative;
     width: 100%;
     max-width: 400px;
@@ -1069,10 +1087,10 @@ code {
     overflow: hidden;
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     box-shadow: var(--shadow-lg);
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-.vs-camera-preview{
+.vs-camera-preview {
     width: 100%;
     height: 100%;
     display: flex;
@@ -1082,7 +1100,7 @@ code {
     position: relative;
 }
 
-.vs-camera-frame{
+.vs-camera-frame {
     width: 200px;
     height: 200px;
     border-radius: 50%;
@@ -1092,9 +1110,11 @@ code {
     justify-content: center;
 }
 
-.vs-camera-frame.hidden{ display: none; }
+.vs-camera-frame.hidden {
+    display: none;
+}
 
-.vs-camera-icon{
+.vs-camera-icon {
     width: 80px;
     height: 50px;
     border-radius: var(--radius-md);
@@ -1103,7 +1123,7 @@ code {
     opacity: 0.95;
 }
 
-.vs-camera-icon::before{
+.vs-camera-icon::before {
     content: "";
     position: absolute;
     top: -10px;
@@ -1115,7 +1135,7 @@ code {
     border-bottom: none;
 }
 
-.vs-camera-button{
+.vs-camera-button {
     position: absolute;
     bottom: var(--space-5);
     left: 50%;
@@ -1133,25 +1153,32 @@ code {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30);
 }
 
-.vs-camera-button:hover{ transform: translateX(-50%) scale(1.05); }
-.vs-camera-button:active{ transform: translateX(-50%) scale(0.96); }
-
-.vs-camera-button:focus-visible{
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(59,130,246,0.20), 0 10px 22px rgba(0,0,0,0.30);
+.vs-camera-button:hover {
+    transform: translateX(-50%) scale(1.05);
 }
 
-.vs-photo-preview{
+.vs-camera-button:active {
+    transform: translateX(-50%) scale(0.96);
+}
+
+.vs-camera-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.20), 0 10px 22px rgba(0, 0, 0, 0.30);
+}
+
+.vs-photo-preview {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: none;
 }
 
-.vs-photo-preview.active{ display: block; }
+.vs-photo-preview.active {
+    display: block;
+}
 
 /* Caja de info */
-.vs-info-box{
+.vs-info-box {
     background: var(--gray-50);
     border-radius: var(--radius-md);
     padding: var(--space-4);
@@ -1159,20 +1186,20 @@ code {
     border: 1px solid var(--gray-200);
 }
 
-.vs-info-box__title{
+.vs-info-box__title {
     font-size: var(--font-size-sm);
     font-weight: 700;
     color: var(--primary);
     margin-bottom: var(--space-2);
 }
 
-.vs-info-box__list{
+.vs-info-box__list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.vs-info-box__list li{
+.vs-info-box__list li {
     position: relative;
     padding-left: var(--space-4);
     margin-bottom: var(--space-1);
@@ -1180,7 +1207,7 @@ code {
     color: var(--gray-700);
 }
 
-.vs-info-box__list li::before{
+.vs-info-box__list li::before {
     content: "•";
     position: absolute;
     left: 0;
@@ -1190,26 +1217,29 @@ code {
 /* ============================================
    CONFIRMACIÓN / ÉXITO
    ============================================ */
-.vs-center { text-align: center; }
+.vs-center {
+    text-align: center;
+}
 
-.vs-success-icon{
+.vs-success-icon {
     font-size: 64px;
     margin-bottom: var(--space-6);
     line-height: 1;
 }
 
-.vs-h3{
+.vs-h3 {
     margin: 0 0 var(--space-3);
     font-size: var(--font-size-lg);
     font-weight: 800;
     color: var(--gray-800);
 }
 
-.vs-list{
+.vs-list {
     margin: 0;
     padding-left: 1.25rem;
 }
-.vs-list li{
+
+.vs-list li {
     margin-bottom: var(--space-2);
     color: var(--gray-700);
     font-size: var(--font-size-sm);
@@ -1217,13 +1247,16 @@ code {
 }
 
 /* Código de seguimiento */
-.vs-track{ width: 100%; }
-.vs-track__title{
+.vs-track {
+    width: 100%;
+}
+
+.vs-track__title {
     font-weight: 800;
     margin-bottom: var(--space-2);
 }
 
-.vs-track__box{
+.vs-track__box {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: var(--font-size-xl);
     font-weight: 800;
@@ -1234,13 +1267,13 @@ code {
     border: 1px solid var(--gray-200);
 }
 
-.vs-track__actions{
+.vs-track__actions {
     margin-top: var(--space-3);
     display: flex;
     justify-content: center;
 }
 
-.vs-track__hint{
+.vs-track__hint {
     margin-top: var(--space-3);
     font-size: var(--font-size-sm);
     color: var(--gray-700);
@@ -1249,9 +1282,11 @@ code {
 /* ============================================
    DENUNCIA: LISTA DE ARCHIVOS
    ============================================ */
-.vs-file-list { margin-top: var(--space-4); }
+.vs-file-list {
+    margin-top: var(--space-4);
+}
 
-.vs-file-item{
+.vs-file-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1262,27 +1297,29 @@ code {
     margin-bottom: var(--space-2);
 }
 
-.vs-file-item__info{
+.vs-file-item__info {
     display: flex;
     align-items: center;
     gap: var(--space-3);
     flex: 1;
 }
 
-.vs-file-item__icon{ font-size: var(--font-size-xl); }
+.vs-file-item__icon {
+    font-size: var(--font-size-xl);
+}
 
-.vs-file-item__name{
+.vs-file-item__name {
     font-size: var(--font-size-sm);
     color: var(--gray-700);
     font-weight: 600;
 }
 
-.vs-file-item__size{
+.vs-file-item__size {
     font-size: var(--font-size-xs);
     color: var(--gray-500);
 }
 
-.vs-file-item__remove{
+.vs-file-item__remove {
     background: transparent;
     border: none;
     color: var(--danger);
@@ -1291,14 +1328,19 @@ code {
     font-size: var(--font-size-lg);
     transition: transform var(--transition-fast);
 }
-.vs-file-item__remove:hover{ transform: scale(1.08); }
+
+.vs-file-item__remove:hover {
+    transform: scale(1.08);
+}
 
 /* ============================================
    DENUNCIA: PROGRESO
    ============================================ */
-.vs-progress{ margin-bottom: var(--space-6); }
+.vs-progress {
+    margin-bottom: var(--space-6);
+}
 
-.vs-progress__steps{
+.vs-progress__steps {
     display: flex;
     justify-content: space-between;
     position: relative;
@@ -1307,7 +1349,7 @@ code {
     margin: 0;
 }
 
-.vs-progress__steps::before{
+.vs-progress__steps::before {
     content: '';
     position: absolute;
     top: 16px;
@@ -1318,7 +1360,7 @@ code {
     z-index: 0;
 }
 
-.vs-progress__step{
+.vs-progress__step {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1328,7 +1370,7 @@ code {
     flex: 1;
 }
 
-.vs-progress__step-circle{
+.vs-progress__step-circle {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1342,37 +1384,37 @@ code {
     color: var(--gray-500);
 }
 
-.vs-progress__step.active .vs-progress__step-circle{
+.vs-progress__step.active .vs-progress__step-circle {
     background: var(--accent);
     border-color: var(--accent);
     color: white;
 }
 
-.vs-progress__step.completed .vs-progress__step-circle{
+.vs-progress__step.completed .vs-progress__step-circle {
     background: var(--success);
     border-color: var(--success);
     color: white;
 }
 
-.vs-progress__step-label{
+.vs-progress__step-label {
     font-size: var(--font-size-xs);
     color: var(--gray-600);
     text-align: center;
 }
 
-.vs-progress__step.active .vs-progress__step-label{
+.vs-progress__step.active .vs-progress__step-label {
     color: var(--accent);
     font-weight: 700;
 }
 
 /* contador */
-.vs-muted-row{
+.vs-muted-row {
     display: flex;
     justify-content: flex-end;
 }
 
 /* Link como botón (para "Ver términos") */
-.vs-link-btn{
+.vs-link-btn {
     border: none;
     background: transparent;
     color: var(--accent);
@@ -1382,27 +1424,31 @@ code {
     padding: 0;
     text-decoration: underline;
 }
-.vs-link-btn:hover{ text-decoration: none; }
+
+.vs-link-btn:hover {
+    text-decoration: none;
+}
 
 /* Texto pequeño en info */
-.vs-small-muted{
+.vs-small-muted {
     font-size: var(--font-size-xs);
     color: var(--gray-700);
     margin: 0;
 }
 
 /* Estados visuales (sin inline styles) */
-.vs-field--valid{
+.vs-field--valid {
     border-color: rgba(16, 185, 129, 0.8) !important;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
 }
-.vs-field--invalid{
+
+.vs-field--invalid {
     border-color: rgba(239, 68, 68, 0.85) !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
 }
 
 /* (Opcional) Botón cerrar del modal si no lo tenías */
-.vs-modal__close{
+.vs-modal__close {
     width: 42px;
     height: 42px;
     border-radius: 12px;
@@ -1412,18 +1458,20 @@ code {
     font-size: 26px;
     line-height: 1;
 }
-.vs-modal__close:hover{
+
+.vs-modal__close:hover {
     background: var(--gray-50);
 }
-.vs-modal__close:focus-visible{
+
+.vs-modal__close:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(59,130,246,0.18);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
 }
 
 /* ============================================
    TÉRMINOS: bloques y listas
    ============================================ */
-.vs-terms-block{
+.vs-terms-block {
     padding: var(--space-4);
     border: 1px solid var(--gray-200);
     background: var(--gray-50);
@@ -1431,49 +1479,49 @@ code {
     margin-bottom: var(--space-4);
 }
 
-.vs-terms-block h3{
+.vs-terms-block h3 {
     margin: 0 0 var(--space-2);
     font-size: var(--font-size-lg);
     font-weight: 800;
     color: var(--gray-800);
 }
 
-.vs-terms-block p{
+.vs-terms-block p {
     margin: 0 0 var(--space-3);
     color: var(--gray-700);
     font-size: var(--font-size-sm);
     line-height: 1.65;
 }
 
-.vs-terms-block ul{
+.vs-terms-block ul {
     margin: 0;
     padding-left: 1.25rem;
     color: var(--gray-700);
     font-size: var(--font-size-sm);
 }
 
-.vs-terms-block li{
+.vs-terms-block li {
     margin-bottom: var(--space-2);
 }
 
 /* ============================================
    STAFF: Detalle caso (resumen / acciones)
    ============================================ */
-.vs-code-pill{
+.vs-code-pill {
     padding: 0.12rem 0.45rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--gray-200);
     background: var(--gray-50);
 }
 
-.vs-summary-card{
+.vs-summary-card {
     background: var(--gray-50);
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-md);
     padding: var(--space-4);
 }
 
-.vs-summary-card__label{
+.vs-summary-card__label {
     font-size: var(--font-size-xs);
     color: var(--gray-600);
     margin-bottom: var(--space-2);
@@ -1482,12 +1530,12 @@ code {
     letter-spacing: 0.04em;
 }
 
-.vs-summary-card__value{
+.vs-summary-card__value {
     font-weight: 700;
     color: var(--gray-800);
 }
 
-.vs-action-box{
+.vs-action-box {
     border: 1px solid var(--gray-200);
     background: white;
     border-radius: var(--radius-md);
@@ -1497,27 +1545,27 @@ code {
 /* ============================================
    STAFF: filtros + pie del listado
    ============================================ */
-.vs-filters{
+.vs-filters {
     padding: var(--space-4);
     border: 1px solid var(--gray-200);
     background: var(--gray-50);
     border-radius: var(--radius-md);
 }
 
-.vs-filters__actions{
+.vs-filters__actions {
     display: flex;
     gap: var(--space-3);
     align-items: flex-end;
 }
 
-.vs-list-footer{
+.vs-list-footer {
     margin-top: var(--space-4);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.vs-table-actions{
+.vs-table-actions {
     display: flex;
     gap: var(--space-2);
     flex-wrap: wrap;
