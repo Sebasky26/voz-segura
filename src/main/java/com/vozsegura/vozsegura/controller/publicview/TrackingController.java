@@ -70,7 +70,14 @@ public class TrackingController {
     public String processTracking(@Valid @ModelAttribute TrackingForm form,
                                    BindingResult bindingResult,
                                    HttpServletRequest request,
+                                   HttpSession session,
                                    Model model) {
+
+        // Verificar que el usuario esté autenticado
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login?session_expired";
+        }
 
         // Rate limiting basado en IP para prevenir enumeración
         String clientIp = getClientIp(request);

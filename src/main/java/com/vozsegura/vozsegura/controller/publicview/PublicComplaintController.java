@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
-import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.vozsegura.vozsegura.dto.forms.BiometricOtpForm;
@@ -24,7 +23,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
 @Controller
-@SessionAttributes({"denunciaAccessToken", "citizenHash"})
+@SessionAttributes({"denunciaAccessToken"})
 public class PublicComplaintController {
 
     private final RateLimiter rateLimiter;
@@ -139,7 +138,6 @@ public class PublicComplaintController {
     public String submitComplaint(@Valid @ModelAttribute("complaintForm") ComplaintForm form,
                                   BindingResult bindingResult,
                                   HttpSession session,
-                                  SessionStatus sessionStatus,
                                   RedirectAttributes redirectAttributes,
                                   Model model) {
         if (bindingResult.hasErrors()) {
@@ -157,9 +155,7 @@ public class PublicComplaintController {
             // Guardar denuncia en la base de datos
             String trackingId = complaintService.createComplaint(form, citizenHash);
             
-            // Limpiar sesión
-            sessionStatus.setComplete();
-            
+
             // Pasar tracking ID a la vista de confirmación
             redirectAttributes.addFlashAttribute("trackingId", trackingId);
             redirectAttributes.addFlashAttribute("success", true);
