@@ -36,6 +36,7 @@ public class ApiGatewayFilter implements Filter {
     private static final String[] PUBLIC_PATHS = {
         "/auth/",
         "/denuncia/",
+        "/seguimiento",
         "/css/",
         "/js/",
         "/img/",

@@ -34,7 +34,7 @@ public class SecurityConfig {
             .csrf(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas (mantenidas sin cambios)
-                .requestMatchers("/auth/**", "/denuncia/**", "/terms", "/terms/**", 
+                .requestMatchers("/auth/**", "/denuncia/**", "/seguimiento/**", "/terms", "/terms/**",
                     "/css/**", "/js/**", "/img/**", "/images/**", "/favicon.ico", "/error", "/error/**")
                 .permitAll()
                 // El resto es validado por ApiGatewayFilter

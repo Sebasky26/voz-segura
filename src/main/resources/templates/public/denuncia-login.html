@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -203,6 +203,15 @@
             <p class="vs-small-muted">
                 La información se valida con fuentes oficiales y se gestiona de forma confidencial.
             </p>
+        </div>
+
+        <div class="vs-divider"></div>
+
+        <div class="vs-text-center">
+            <p class="vs-small-muted vs-mb-2">¿Ya tienes un código de seguimiento?</p>
+            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--ghost">
+                Consultar estado de denuncia
+            </a>
         </div>
 
     </section>

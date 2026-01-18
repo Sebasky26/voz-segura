@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voz Segura - Estado de denuncia</title>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=3}" href="/css/main.css?v=3"/>
+</head>
+<body class="vs-app">
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-brand" aria-label="Voz Segura">
+            <img class="vs-brand__logo" th:src="@{/img/logo-voz-segura.svg?v=4}" src="/img/logo-voz-segura.svg?v=4" alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Estado de denuncia</div>
+            </div>
+        </div>
+    </div>
+</header>
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-estado">
+        <div class="vs-card__header">
+            <h1 id="titulo-estado" class="vs-card__title">Estado de tu denuncia</h1>
+            <p class="vs-card__subtitle">Informacion actualizada de tu caso</p>
+        </div>
+        <div class="vs-grid vs-grid--2cols vs-mb-6">
+            <div class="vs-summary-card">
+                <div class="vs-summary-card__label">Codigo de seguimiento</div>
+                <div class="vs-code-pill" th:text="${complaintStatus.trackingId}">XXXX-XXXX</div>
+            </div>
+            <div class="vs-summary-card">
+                <div class="vs-summary-card__label">Estado actual</div>
+                <div>
+                    <span class="vs-badge vs-badge--lg"
+                          th:classappend="${complaintStatus.status == 'PENDING'} ? ' vs-badge--warning' :
+                                         (${complaintStatus.status == 'IN_REVIEW'} ? ' vs-badge--info' :
+                                         (${complaintStatus.status == 'RESOLVED'} ? ' vs-badge--success' :
+                                         (${complaintStatus.status == 'DERIVED'} ? ' vs-badge--secondary' : ' vs-badge--default')))"
+                          th:text="${complaintStatus.statusLabel}">Pendiente</span>
+                </div>
+            </div>
+        </div>
+        <div class="vs-section vs-mb-6">
+            <h3 class="vs-section__title">Detalles</h3>
+            <div class="vs-grid vs-grid--2cols">
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Fecha de registro</label>
+                    <p class="vs-text" th:text="${#temporals.format(complaintStatus.createdAt, 'dd MMMM yyyy - HH:mm')}">01 enero 2026</p>
+                </div>
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Ultima actualizacion</label>
+                    <p class="vs-text" th:text="${#temporals.format(complaintStatus.updatedAt, 'dd MMMM yyyy - HH:mm')}">01 enero 2026</p>
+                </div>
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Evidencias adjuntas</label>
+                    <p class="vs-text" th:text="${complaintStatus.evidenceCount} + ' archivo(s)'">0 archivo(s)</p>
+                </div>
+            </div>
+        </div>
+        <div class="vs-alert vs-alert--info vs-mb-6">
+            <h3 class="vs-h3">Informacion importante</h3>
+            <ul class="vs-list">
+                <li>Tu denuncia esta siendo procesada de forma confidencial.</li>
+                <li>No podemos mostrar el contenido por razones de seguridad.</li>
+                <li>Si necesitas agregar informacion, contacta al canal oficial.</li>
+            </ul>
+        </div>
+        <div class="vs-button-group vs-button-group--space-between">
+            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--secondary">Nueva consulta</a>
+            <a th:href="@{/}" href="/" class="vs-button vs-button--primary">Volver al inicio</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>
