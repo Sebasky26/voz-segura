@@ -9,9 +9,6 @@
     const filesError = document.getElementById("filesError");
 
     const formError = document.getElementById("formError");
-    const backBtn = document.querySelector("[data-go-back]");
-
-    if (backBtn) backBtn.addEventListener("click", () => history.back());
 
     // Reglas UI (NO reemplaza backend)
     const MIN_DETAIL = 50;

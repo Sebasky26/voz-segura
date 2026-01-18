@@ -123,9 +123,10 @@ public class UnifiedAuthController {
 
                 case DENUNCIANTE:
                 default:
-                    // Denunciante: Generar hash anónimo y continuar a verificación biométrica
+                    // Denunciante: Generar hash anónimo y marcar como autenticado
                     String citizenHash = hashCedula(form.getCedula());
                     session.setAttribute("citizenHash", citizenHash);
+                    session.setAttribute("authenticated", true);
                     return "redirect:/denuncia/biometric";
             }
 

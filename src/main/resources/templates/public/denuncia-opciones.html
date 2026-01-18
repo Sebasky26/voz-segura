@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voz Segura — ¿Qué deseas hacer?</title>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+</head>
+
+<body class="vs-app">
+
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-brand" aria-label="Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=4}"
+                 src="/img/logo-voz-segura.svg?v=4"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Opciones</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-opciones">
+
+        <div class="vs-card__header">
+            <div class="vs-success-icon" aria-hidden="true">✅</div>
+            <h1 id="titulo-opciones" class="vs-card__title">Verificación completada</h1>
+            <p class="vs-card__subtitle">Tu identidad ha sido verificada. ¿Qué deseas hacer?</p>
+        </div>
+
+        <div class="vs-grid vs-grid--2cols vs-mb-6">
+            <!-- Opción 1: Nueva denuncia -->
+            <a th:href="@{/denuncia/form}" href="/denuncia/form" class="vs-action-card">
+                <div class="vs-action-card__title">📝 Crear nueva denuncia</div>
+                <p class="vs-action-card__text">
+                    Registra un nuevo caso de forma anónima y segura.
+                </p>
+                <span class="vs-action-card__cta">Iniciar denuncia →</span>
+            </a>
+
+            <!-- Opción 2: Consultar seguimiento -->
+            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-action-card">
+                <div class="vs-action-card__title">🔍 Consultar seguimiento</div>
+                <p class="vs-action-card__text">
+                    Revisa el estado de una denuncia existente con tu código de seguimiento.
+                </p>
+                <span class="vs-action-card__cta">Consultar estado →</span>
+            </a>
+        </div>
+
+        <div class="vs-divider"></div>
+
+        <div class="vs-text-center">
+            <a th:href="@{/auth/logout}" href="/auth/logout" class="vs-button vs-button--ghost">
+                Cerrar sesión
+            </a>
+        </div>
+
+    </section>
+</main>
+
+</body>
+</html>

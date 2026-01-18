@@ -78,7 +78,13 @@ public class PublicComplaintController {
      * Endpoint GET para acceder después de autenticación unificada.
      */
     @GetMapping("/denuncia/biometric")
-    public String showBiometricPage(Model model) {
+    public String showBiometricPage(HttpSession session, Model model) {
+        // Verificar que el usuario esté autenticado
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login";
+        }
+
         model.addAttribute("biometricOtpForm", new BiometricOtpForm());
         return "public/denuncia-biometric";
     }
@@ -86,12 +92,31 @@ public class PublicComplaintController {
     @PostMapping("/denuncia/biometric")
     public String verifyBiometric(@Valid @ModelAttribute("biometricOtpForm") BiometricOtpForm form,
                                   BindingResult bindingResult,
+                                  HttpSession session,
                                   Model model) {
         if (bindingResult.hasErrors()) {
             return "public/denuncia-biometric";
         }
-        model.addAttribute("complaintForm", new ComplaintForm());
-        return "public/denuncia-form";
+
+        // Marcar que el usuario completó la verificación biométrica
+        session.setAttribute("biometricVerified", true);
+
+        // Redirigir a página de opciones
+        return "redirect:/denuncia/opciones";
+    }
+
+    /**
+     * Muestra las opciones después de verificación: crear denuncia o consultar seguimiento.
+     */
+    @GetMapping("/denuncia/opciones")
+    public String showOptions(HttpSession session, Model model) {
+        // Verificar que el usuario esté autenticado
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login";
+        }
+
+        return "public/denuncia-opciones";
     }
 
     /**
@@ -99,7 +124,13 @@ public class PublicComplaintController {
      * Endpoint GET para acceder después de verificación biométrica.
      */
     @GetMapping("/denuncia/form")
-    public String showComplaintForm(Model model) {
+    public String showComplaintForm(HttpSession session, Model model) {
+        // Verificar que el usuario esté autenticado
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login";
+        }
+
         model.addAttribute("complaintForm", new ComplaintForm());
         return "public/denuncia-form";
     }
