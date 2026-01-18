@@ -18,6 +18,7 @@ import com.vozsegura.vozsegura.security.RateLimiter;
 import com.vozsegura.vozsegura.service.ComplaintService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
 /**
@@ -47,9 +48,16 @@ public class TrackingController {
 
     /**
      * Muestra el formulario para ingresar el código de seguimiento.
+     * Requiere que el usuario esté autenticado.
      */
     @GetMapping
-    public String showTrackingForm(Model model) {
+    public String showTrackingForm(HttpSession session, Model model) {
+        // Verificar que el usuario esté autenticado
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login?session_expired";
+        }
+
         model.addAttribute("trackingForm", new TrackingForm());
         return "public/seguimiento";
     }

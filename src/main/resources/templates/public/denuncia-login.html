@@ -95,6 +95,22 @@
             <p class="vs-card__subtitle">Ingresa tus datos para continuar</p>
         </div>
 
+        <!-- Mensaje de sesión expirada -->
+        <div th:if="${param.session_expired}" class="vs-alert vs-alert--warning" role="alert" aria-live="polite">
+            <div>
+                <strong>Sesión cerrada por seguridad</strong>
+                <p>Por tu protección, la sesión ha expirado. Por favor, vuelve a ingresar tus datos.</p>
+            </div>
+        </div>
+
+        <!-- Mensaje de logout exitoso -->
+        <div th:if="${param.logout}" class="vs-alert vs-alert--info" role="alert" aria-live="polite">
+            <div>
+                <strong>Sesión cerrada correctamente</strong>
+                <p>Has cerrado sesión de forma segura.</p>
+            </div>
+        </div>
+
         <!-- Error backend -->
         <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" aria-live="polite">
             <div>
@@ -205,14 +221,6 @@
             </p>
         </div>
 
-        <div class="vs-divider"></div>
-
-        <div class="vs-text-center">
-            <p class="vs-small-muted vs-mb-2">¿Ya tienes un código de seguimiento?</p>
-            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--ghost">
-                Consultar estado de denuncia
-            </a>
-        </div>
 
     </section>
 </main>

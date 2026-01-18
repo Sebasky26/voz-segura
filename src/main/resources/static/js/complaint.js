@@ -28,12 +28,12 @@
     }
 
     function getFileIcon(type) {
-        if (!type) return "📄";
-        if (type.startsWith("image/")) return "🖼️";
-        if (type.startsWith("video/")) return "🎬";
-        if (type.includes("pdf")) return "📕";
-        if (type.includes("word") || type.includes("document")) return "📝";
-        return "📄";
+        if (!type) return "[F]";
+        if (type.startsWith("image/")) return "[IMG]";
+        if (type.startsWith("video/")) return "[VID]";
+        if (type.includes("pdf")) return "[PDF]";
+        if (type.includes("word") || type.includes("document")) return "[DOC]";
+        return "[F]";
     }
 
     function show(el, yes) {
@@ -45,14 +45,14 @@
         const len = (detail?.value || "").trim().length;
         const ok = len >= MIN_DETAIL;
 
-        // Mostrar contador con formato claro: "150 caracteres (mínimo 50)"
+        // Mostrar contador con formato claro
         if (detailCount) {
             if (len < MIN_DETAIL) {
                 detailCount.textContent = `${len} caracteres (mínimo ${MIN_DETAIL})`;
                 detailCount.classList.add("vs-text-warning");
                 detailCount.classList.remove("vs-text-success");
             } else {
-                detailCount.textContent = `${len} / ${MAX_DETAIL} caracteres ✓`;
+                detailCount.textContent = `${len} / ${MAX_DETAIL} caracteres`;
                 detailCount.classList.remove("vs-text-warning");
                 detailCount.classList.add("vs-text-success");
             }

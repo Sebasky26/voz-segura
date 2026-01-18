@@ -82,7 +82,7 @@ public class PublicComplaintController {
         // Verificar que el usuario esté autenticado
         Boolean authenticated = (Boolean) session.getAttribute("authenticated");
         if (authenticated == null || !authenticated) {
-            return "redirect:/auth/login";
+            return "redirect:/auth/login?session_expired";
         }
 
         model.addAttribute("biometricOtpForm", new BiometricOtpForm());
@@ -113,7 +113,7 @@ public class PublicComplaintController {
         // Verificar que el usuario esté autenticado
         Boolean authenticated = (Boolean) session.getAttribute("authenticated");
         if (authenticated == null || !authenticated) {
-            return "redirect:/auth/login";
+            return "redirect:/auth/login?session_expired";
         }
 
         return "public/denuncia-opciones";
@@ -128,7 +128,7 @@ public class PublicComplaintController {
         // Verificar que el usuario esté autenticado
         Boolean authenticated = (Boolean) session.getAttribute("authenticated");
         if (authenticated == null || !authenticated) {
-            return "redirect:/auth/login";
+            return "redirect:/auth/login?session_expired";
         }
 
         model.addAttribute("complaintForm", new ComplaintForm());

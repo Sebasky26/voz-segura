@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -30,11 +30,9 @@
 <main id="contenido" class="vs-container">
     <section class="vs-card vs-center" aria-labelledby="titulo-ok">
 
-        <div class="vs-success-icon" aria-hidden="true">✅</div>
-
         <div class="vs-card__header">
-            <h1 id="titulo-ok" class="vs-card__title">Denuncia enviada</h1>
-            <p class="vs-card__subtitle">Tu caso fue registrado y se manejará con confidencialidad.</p>
+            <h1 id="titulo-ok" class="vs-card__title">Denuncia enviada exitosamente</h1>
+            <p class="vs-card__subtitle">Tu caso fue registrado y se manejará con total confidencialidad.</p>
         </div>
 
         <!-- Código -->
@@ -75,8 +73,8 @@
             <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--secondary">
                 Consultar estado
             </a>
-            <a th:href="@{/}" href="/" class="vs-button vs-button--primary">
-                Volver al inicio
+            <a th:href="@{/denuncia/opciones}" href="/denuncia/opciones" class="vs-button vs-button--primary">
+                Volver a opciones
             </a>
         </div>
 

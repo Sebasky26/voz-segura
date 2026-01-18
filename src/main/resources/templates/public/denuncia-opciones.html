@@ -20,7 +20,7 @@
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
-                <div class="vs-brand__subtitle">Opciones</div>
+                <div class="vs-brand__subtitle">Panel de usuario</div>
             </div>
         </div>
     </div>
@@ -30,15 +30,14 @@
     <section class="vs-card" aria-labelledby="titulo-opciones">
 
         <div class="vs-card__header">
-            <div class="vs-success-icon" aria-hidden="true">✅</div>
             <h1 id="titulo-opciones" class="vs-card__title">Verificación completada</h1>
-            <p class="vs-card__subtitle">Tu identidad ha sido verificada. ¿Qué deseas hacer?</p>
+            <p class="vs-card__subtitle">Tu identidad ha sido verificada correctamente. Selecciona una opción para continuar.</p>
         </div>
 
         <div class="vs-grid vs-grid--2cols vs-mb-6">
             <!-- Opción 1: Nueva denuncia -->
             <a th:href="@{/denuncia/form}" href="/denuncia/form" class="vs-action-card">
-                <div class="vs-action-card__title">📝 Crear nueva denuncia</div>
+                <div class="vs-action-card__title">Crear nueva denuncia</div>
                 <p class="vs-action-card__text">
                     Registra un nuevo caso de forma anónima y segura.
                 </p>
@@ -47,11 +46,11 @@
 
             <!-- Opción 2: Consultar seguimiento -->
             <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-action-card">
-                <div class="vs-action-card__title">🔍 Consultar seguimiento</div>
+                <div class="vs-action-card__title">Consultar seguimiento</div>
                 <p class="vs-action-card__text">
                     Revisa el estado de una denuncia existente con tu código de seguimiento.
                 </p>
-                <span class="vs-action-card__cta">Consultar estado →</span>
+                <span class="vs-action-card__cta">Ver estado →</span>
             </a>
         </div>
 
