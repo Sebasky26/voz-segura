@@ -15,6 +15,7 @@
 
     // Reglas UI (NO reemplaza backend)
     const MIN_DETAIL = 50;
+    const MAX_DETAIL = 4000;
     const MAX_FILES = 5;
     const MAX_BYTES = 25 * 1024 * 1024; // 25MB
 
@@ -30,12 +31,12 @@
     }
 
     function getFileIcon(type) {
-        if (!type) return "F";
-        if (type.startsWith("image/")) return "▣";
-        if (type.startsWith("video/")) return "▶";
-        if (type.includes("pdf")) return "P";
-        if (type.includes("word") || type.includes("document")) return "D";
-        return "F";
+        if (!type) return "📄";
+        if (type.startsWith("image/")) return "🖼️";
+        if (type.startsWith("video/")) return "🎬";
+        if (type.includes("pdf")) return "📕";
+        if (type.includes("word") || type.includes("document")) return "📝";
+        return "📄";
     }
 
     function show(el, yes) {
@@ -45,14 +46,27 @@
 
     function validateDetail() {
         const len = (detail?.value || "").trim().length;
-        if (detailCount) detailCount.textContent = `${len}/${MIN_DETAIL}`;
         const ok = len >= MIN_DETAIL;
+
+        // Mostrar contador con formato claro: "150 caracteres (mínimo 50)"
+        if (detailCount) {
+            if (len < MIN_DETAIL) {
+                detailCount.textContent = `${len} caracteres (mínimo ${MIN_DETAIL})`;
+                detailCount.classList.add("vs-text-warning");
+                detailCount.classList.remove("vs-text-success");
+            } else {
+                detailCount.textContent = `${len} / ${MAX_DETAIL} caracteres ✓`;
+                detailCount.classList.remove("vs-text-warning");
+                detailCount.classList.add("vs-text-success");
+            }
+        }
+
         show(detailError, !ok);
         return ok;
     }
 
     function validateFiles(files) {
-        if (!files) return true;
+        if (!files || files.length === 0) return true;
 
         if (files.length > MAX_FILES) return false;
 
@@ -65,6 +79,11 @@
     function renderFiles() {
         if (!fileList) return;
         fileList.innerHTML = "";
+
+        if (selectedFiles.length === 0) {
+            fileList.innerHTML = '<p class="vs-small-muted">No hay archivos seleccionados</p>';
+            return;
+        }
 
         selectedFiles.forEach((file, index) => {
             const item = document.createElement("div");
@@ -104,6 +123,12 @@
             item.appendChild(removeBtn);
             fileList.appendChild(item);
         });
+
+        // Mostrar contador de archivos
+        const counter = document.createElement("p");
+        counter.className = "vs-small-muted vs-mt-2";
+        counter.textContent = `${selectedFiles.length} de ${MAX_FILES} archivos seleccionados`;
+        fileList.appendChild(counter);
     }
 
     function syncInputFiles() {
@@ -128,19 +153,28 @@
 
     if (fileInput) {
         fileInput.addEventListener("change", () => {
-            const files = Array.from(fileInput.files || []);
+            const newFiles = Array.from(fileInput.files || []);
 
-            selectedFiles = files;
+            // ACUMULAR archivos en lugar de reemplazar
+            newFiles.forEach(newFile => {
+                // Evitar duplicados por nombre
+                const exists = selectedFiles.some(f => f.name === newFile.name && f.size === newFile.size);
+                if (!exists && selectedFiles.length < MAX_FILES) {
+                    selectedFiles.push(newFile);
+                }
+            });
 
             const ok = validateFiles(selectedFiles);
             show(filesError, !ok);
 
             if (!ok) {
-                // Si no cumple, limpiamos para evitar envíos accidentales
-                selectedFiles = [];
-                fileInput.value = "";
+                // Si excede el límite, mostrar error pero mantener los archivos válidos
+                while (selectedFiles.length > MAX_FILES) {
+                    selectedFiles.pop();
+                }
             }
 
+            syncInputFiles();
             renderFiles();
         });
     }

@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Registrar denuncia</title>
 
-    <link rel="stylesheet" th:href="@{/css/main.css?v=3}" href="/css/main.css?v=3"/>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
 
 <body class="vs-app">
@@ -87,60 +87,66 @@
                               class="vs-textarea"
                               required
                               minlength="50"
+                              maxlength="4000"
                               rows="7"
+                              placeholder="Describe los hechos con el mayor detalle posible..."
                               aria-describedby="detailHelp detailCount detailError"></textarea>
 
                     <div class="vs-form__help" id="detailHelp">
-                        Escribe al menos 50 caracteres. Incluye fechas aproximadas, lugares y personas involucradas si aplica.
+                        Incluye fechas aproximadas, lugares y personas involucradas si aplica.
                     </div>
 
                     <div class="vs-form__help vs-muted-row">
-                        <span id="detailCount">0/50</span>
+                        <span id="detailCount">0 caracteres (mínimo 50)</span>
                     </div>
 
                     <div id="detailError" class="vs-form__error vs-hidden" role="alert">
-                        Describe el incidente con al menos 50 caracteres.
+                        La descripción debe tener al menos 50 caracteres.
                     </div>
                 </div>
             </div>
 
-            <!-- 2) Empresa -->
+            <!-- 2) Empresa DENUNCIADA -->
             <div class="vs-section">
-                <div class="vs-section__title">Información de la empresa</div>
+                <div class="vs-section__title">Datos de la empresa denunciada</div>
+                <p class="vs-form__help vs-mb-4">Proporciona los datos de la empresa o entidad donde ocurrieron los hechos.</p>
 
                 <div class="vs-grid vs-grid--2cols">
                     <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="companyName">Nombre de la empresa</label>
+                        <label class="vs-form__label vs-form__label--required" for="companyName">Nombre de la empresa denunciada</label>
                         <input type="text"
                                th:field="*{companyName}"
                                id="companyName"
                                class="vs-input"
                                required
+                               placeholder="Ej: Empresa ABC S.A."
                                autocomplete="off"/>
                     </div>
 
                     <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="companyContact">Contacto (correo o teléfono)</label>
+                        <label class="vs-form__label vs-form__label--required" for="companyContact">Contacto de la empresa</label>
                         <input type="text"
                                th:field="*{companyContact}"
                                id="companyContact"
                                class="vs-input"
                                required
+                               placeholder="Correo o teléfono de la empresa"
                                autocomplete="off"
                                aria-describedby="contactHelp"/>
                         <div id="contactHelp" class="vs-form__help">
-                            Puede ser un correo o un número. Si no lo tienes exacto, coloca el que conozcas.
+                            Correo electrónico o número de teléfono de la empresa denunciada.
                         </div>
                     </div>
                 </div>
 
                 <div class="vs-form__group">
-                    <label class="vs-form__label vs-form__label--required" for="companyAddress">Dirección</label>
+                    <label class="vs-form__label vs-form__label--required" for="companyAddress">Dirección de la empresa</label>
                     <input type="text"
                            th:field="*{companyAddress}"
                            id="companyAddress"
                            class="vs-input"
                            required
+                           placeholder="Dirección física de la empresa"
                            autocomplete="off"/>
                 </div>
             </div>
@@ -202,6 +208,7 @@
 
 </body>
 </html>
+
 
 
 

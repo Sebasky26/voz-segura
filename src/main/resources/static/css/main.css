@@ -1283,7 +1283,7 @@ code {
    DENUNCIA: LISTA DE ARCHIVOS
    ============================================ */
 .vs-file-list {
-    margin-top: var(--space-4);
+    margin-top: var(--space-3);
 }
 
 .vs-file-item {
@@ -1291,8 +1291,8 @@ code {
     align-items: center;
     justify-content: space-between;
     padding: var(--space-3);
-    background: var(--gray-50);
-    border: 1px solid var(--gray-300);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     margin-bottom: var(--space-2);
 }
@@ -1301,36 +1301,35 @@ code {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    flex: 1;
 }
 
 .vs-file-item__icon {
-    font-size: var(--font-size-xl);
+    font-size: 1.5rem;
 }
 
 .vs-file-item__name {
-    font-size: var(--font-size-sm);
-    color: var(--gray-700);
-    font-weight: 600;
+    font-weight: 500;
+    color: var(--gray-900);
 }
 
 .vs-file-item__size {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--gray-500);
 }
 
 .vs-file-item__remove {
-    background: transparent;
+    background: none;
     border: none;
     color: var(--danger);
+    font-size: 1.25rem;
     cursor: pointer;
-    padding: var(--space-2);
-    font-size: var(--font-size-lg);
-    transition: transform var(--transition-fast);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
 }
 
 .vs-file-item__remove:hover {
-    transform: scale(1.08);
+    background: rgba(239, 68, 68, 0.1);
 }
 
 /* ============================================
@@ -1569,4 +1568,76 @@ code {
     display: flex;
     gap: var(--space-2);
     flex-wrap: wrap;
+}
+
+/* ============================================
+   UTILIDADES DE TEXTO
+   ============================================ */
+.vs-text-warning {
+    color: var(--warning) !important;
+}
+
+.vs-text-success {
+    color: var(--success) !important;
+}
+
+.vs-text-error {
+    color: var(--danger) !important;
+}
+
+.vs-text-muted {
+    color: var(--gray-500) !important;
+}
+
+/* ============================================
+   LISTA DE ARCHIVOS MEJORADA
+   ============================================ */
+.vs-file-list {
+    margin-top: var(--space-3);
+}
+
+.vs-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+}
+
+.vs-file-item__info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.vs-file-item__icon {
+    font-size: 1.5rem;
+}
+
+.vs-file-item__name {
+    font-weight: 500;
+    color: var(--gray-900);
+}
+
+.vs-file-item__size {
+    font-size: var(--font-size-sm);
+    color: var(--gray-500);
+}
+
+.vs-file-item__remove {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.vs-file-item__remove:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
