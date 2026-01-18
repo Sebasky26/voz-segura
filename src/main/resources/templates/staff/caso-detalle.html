@@ -11,6 +11,10 @@
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-header__logo">Voz Segura</div>
+        <nav class="vs-nav">
+            <a th:href="@{/staff/casos}" class="vs-nav__link">← Volver al listado</a>
+            <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
+        </nav>
     </div>
 </header>
 
@@ -19,33 +23,122 @@
 
         <div class="vs-card__header">
             <h1 class="vs-card__title">Detalle de caso</h1>
-            <p class="vs-card__subtitle">La identidad del denunciante no se muestra en este panel.</p>
+            <p class="vs-card__subtitle">
+                Código de seguimiento: <code th:text="${complaint.trackingId}">ABC-123</code>
+            </p>
+            <p class="vs-text-muted">⚠️ La identidad del denunciante está protegida y no se muestra en este panel.</p>
         </div>
 
-        <div class="vs-form__group">
-            <label class="vs-form__label">
-                Contenido de la denuncia
-            </label>
-            <textarea class="vs-textarea" readonly>
-Contenido de la denuncia.
-            </textarea>
+        <!-- Mensajes de éxito/error -->
+        <div th:if="${success}" class="vs-alert vs-alert--success" th:text="${success}"></div>
+        <div th:if="${error}" class="vs-alert vs-alert--error" th:text="${error}"></div>
+
+        <!-- Información del caso -->
+        <div class="vs-grid vs-grid--2cols vs-mb-6">
+            <div class="vs-form__group">
+                <label class="vs-form__label">Estado actual</label>
+                <span class="vs-badge vs-badge--lg"
+                      th:classappend="${complaint.status == 'PENDING'} ? 'vs-badge--warning' :
+                                     (${complaint.status == 'IN_REVIEW'} ? 'vs-badge--info' :
+                                     (${complaint.status == 'RESOLVED'} ? 'vs-badge--success' :
+                                     (${complaint.status == 'DERIVED'} ? 'vs-badge--secondary' : 'vs-badge--default')))"
+                      th:text="${complaint.status}">
+                    PENDING
+                </span>
+            </div>
+            <div class="vs-form__group">
+                <label class="vs-form__label">Severidad</label>
+                <span class="vs-badge vs-badge--lg"
+                      th:classappend="${complaint.severity == 'CRITICAL'} ? 'vs-badge--danger' :
+                                     (${complaint.severity == 'HIGH'} ? 'vs-badge--warning' :
+                                     (${complaint.severity == 'MEDIUM'} ? 'vs-badge--info' : 'vs-badge--default'))"
+                      th:text="${complaint.severity}">
+                    MEDIUM
+                </span>
+            </div>
         </div>
 
-        <form method="post">
+        <!-- Datos de la empresa denunciada -->
+        <div class="vs-section vs-mb-6">
+            <h3 class="vs-section__title">Empresa denunciada</h3>
+            <div class="vs-grid vs-grid--2cols">
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Nombre</label>
+                    <p class="vs-text" th:text="${complaint.companyName}">Empresa XYZ</p>
+                </div>
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Contacto</label>
+                    <p class="vs-text" th:text="${complaint.companyContact}">contacto@empresa.com</p>
+                </div>
+                <div class="vs-form__group vs-grid--full">
+                    <label class="vs-form__label">Dirección</label>
+                    <p class="vs-text" th:text="${complaint.companyAddress}">Calle Principal 123</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fechas -->
+        <div class="vs-grid vs-grid--2cols vs-mb-6">
+            <div class="vs-form__group">
+                <label class="vs-form__label">Fecha de creación</label>
+                <p class="vs-text" th:text="${#temporals.format(complaint.createdAt, 'dd MMMM yyyy - HH:mm')}">
+                    17 enero 2026 - 10:30
+                </p>
+            </div>
+            <div class="vs-form__group">
+                <label class="vs-form__label">Última actualización</label>
+                <p class="vs-text" th:text="${#temporals.format(complaint.updatedAt, 'dd MMMM yyyy - HH:mm')}">
+                    17 enero 2026 - 10:30
+                </p>
+            </div>
+        </div>
+
+        <!-- Contenido de la denuncia (descifrado) -->
+        <div class="vs-form__group vs-mb-6">
+            <label class="vs-form__label">Contenido de la denuncia</label>
+            <div class="vs-textarea-readonly" th:text="${decryptedText}">
+                Contenido de la denuncia descifrado...
+            </div>
+        </div>
+
+        <!-- Formulario para cambiar estado -->
+        <form th:action="@{/staff/casos/{id}/estado(id=${complaint.trackingId})}" method="post" class="vs-mb-4">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
-            <div class="vs-button-group vs-button-group--space-between vs-mt-6">
-                <button class="vs-button vs-button--secondary"
-                        formaction="#"
-                        type="submit">
-                    Actualizar estado
-                </button>
+            <div class="vs-form__group">
+                <label class="vs-form__label">Cambiar estado</label>
+                <div class="vs-input-group">
+                    <select name="newStatus" class="vs-select">
+                        <option value="PENDING" th:selected="${complaint.status == 'PENDING'}">Pendiente</option>
+                        <option value="IN_REVIEW" th:selected="${complaint.status == 'IN_REVIEW'}">En revisión</option>
+                        <option value="RESOLVED" th:selected="${complaint.status == 'RESOLVED'}">Resuelto</option>
+                        <option value="ARCHIVED" th:selected="${complaint.status == 'ARCHIVED'}">Archivado</option>
+                    </select>
+                    <button type="submit" class="vs-button vs-button--secondary">
+                        Actualizar estado
+                    </button>
+                </div>
+            </div>
+        </form>
 
-                <button class="vs-button vs-button--primary"
-                        formaction="#"
-                        type="submit">
-                    Derivar
-                </button>
+        <!-- Formulario para derivar -->
+        <form th:action="@{/staff/casos/{id}/derivar(id=${complaint.trackingId})}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <div class="vs-form__group">
+                <label class="vs-form__label">Derivar a otra unidad</label>
+                <div class="vs-input-group">
+                    <select name="destination" class="vs-select">
+                        <option value="FISCALIA">Fiscalía General</option>
+                        <option value="CONTRALORIA">Contraloría</option>
+                        <option value="DEFENSOR_PUEBLO">Defensoría del Pueblo</option>
+                        <option value="SUPERINTENDENCIA">Superintendencia de Compañías</option>
+                        <option value="MINISTERIO_TRABAJO">Ministerio de Trabajo</option>
+                    </select>
+                    <button type="submit" class="vs-button vs-button--primary">
+                        Derivar caso
+                    </button>
+                </div>
             </div>
         </form>
 

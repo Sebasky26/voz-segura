@@ -157,6 +157,38 @@ public class ComplaintService {
     }
 
     /**
+     * Lista todas las denuncias ordenadas por fecha de creación (más recientes primero).
+     */
+    public List<Complaint> findAllOrderByCreatedAtDesc() {
+        return complaintRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    /**
+     * Busca denuncias por estado.
+     */
+    public List<Complaint> findByStatus(String status) {
+        return complaintRepository.findByStatus(status);
+    }
+
+    /**
+     * Descifra el texto de una denuncia para visualización por staff autorizado.
+     *
+     * @param encryptedText texto cifrado en Base64
+     * @return texto descifrado
+     */
+    public String decryptComplaintText(String encryptedText) {
+        if (encryptedText == null || encryptedText.isBlank()) {
+            return "[Sin contenido]";
+        }
+        try {
+            return encryptionService.decryptFromBase64(encryptedText);
+        } catch (Exception e) {
+            System.err.println("[COMPLAINT SERVICE] Error al descifrar texto: " + e.getMessage());
+            return "[Error al descifrar contenido]";
+        }
+    }
+
+    /**
      * Actualiza el estado de una denuncia.
      */
     @Transactional

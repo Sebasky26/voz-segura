@@ -96,6 +96,11 @@ public class ApiGatewayFilter implements Filter {
      * Verifica si la ruta es pública (no requiere autenticación).
      */
     private boolean isPublicPath(String requestUri) {
+        // Ruta raíz es pública (redirige a login)
+        if (requestUri.equals("/")) {
+            return true;
+        }
+
         if (requestUri.equals("/favicon.ico")) {
             return true;
         }
