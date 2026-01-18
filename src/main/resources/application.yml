@@ -37,6 +37,14 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   # ============================================
+  # Web / Static Resources Configuration
+  # ============================================
+  web:
+    resources:
+      static-locations: classpath:/static/
+      add-mappings: true
+
+  # ============================================
   # Thymeleaf Configuration
   # ============================================
   thymeleaf:

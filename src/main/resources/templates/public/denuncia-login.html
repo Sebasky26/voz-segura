@@ -1,21 +1,28 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Acceso - Voz Segura</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
-    <!-- Cloudflare Turnstile Script -->
+    <title>Acceso — Voz Segura</title>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
+
+    <!-- Cloudflare Turnstile -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
+
 <body class="vs-app">
 
-<!-- Modal de Términos y Condiciones -->
-<div class="vs-modal-overlay vs-modal--hidden" id="termsModal">
-    <div class="vs-modal">
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
+<!-- Modal Términos -->
+<div class="vs-modal-overlay vs-modal--hidden" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <div class="vs-modal" role="document">
         <div class="vs-modal__header">
-            <h2 class="vs-modal__title">Términos y condiciones</h2>
-            <button type="button" class="vs-modal__close" onclick="closeTermsModal()" aria-label="Cerrar">&times;</button>
+            <h2 class="vs-modal__title" id="termsTitle">Términos y condiciones</h2>
+            <button type="button" class="vs-modal__close" data-terms-close aria-label="Cerrar">
+                &times;
+            </button>
         </div>
 
         <div class="vs-modal__body">
@@ -55,106 +62,122 @@
         </div>
 
         <div class="vs-modal__footer">
-            <button type="button" class="vs-button vs-button--secondary" onclick="closeTermsModal()">
+            <button type="button" class="vs-button vs-button--secondary" data-terms-close>
                 Cerrar
             </button>
-            <button type="button" class="vs-button vs-button--primary" onclick="acceptTerms()">
+            <button type="button" class="vs-button vs-button--primary" id="acceptTermsBtn">
                 Aceptar
             </button>
         </div>
     </div>
 </div>
 
-<!-- Contenido principal -->
 <header class="vs-header">
     <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
+        <a class="vs-brand" th:href="@{/}" href="/" aria-label="Ir al inicio de Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Acceso</div>
+            </div>
+        </a>
     </div>
 </header>
 
-<main class="vs-container">
-    <div class="vs-card">
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-acceso">
+
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Acceso</h1>
-            <p class="vs-card__subtitle">Ingrese sus datos para continuar</p>
+            <h1 id="titulo-acceso" class="vs-card__title">Acceso</h1>
+            <p class="vs-card__subtitle">Ingresa tus datos para continuar</p>
         </div>
 
-        <!-- Alerta de error -->
-        <div th:if="${error}" class="vs-alert vs-alert--error">
+        <!-- Error backend -->
+        <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" aria-live="polite">
             <div>
                 <strong>No se pudo completar el acceso</strong>
                 <p th:text="${error}">Error al procesar.</p>
             </div>
         </div>
 
-        <!-- Formulario -->
+        <!-- Error UI -->
+        <div id="uiError" class="vs-alert vs-alert--error vs-hidden" role="alert" aria-live="polite">
+            Revisa los campos y completa la verificación de seguridad.
+        </div>
+
         <form th:action="@{/auth/unified-login}"
               method="post"
               th:object="${unifiedLoginForm}"
               class="vs-form"
-              id="loginForm">
+              id="loginForm"
+              novalidate>
 
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
             <!-- Cédula -->
             <div class="vs-form__group">
-                <label class="vs-form__label vs-form__label--required" for="cedula">
-                    Cédula
-                </label>
-                <div class="vs-input-wrapper">
-                    <input
-                            type="text"
-                            th:field="*{cedula}"
-                            id="cedula"
-                            class="vs-input"
-                            required
-                            maxlength="10"
-                            pattern="[0-9]{10}"
-                    />
+                <label class="vs-form__label vs-form__label--required" for="cedula">Cédula</label>
+
+                <input type="text"
+                       th:field="*{cedula}"
+                       id="cedula"
+                       class="vs-input"
+                       required
+                       maxlength="10"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       aria-describedby="cedulaHelp"/>
+
+                <div id="cedulaHelp" class="vs-form__help">
+                    Ingresa los 10 dígitos.
                 </div>
-                <span class="vs-form__help">
-                    Ingrese los 10 dígitos de su cédula.
-                </span>
+
+                <div id="cedulaError" class="vs-form__error vs-hidden" role="alert">
+                    La cédula debe tener 10 dígitos.
+                </div>
             </div>
 
             <!-- Código dactilar -->
             <div class="vs-form__group">
-                <label class="vs-form__label vs-form__label--required" for="codigoDactilar">
-                    Código dactilar
-                </label>
-                <div class="vs-input-wrapper">
-                    <input
-                            type="text"
-                            th:field="*{codigoDactilar}"
-                            id="codigoDactilar"
-                            class="vs-input"
-                            required
-                            maxlength="10"
-                            pattern="^[A-Za-z][1-9]{4}[A-Za-z][1-9]{4}$"
-                            placeholder="A1234B5678"
-                            autocomplete="off"
-                            inputmode="text"
-                    />
-                </div>
-                <span class="vs-form__help">
+                <label class="vs-form__label vs-form__label--required" for="codigoDactilar">Código dactilar</label>
+
+                <input type="text"
+                       th:field="*{codigoDactilar}"
+                       id="codigoDactilar"
+                       class="vs-input"
+                       required
+                       maxlength="10"
+                       placeholder="A1234B5678"
+                       autocomplete="off"
+                       inputmode="text"
+                       aria-describedby="cdHelp cdError"/>
+
+                <div id="cdHelp" class="vs-form__help">
                     Formato: 1 letra + 4 números + 1 letra + 4 números (ej: A1234B5678)
-                </span>
+                </div>
+
+                <div id="cdError" class="vs-form__error vs-hidden" role="alert">
+                    Formato inválido. Ejemplo válido: A1234B5678
+                </div>
             </div>
 
-            <!-- Cloudflare Turnstile -->
+            <!-- Turnstile -->
             <div class="vs-form__group">
-                <label class="vs-form__label vs-form__label--required">
-                    Verificación de seguridad
-                </label>
-                <div class="cf-turnstile" 
+                <label class="vs-form__label vs-form__label--required">Verificación de seguridad</label>
+
+                <div class="cf-turnstile"
                      th:data-sitekey="${turnstileSiteKey}"
                      data-theme="light"
                      data-callback="onTurnstileSuccess"
-                     data-error-callback="onTurnstileError">
+                     data-expired-callback="onTurnstileExpired"
+                     data-error-callback="onTurnstileError"></div>
+
+                <div id="turnstileError" class="vs-form__error vs-hidden" role="alert">
+                    No se completó la verificación. Intenta nuevamente.
                 </div>
-                <span class="vs-form__help" id="turnstileError" style="display: none; color: #d32f2f;">
-                    Error en la verificación de Turnstile. Por favor intente nuevamente.
-                </span>
             </div>
 
             <div class="vs-divider"></div>
@@ -163,12 +186,11 @@
             <label class="vs-checkbox" for="termsAcceptance">
                 <input type="checkbox" class="vs-checkbox__input" id="termsAcceptance" required/>
                 <span class="vs-checkbox__label">
-                    He leído y acepto los términos y condiciones.
-                    <a href="#" onclick="showTermsModal(event)" class="vs-link">Ver términos</a>
-                </span>
+          He leído y acepto los términos y condiciones.
+          <button type="button" class="vs-link-btn" id="openTermsBtn">Ver términos</button>
+        </span>
             </label>
 
-            <!-- Botón -->
             <button type="submit"
                     class="vs-button vs-button--primary vs-button--block vs-button--lg"
                     id="submitBtn"
@@ -177,224 +199,18 @@
             </button>
         </form>
 
-        <!-- Aviso breve -->
-        <div class="vs-alert vs-alert--info" style="margin-top: var(--space-6);">
-            <div>
-                <p style="font-size: var(--font-size-xs);">
-                    La información se valida con fuentes oficiales y se gestiona de forma confidencial.
-                </p>
-            </div>
+        <div class="vs-alert vs-alert--info vs-mt-6">
+            <p class="vs-small-muted">
+                La información se valida con fuentes oficiales y se gestiona de forma confidencial.
+            </p>
         </div>
-    </div>
+
+    </section>
 </main>
 
-<script>
-    // Variables globales para Turnstile
-    let turnstileValid = false;
-
-    /**
-     * Callback cuando Turnstile se valida exitosamente
-     */
-    function onTurnstileSuccess(token) {
-        console.log("[TURNSTILE] Validación exitosa");
-        turnstileValid = true;
-        document.getElementById('turnstileError').style.display = 'none';
-    }
-
-    /**
-     * Callback cuando Turnstile falla
-     */
-    function onTurnstileError() {
-        console.error("[TURNSTILE] Error en validación");
-        turnstileValid = false;
-        document.getElementById('turnstileError').style.display = 'block';
-    }
-
-    // Debugging - verificar que Turnstile se está cargando
-    window.addEventListener('load', function () {
-        console.log("[DEBUG] Página cargada");
-        const turnstileDiv = document.querySelector('.cf-turnstile');
-        if (turnstileDiv) {
-            console.log("[DEBUG] Div Turnstile encontrado");
-            console.log("[DEBUG] Data-sitekey:", turnstileDiv.getAttribute('data-sitekey'));
-            console.log("[DEBUG] Cloudflare API:", window.grecaptcha !== undefined ? "Disponible" : "No disponible");
-            
-            if (window.turnstile) {
-                console.log("[DEBUG] Turnstile API cargada correctamente");
-            } else {
-                console.warn("[DEBUG] Turnstile API no está disponible");
-            }
-        } else {
-            console.error("[DEBUG] Div Turnstile NO encontrado");
-        }
-    });
-
-    // Funciones de modal de términos
-    function showTermsModal(event) {
-        if (event) event.preventDefault();
-        document.getElementById('termsModal').classList.remove('vs-modal--hidden');
-    }
-
-    function closeTermsModal() {
-        document.getElementById('termsModal').classList.add('vs-modal--hidden');
-    }
-
-    function acceptTerms() {
-        document.getElementById('termsAcceptance').checked = true;
-        document.getElementById('submitBtn').disabled = false;
-        closeTermsModal();
-    }
-
-    // Event listeners
-    document.getElementById('termsAcceptance').addEventListener('change', function () {
-        document.getElementById('submitBtn').disabled = !this.checked;
-    });
-
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
-        const termsAccepted = document.getElementById('termsAcceptance').checked;
-        if (!termsAccepted) {
-            e.preventDefault();
-            alert('Debe aceptar los términos y condiciones para continuar.');
-            return false;
-        }
-
-        // Verificar que Turnstile fue validado
-        if (!turnstileValid) {
-            e.preventDefault();
-            document.getElementById('turnstileError').style.display = 'block';
-            return false;
-        }
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            closeTermsModal();
-        }
-    });
-
-    document.getElementById('termsModal').addEventListener('click', function (e) {
-        if (e.target === this) {
-            closeTermsModal();
-        }
-    });
-
-    // Mostrar términos al cargar la página
-    window.addEventListener('load', function () {
-        const hasSeenTerms = sessionStorage.getItem('termsShown');
-        if (!hasSeenTerms) {
-            showTermsModal();
-            sessionStorage.setItem('termsShown', 'true');
-        }
-    });
-
-    // Permitir solo dígitos en cédula
-    document.getElementById('cedula').addEventListener('input', function () {
-        this.value = this.value.replace(/\D/g, '').slice(0, 10);
-    });
-
-    /**
-     * ============================================
-     * VALIDACIÓN Y TRANSFORMACIÓN DE CÓDIGO DACTILAR
-     * ============================================
-     * 
-     * Seguridad implementada:
-     * - Validación de patrón: 1 letra, 4 números, 1 letra, 4 números
-     * - Conversión automática a mayúsculas
-     * - Prevención de inyección de caracteres especiales (XSS mitigation)
-     * - Bloqueo de drag & drop para evitar inyección
-     * - Sanitización de paste para evitar contenido malicioso
-     * - Límite de 10 caracteres máximo
-     * - Validación visual en tiempo real
-     * 
-     * La validación final se realiza en el servidor (no confiar solo en cliente)
-     */
-    (function() {
-        'use strict';
-        
-        const codigoDactilarInput = document.getElementById('codigoDactilar');
-        if (!codigoDactilarInput) return;
-        
-        // Validación y transformación del código dactilar
-        codigoDactilarInput.addEventListener('input', function(e) {
-            // Permitir solo letras A-Z/a-z y números 1-9
-            // Esto previene inyección de caracteres especiales (XSS mitigation)
-            let valor = this.value.replace(/[^A-Za-z1-9]/g, '');
-            
-            // Limitar a máximo 10 caracteres
-            valor = valor.substring(0, 10);
-            
-            // Convertir a mayúsculas
-            valor = valor.toUpperCase();
-            
-            // Validar patrón: A1234B5678 (1 letra, 4 números, 1 letra, 4 números)
-            const patronValido = /^[A-Z][1-9]{4}[A-Z][1-9]{4}$/.test(valor);
-            
-            // Actualizar valor del input
-            this.value = valor;
-            
-            // Actualizar validez del campo (visual feedback)
-            if (valor.length === 10 && !patronValido) {
-                this.style.borderColor = '#d32f2f'; // Rojo para error
-                this.classList.add('vs-input--error');
-            } else if (valor.length === 10 && patronValido) {
-                this.style.borderColor = '#4caf50'; // Verde para válido
-                this.classList.remove('vs-input--error');
-            } else if (valor.length > 0 && valor.length < 10) {
-                this.style.borderColor = '#ffa500'; // Naranja para incompleto
-                this.classList.remove('vs-input--error');
-            } else {
-                this.style.borderColor = ''; // Default
-                this.classList.remove('vs-input--error');
-            }
-        });
-        
-        /**
-         * Prevenir ataques de drag & drop
-         * Desabilitar el evento para evitar inyección de contenido
-         */
-        codigoDactilarInput.addEventListener('drop', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.warn('[SECURITY] Intento de drag & drop bloqueado en código dactilar');
-            return false;
-        });
-        
-        /**
-         * Sanitizar contenido de portapapeles (Paste)
-         * Previene inyección de código malicioso al pegar
-         */
-        codigoDactilarInput.addEventListener('paste', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Obtener contenido del portapapeles de forma segura
-            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
-            if (pasteData) {
-                // Sanitizar: solo permitir letras y números 1-9
-                let valor = pasteData.replace(/[^A-Za-z1-9]/g, '');
-                valor = valor.substring(0, 10);
-                valor = valor.toUpperCase();
-                
-                this.value = valor;
-                
-                // Disparar evento input para validación
-                const event = new Event('input', { bubbles: true });
-                this.dispatchEvent(event);
-            }
-            
-            return false;
-        });
-        
-        /**
-         * Bloquear eventos maliciosos
-         */
-        codigoDactilarInput.addEventListener('contextmenu', function(e) {
-            // Permitir menú contextual pero no afecta la seguridad
-            return true;
-        });
-    })();
-
-</script>
-
+<script th:src="@{/js/unified-login.js}" src="/js/unified-login.js"></script>
 </body>
 </html>
+
+
+

@@ -1,67 +1,92 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Denuncia enviada</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
+
 <body class="vs-app">
+
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
 
 <header class="vs-header">
     <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
+        <a class="vs-brand" th:href="@{/}" href="/" aria-label="Ir al inicio de Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Confirmación</div>
+            </div>
+        </a>
     </div>
 </header>
 
-<main class="vs-container">
-    <div class="vs-card" style="text-align: center;">
-        <div style="font-size: 64px; margin-bottom: var(--space-6);">✅</div>
-        
+<main id="contenido" class="vs-container">
+    <section class="vs-card vs-center" aria-labelledby="titulo-ok">
+
+        <div class="vs-success-icon" aria-hidden="true">✅</div>
+
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Denuncia enviada exitosamente</h1>
-            <p class="vs-card__subtitle">Su caso ha sido registrado de forma segura y confidencial</p>
+            <h1 id="titulo-ok" class="vs-card__title">Denuncia enviada</h1>
+            <p class="vs-card__subtitle">Tu caso fue registrado y se manejará con confidencialidad.</p>
         </div>
 
-        <div th:if="${trackingId}" class="vs-alert vs-alert--success" style="margin: var(--space-6) 0;">
-            <strong>Código de seguimiento:</strong>
-            <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); 
-                        margin-top: var(--space-2); font-family: monospace; 
-                        background: var(--gray-50); padding: var(--space-3); 
-                        border-radius: var(--radius-md); word-break: break-all;">
-                <span th:text="${trackingId}">XXXX-XXXX-XXXX</span>
+        <!-- Código -->
+        <div th:if="${trackingId}" class="vs-alert vs-alert--success vs-mt-6" role="status" aria-live="polite">
+            <div class="vs-track">
+                <div class="vs-track__title">Código de seguimiento</div>
+
+                <div class="vs-track__box" aria-label="Código de seguimiento">
+                    <span id="trackingText" th:text="${trackingId}">XXXX-XXXX-XXXX</span>
+                </div>
+
+                <div class="vs-track__actions">
+                    <button type="button" class="vs-button vs-button--secondary vs-button--sm" id="copyBtn">
+                        Copiar código
+                    </button>
+                </div>
+
+                <p class="vs-track__hint">
+                    Guárdalo en un lugar seguro. Lo necesitarás para consultar el estado.
+                </p>
             </div>
-            <p style="margin-top: var(--space-3); font-size: var(--font-size-sm);">
-                <strong>⚠️ Importante:</strong> Guarde este código en un lugar seguro. 
-                Lo necesitará para dar seguimiento a su caso.
-            </p>
         </div>
 
-        <div class="vs-alert vs-alert--info" style="margin: var(--space-6) 0; text-align: left;">
-            <h3 style="margin-bottom: var(--space-3);">¿Qué sigue ahora?</h3>
-            <ul style="margin: 0; padding-left: var(--space-5);">
-                <li style="margin-bottom: var(--space-2);">
-                    Su denuncia será revisada por nuestro equipo de analistas
-                </li>
-                <li style="margin-bottom: var(--space-2);">
-                    Toda la información está cifrada y protegida
-                </li>
-                <li style="margin-bottom: var(--space-2);">
-                    Su identidad permanece completamente anónima
-                </li>
-                <li>
-                    Recibirá actualizaciones sobre el estado de su caso
-                </li>
+        <!-- Qué sigue -->
+        <div class="vs-alert vs-alert--info vs-mt-6 vs-text-left">
+            <h3 class="vs-h3">¿Qué sigue ahora?</h3>
+            <ul class="vs-list">
+                <li>Tu denuncia será revisada por personal autorizado.</li>
+                <li>La información se protege con medidas de seguridad.</li>
+                <li>Puedes consultar el avance con tu código de seguimiento.</li>
+                <li>Si necesitas agregar datos, podrás hacerlo desde el seguimiento (si está habilitado).</li>
             </ul>
         </div>
 
-        <div style="margin-top: var(--space-8);">
-            <a th:href="@{/}" href="/" class="vs-button vs-button--primary vs-button--lg">
+        <div class="vs-divider"></div>
+
+        <div class="vs-button-group vs-button-group--space-between">
+            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--secondary">
+                Consultar estado
+            </a>
+            <a th:href="@{/}" href="/" class="vs-button vs-button--primary">
                 Volver al inicio
             </a>
         </div>
-    </div>
+
+    </section>
 </main>
+
+<script th:src="@{/js/tracking.js}" src="/js/tracking.js"></script>
 
 </body>
 </html>
+
+
+

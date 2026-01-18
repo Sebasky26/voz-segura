@@ -38,6 +38,7 @@ public class ApiGatewayFilter implements Filter {
         "/denuncia/",
         "/css/",
         "/js/",
+        "/img/",
         "/images/",
         "/favicon.ico",
         "/error",

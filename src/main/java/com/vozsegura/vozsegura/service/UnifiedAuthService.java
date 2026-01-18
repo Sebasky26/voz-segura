@@ -88,46 +88,29 @@ public class UnifiedAuthService {
         Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(cedula);
 
         if (!staffUser.isPresent()) {
-            System.out.println("[AUTH DEBUG] Staff user not found for cedula: " + cedula);
             return false;
         }
 
         // Validar la contraseña contra el hash usando BCrypt
         String passwordHash = staffUser.get().getPasswordHash();
-        System.out.println("[AUTH DEBUG] Password hash from DB: " + (passwordHash != null ? passwordHash.substring(0, Math.min(30, passwordHash.length())) + "..." : "NULL"));
-        System.out.println("[AUTH DEBUG] Secret key length: " + secretKey.length());
-        
+
         if (passwordHash == null || passwordHash.isEmpty()) {
-            System.out.println("[AUTH DEBUG] Password hash is null or empty!");
             return false;
         }
         
         // Si el hash dice "NOT_USED_AWS_SECRET", buscar en AWS Secrets Manager
         if (passwordHash.contains("NOT_USED_AWS_SECRET")) {
-            System.out.println("[AUTH DEBUG] Using AWS Secrets Manager for validation");
             String expectedSecretKey = secretsManagerClient.getSecretString("STAFF_SECRET_KEY_" + cedula);
-            if (expectedSecretKey != null && expectedSecretKey.equals(secretKey)) {
-                System.out.println("[AUTH DEBUG] AWS Secrets Manager validation: SUCCESS");
-                return true;
-            } else {
-                System.out.println("[AUTH DEBUG] AWS Secrets Manager validation: FAILED");
-                return false;
-            }
+            return expectedSecretKey != null && expectedSecretKey.equals(secretKey);
         }
         
         // Si es un hash BCrypt válido (comienza con $2a$ o $2b$), usar BCrypt
         if (passwordHash.startsWith("$2a$") || passwordHash.startsWith("$2b$")) {
-            System.out.println("[AUTH DEBUG] Using BCrypt for validation");
-            boolean isValid = BCrypt.checkpw(secretKey, passwordHash);
-            System.out.println("[AUTH DEBUG] BCrypt validation result: " + isValid);
-            return isValid;
+            return BCrypt.checkpw(secretKey, passwordHash);
         }
         
-        // Si es texto plano (compatibilidad)
-        System.out.println("[AUTH DEBUG] Using plaintext comparison (legacy)");
-        boolean isValid = passwordHash.equals(secretKey);
-        System.out.println("[AUTH DEBUG] Plaintext comparison result: " + isValid);
-        return isValid;
+        // Si es texto plano (compatibilidad) - NO RECOMENDADO para producción
+        return passwordHash.equals(secretKey);
     }
 
     /**

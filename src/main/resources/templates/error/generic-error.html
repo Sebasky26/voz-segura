@@ -1,42 +1,78 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Error</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
 
 <body class="vs-app">
 
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
     <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
+        <a class="vs-brand" th:href="@{/}" href="/" aria-label="Ir al inicio de Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Estado del sistema</div>
+            </div>
+        </a>
     </div>
 </header>
 
-<main class="vs-container">
-    <div class="vs-card">
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-error">
 
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Ocurrió un problema</h1>
+            <h1 id="titulo-error" class="vs-card__title">Ocurrió un problema</h1>
+            <p class="vs-card__subtitle">
+                No te preocupes: tus datos no se han expuesto. Puedes intentar nuevamente.
+            </p>
         </div>
 
-        <div class="vs-alert vs-alert--error vs-mb-4">
-            No fue posible completar la operación.
+        <div class="vs-alert vs-alert--error vs-mb-4" role="alert" aria-live="polite">
+            No fue posible completar la operación en este momento.
         </div>
 
-        <p class="vs-text-center">
-            Intenta nuevamente más tarde.
-        </p>
+        <div class="vs-section">
+            <p class="vs-text">
+                Si el problema continúa, vuelve a intentarlo más tarde o contacta a soporte con el código de referencia.
+            </p>
 
-        <div class="vs-button-group vs-mt-6">
-            <a th:href="@{/}" class="vs-button vs-button--primary vs-button--block">
+            <!-- Código de referencia (opcional)
+                 En backend puedes enviar requestId/correlationId. -->
+            <p class="vs-text-muted vs-mt-4">
+                Código de referencia:
+                <code th:text="${requestId}" aria-label="Código de referencia">N/D</code>
+            </p>
+        </div>
+
+        <div class="vs-divider"></div>
+
+        <div class="vs-button-group vs-button-group--space-between">
+            <a th:href="@{/}" href="/" class="vs-button vs-button--secondary">
                 Volver al inicio
             </a>
+
+            <button type="button" class="vs-button vs-button--primary" id="retryBtn">
+                Reintentar
+            </button>
         </div>
 
-    </div>
+    </section>
 </main>
+
+<script th:src="@{/js/error.js}" src="/js/error.js"></script>
 
 </body>
 </html>
+
+
+

@@ -183,7 +183,7 @@ public class ComplaintService {
         try {
             return encryptionService.decryptFromBase64(encryptedText);
         } catch (Exception e) {
-            System.err.println("[COMPLAINT SERVICE] Error al descifrar texto: " + e.getMessage());
+            // Log interno usando framework de logging, no exponer al usuario
             return "[Error al descifrar contenido]";
         }
     }

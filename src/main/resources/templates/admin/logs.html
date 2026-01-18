@@ -1,43 +1,96 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Voz Segura — Logs del Sistema</title>
 
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
 
 <body class="vs-app">
 
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
-    <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
+    <div class="vs-container vs-container-wide">
+        <a class="vs-brand" th:href="@{/}" href="/" aria-label="Ir al inicio de Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Auditoría y trazabilidad del sistema</div>
+            </div>
+        </a>
+
+        <nav class="vs-nav" aria-label="Navegación">
+            <a class="vs-nav__link" th:href="@{/admin}" href="/admin">Panel</a>
+            <a class="vs-nav__link" th:href="@{/logout}" href="/logout">Salir</a>
+        </nav>
     </div>
 </header>
 
-<main class="vs-container vs-container-wide">
+<main id="contenido" class="vs-container vs-container-wide">
 
-    <div class="vs-card">
+    <section class="vs-card" aria-labelledby="titulo-logs">
+
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Logs del Sistema</h1>
-            <p class="vs-card__subtitle">Eventos de auditoría registrados</p>
+            <h1 id="titulo-logs" class="vs-card__title">Logs del sistema</h1>
+            <p class="vs-card__subtitle">Revisa eventos de auditoría registrados (solo lectura)</p>
         </div>
 
-        <!-- Tabla de logs (estructura UI lista para datos reales) -->
-        <div class="vs-table-wrapper">
+        <!-- (Opcional) Filtros visuales: déjalos aunque aún no haya lógica -->
+        <div class="vs-section vs-mb-6" aria-label="Filtros de búsqueda">
+            <div class="vs-grid vs-grid--2cols">
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="filtro-accion">Acción</label>
+                    <select class="vs-select" id="filtro-accion" name="accion">
+                        <option value="">Todas</option>
+                        <option value="LOGIN">Login</option>
+                        <option value="DENUNCIA">Denuncia</option>
+                        <option value="ADMIN">Administración</option>
+                    </select>
+                    <div class="vs-form__help">Filtra por tipo de evento</div>
+                </div>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="filtro-estado">Estado</label>
+                    <select class="vs-select" id="filtro-estado" name="estado">
+                        <option value="">Todos</option>
+                        <option value="OK">OK</option>
+                        <option value="FALLIDO">Fallido</option>
+                    </select>
+                    <div class="vs-form__help">Filtra por resultado del evento</div>
+                </div>
+            </div>
+
+            <div class="vs-button-group vs-mt-4">
+                <button type="button" class="vs-button vs-button--primary">Aplicar</button>
+                <button type="button" class="vs-button vs-button--secondary">Limpiar</button>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="vs-table-wrapper" role="region" aria-label="Tabla de logs" tabindex="0">
             <table class="vs-table">
+                <caption class="vs-sr-only">Listado de eventos de auditoría del sistema</caption>
                 <thead>
                 <tr>
-                    <th>Fecha</th>
-                    <th>Acción</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Acción</th>
+                    <th scope="col">Rol</th>
+                    <th scope="col">Estado</th>
                 </tr>
                 </thead>
+
                 <tbody>
+                <!-- Si no hay registros -->
                 <tr>
                     <td colspan="4" class="vs-table-empty">
-                        No existen registros disponibles
+                        <strong>No hay registros por mostrar.</strong><br>
+                        Cuando el sistema genere eventos, aparecerán aquí.
                     </td>
                 </tr>
                 </tbody>
@@ -46,14 +99,22 @@
 
         <div class="vs-divider"></div>
 
-        <!-- Controles de paginación -->
-        <div class="vs-button-group vs-button-group--space-between">
-            <button class="vs-button vs-button--secondary" disabled>Anterior</button>
-            <button class="vs-button vs-button--secondary" disabled>Siguiente</button>
+        <!-- Paginación -->
+        <div class="vs-button-group vs-button-group--space-between" aria-label="Paginación">
+            <button class="vs-button vs-button--secondary" type="button" disabled aria-disabled="true">
+                Anterior
+            </button>
+            <button class="vs-button vs-button--secondary" type="button" disabled aria-disabled="true">
+                Siguiente
+            </button>
         </div>
-    </div>
+
+    </section>
 
 </main>
 
 </body>
 </html>
+
+
+

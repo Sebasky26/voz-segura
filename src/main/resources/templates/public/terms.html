@@ -1,68 +1,114 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Términos y Condiciones — Voz Segura</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
+
 <body class="vs-app">
 
-<div class="vs-container">
-    <header class="vs-header">
-        <div class="vs-header__logo">🛡️</div>
-    </header>
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
 
-    <main>
-        <div class="vs-card">
-            <div class="vs-card__header">
-                <h1 class="vs-card__title">Términos y Condiciones</h1>
-                <p class="vs-card__subtitle">Uso de la plataforma Voz Segura</p>
+<header class="vs-header">
+    <div class="vs-container">
+        <a class="vs-brand" th:href="@{/}" href="/" aria-label="Ir al inicio de Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Términos y condiciones</div>
             </div>
+        </a>
+    </div>
+</header>
 
-            <div class="vs-terms">
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-terms">
 
+        <div class="vs-card__header">
+            <h1 id="titulo-terms" class="vs-card__title">Términos y condiciones</h1>
+            <p class="vs-card__subtitle">Uso de la plataforma Voz Segura</p>
+        </div>
+
+        <div class="vs-terms">
+
+            <div class="vs-terms-block">
                 <h3>Validación de identidad</h3>
                 <p>
-                    Los datos de verificación se utilizan únicamente para confirmar que el usuario es auténtico
-                    y evitar suplantación. Estos datos no se muestran al personal que revisa las denuncias.
+                    Los datos de verificación se usan únicamente para confirmar que el usuario es auténtico y evitar suplantaciones.
+                    Esta información no se muestra al personal que revisa denuncias.
                 </p>
+                <ul>
+                    <li>Se usa solo durante el acceso.</li>
+                    <li>No se publica ni se comparte con analistas.</li>
+                </ul>
+            </div>
 
+            <div class="vs-terms-block">
                 <h3>Privacidad del denunciante</h3>
                 <p>
-                    La identidad del denunciante no es visible para analistas, operadores ni revisores del sistema.
+                    El sistema está diseñado para que la identidad del denunciante no sea visible para analistas, operadores
+                    ni revisores del caso.
                 </p>
+            </div>
 
+            <div class="vs-terms-block">
                 <h3>Evidencias</h3>
                 <p>
-                    Los archivos y el contenido enviado se almacenan de forma protegida y se conservan solo por el
-                    tiempo necesario para la gestión del caso.
+                    Los archivos se almacenan de forma protegida y se conservan solo el tiempo necesario para gestionar el caso.
                 </p>
+                <ul>
+                    <li>Evita incluir datos personales innecesarios.</li>
+                    <li>Sube solo archivos relacionados con el hecho.</li>
+                </ul>
+            </div>
 
+            <div class="vs-terms-block">
                 <h3>Registros del sistema</h3>
                 <p>
-                    Los registros solo registran acciones operativas del sistema y no incluyen datos personales del usuario.
+                    Los registros guardan acciones operativas para auditoría y trazabilidad, sin incluir datos personales del usuario.
                 </p>
+            </div>
 
+            <div class="vs-terms-block">
                 <h3>Uso permitido</h3>
                 <p>
-                    No se permite enviar información falsa, malintencionada o contenidos no relacionados con la denuncia.
+                    No se permite enviar información falsa, malintencionada o contenido que no esté relacionado con la denuncia.
                 </p>
+            </div>
 
+            <div class="vs-terms-block">
                 <h3>Aceptación</h3>
                 <p>
-                    Para continuar, el usuario debe aceptar estos términos antes de utilizar la plataforma.
+                    Para utilizar la plataforma, debes aceptar estos términos. Si no estás de acuerdo, puedes volver sin continuar.
                 </p>
-
             </div>
 
-            <div class="vs-button-group vs-text-right" style="margin-top: var(--space-6);">
-                <a href="javascript:history.back()" class="vs-button vs-button--primary">
-                    Aceptar y volver
-                </a>
-            </div>
         </div>
-    </main>
-</div>
+
+        <div class="vs-divider"></div>
+
+        <div class="vs-button-group vs-button-group--space-between">
+            <a th:href="@{/auth/login}" href="/auth/access" class="vs-button vs-button--secondary">
+                Volver
+            </a>
+
+            <!-- Si necesitas registrar aceptación real, esto debe ser POST en backend -->
+            <a th:href="@{/auth/login}" href="/auth/access" class="vs-button vs-button--primary">
+                Aceptar y volver
+            </a>
+        </div>
+
+    </section>
+</main>
 
 </body>
 </html>
+
+
+

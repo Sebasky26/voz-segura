@@ -1,50 +1,103 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Voz Segura — Revelación Excepcional</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
 
 <body class="vs-app">
 
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
-    <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
+    <div class="vs-container vs-container-wide">
+
+        <a class="vs-brand" th:href="@{/admin}" href="/admin" aria-label="Volver al Panel de Administración">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Revelación excepcional</div>
+            </div>
+        </a>
+
+        <nav class="vs-nav" aria-label="Navegación">
+            <a class="vs-nav__link" th:href="@{/admin}" href="/admin">Panel</a>
+            <a class="vs-nav__link" th:href="@{/admin/reglas}" href="/admin/reglas">Reglas</a>
+            <a class="vs-nav__link" th:href="@{/admin/logs}" href="/admin/logs">Logs</a>
+            <a class="vs-nav__link" th:href="@{/logout}" href="/logout">Salir</a>
+        </nav>
+
     </div>
 </header>
 
-<main class="vs-container vs-container-wide">
-    <div class="vs-card">
+<main id="contenido" class="vs-container vs-container-wide">
+
+    <section class="vs-card" aria-labelledby="titulo-revelacion">
+
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Revelación Excepcional</h1>
+            <h1 id="titulo-revelacion" class="vs-card__title">Revelación excepcional</h1>
+            <p class="vs-card__subtitle">
+                Solo se usa en casos permitidos por normativa y con trazabilidad. Todas las acciones quedan registradas.
+            </p>
         </div>
 
-        <div class="vs-alert vs-alert--warning vs-mb-6">
-            Funcionalidad pendiente de implementación
+        <!-- Información / criterios (UX: prevención de errores + claridad) -->
+        <div class="vs-section vs-mb-6" aria-label="Criterios de uso">
+            <div class="vs-section__title">Antes de continuar</div>
+            <p class="vs-text-muted">
+                Este módulo sirve para gestionar solicitudes formales que justifican una revelación excepcional.
+                Si no existe un respaldo válido, no se debe iniciar el proceso.
+            </p>
+            <ul class="vs-bullets vs-mt-4">
+                <li>Requiere justificación y evidencia adjunta.</li>
+                <li>Debe aprobarse por el rol autorizado.</li>
+                <li>Se registra fecha, motivo y responsable.</li>
+            </ul>
         </div>
 
-        <div class="vs-table-wrapper">
+        <!-- Estado actual -->
+        <div class="vs-alert vs-alert--info vs-mb-6" role="status">
+            Módulo en preparación: por ahora se muestra la interfaz. Cuando se active, verás las solicitudes aquí.
+        </div>
+
+        <!-- Tabla -->
+        <div class="vs-table-wrapper" role="region" aria-label="Tabla de solicitudes" tabindex="0">
             <table class="vs-table">
+                <caption class="vs-sr-only">Listado de solicitudes de revelación excepcional</caption>
+
                 <thead>
                 <tr>
-                    <th>Solicitud</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
+                    <th scope="col">Solicitud</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Acciones</th>
                 </tr>
                 </thead>
+
                 <tbody>
                 <tr>
                     <td colspan="4" class="vs-table-empty">
-                        No existen solicitudes registradas
+                        <strong>No existen solicitudes registradas.</strong><br>
+                        Cuando se cree una solicitud, aparecerá en este listado.
                     </td>
                 </tr>
                 </tbody>
+
             </table>
         </div>
-    </div>
+
+    </section>
+
 </main>
 
 </body>
 </html>
+
+
+

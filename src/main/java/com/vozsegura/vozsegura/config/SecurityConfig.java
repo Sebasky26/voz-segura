@@ -35,7 +35,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas (mantenidas sin cambios)
                 .requestMatchers("/auth/**", "/denuncia/**", "/terms", "/terms/**", 
-                    "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error", "/error/**")
+                    "/css/**", "/js/**", "/img/**", "/images/**", "/favicon.ico", "/error", "/error/**")
                 .permitAll()
                 // El resto es validado por ApiGatewayFilter
                 // que verifica los headers del gateway
@@ -54,6 +54,7 @@ public class SecurityConfig {
                     .policyDirectives("default-src 'self'; " +
                         "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " +
                         "style-src 'self' 'unsafe-inline'; " +
+                        "img-src 'self' data:; " +
                         "frame-src https://challenges.cloudflare.com; " +
                         "connect-src 'self' https://challenges.cloudflare.com"))
                 .frameOptions(frame -> frame.deny())

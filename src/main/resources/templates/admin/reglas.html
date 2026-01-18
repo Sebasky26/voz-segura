@@ -1,53 +1,102 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Voz Segura — Definición de Reglas</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
 
 <body class="vs-app">
 
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
-    <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
+    <div class="vs-container vs-container-wide">
+
+        <a class="vs-brand" th:href="@{/admin}" href="/admin" aria-label="Volver al Panel de Administración">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Definición de reglas</div>
+            </div>
+        </a>
+
+        <nav class="vs-nav" aria-label="Navegación">
+            <a class="vs-nav__link" th:href="@{/admin}" href="/admin">Panel</a>
+            <a class="vs-nav__link" th:href="@{/admin/logs}" href="/admin/logs">Logs</a>
+            <a class="vs-nav__link" th:href="@{/logout}" href="/logout">Salir</a>
+        </nav>
+
     </div>
 </header>
 
-<main class="vs-container vs-container-wide">
-    <div class="vs-card">
+<main id="contenido" class="vs-container vs-container-wide">
+
+    <section class="vs-card" aria-labelledby="titulo-reglas">
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Definición de Reglas</h1>
+            <h1 id="titulo-reglas" class="vs-card__title">Definición de reglas</h1>
+            <p class="vs-card__subtitle">
+                Administra reglas que ayudan a clasificar y manejar denuncias de forma consistente.
+            </p>
         </div>
 
-        <div class="vs-button-group vs-mb-6">
-            <button type="button" class="vs-button vs-button--primary">
-                Nueva regla
-            </button>
+        <!-- Barra superior: acciones + búsqueda -->
+        <div class="vs-toolbar vs-mb-6" aria-label="Acciones y filtros">
+            <div class="vs-toolbar__left">
+                <a th:href="@{/admin/reglas/nueva}" href="/admin/reglas/nueva"
+                   class="vs-button vs-button--primary">
+                    Nueva regla
+                </a>
+            </div>
+
+            <div class="vs-toolbar__right">
+                <label class="vs-sr-only" for="q">Buscar regla</label>
+                <input class="vs-input vs-toolbar__search"
+                       id="q" name="q" type="search"
+                       placeholder="Buscar por nombre o destino"
+                       autocomplete="off">
+            </div>
         </div>
 
-        <div class="vs-table-wrapper">
+        <!-- Tabla -->
+        <div class="vs-table-wrapper" role="region" aria-label="Tabla de reglas" tabindex="0">
             <table class="vs-table">
+                <caption class="vs-sr-only">Listado de reglas configuradas</caption>
+
                 <thead>
                 <tr>
-                    <th>Nombre</th>
-                    <th>Severidad</th>
-                    <th>Destino</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Severidad</th>
+                    <th scope="col">Destino</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Acciones</th>
                 </tr>
                 </thead>
+
                 <tbody>
+                <!-- Estado vacío -->
                 <tr>
                     <td colspan="5" class="vs-table-empty">
-                        No hay reglas configuradas
+                        <strong>No hay reglas configuradas.</strong><br>
+                        Crea la primera regla para empezar a clasificar denuncias.
                     </td>
                 </tr>
                 </tbody>
+
             </table>
         </div>
-    </div>
+
+    </section>
+
 </main>
 
 </body>
 </html>
+
+
+

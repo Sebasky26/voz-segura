@@ -74,11 +74,8 @@ public class UnifiedAuthController {
             RedirectAttributes redirectAttributes,
             Model model) {
 
-        System.out.println("[UNIFIED AUTH] Processing login for cedula: " + form.getCedula());
-
         // Validaciones básicas del formulario
         if (result.hasErrors()) {
-            System.out.println("[UNIFIED AUTH] Validation errors: " + result.getAllErrors());
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Por favor complete todos los campos correctamente");
             return "public/denuncia-login";
@@ -87,7 +84,6 @@ public class UnifiedAuthController {
         // Validar token de Turnstile
         String turnstileToken = request.getParameter("cf-turnstile-response");
         if (turnstileToken == null || turnstileToken.isBlank()) {
-            System.out.println("[UNIFIED AUTH] Turnstile token no proporcionado");
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Verificación de Turnstile fallida. Por favor intente nuevamente.");
             return "public/denuncia-login";
@@ -98,22 +94,17 @@ public class UnifiedAuthController {
         
         // Verificar token Turnstile
         if (!turnstileService.verifyTurnstileToken(turnstileToken, clientIp)) {
-            System.out.println("[UNIFIED AUTH] Turnstile validation failed for IP: " + clientIp);
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "No se pudo verificar que eres una persona. Por favor intenta de nuevo.");
             return "public/denuncia-login";
         }
 
         try {
-            System.out.println("[UNIFIED AUTH] Verifying identity...");
-
             // Paso 1: Verificar identidad contra Registro Civil (sin CAPTCHA)
             String citizenRef = unifiedAuthService.verifyCitizenIdentity(
                 form.getCedula(),
                 form.getCodigoDactilar()
             );
-
-            System.out.println("[UNIFIED AUTH] Identity verified: " + citizenRef);
 
             // Guardar citizenRef en sesión
             session.setAttribute("citizenRef", citizenRef);
@@ -123,14 +114,11 @@ public class UnifiedAuthController {
             UnifiedAuthService.UserType userType = unifiedAuthService.getUserType(form.getCedula());
             session.setAttribute("userType", userType.name());
 
-            System.out.println("[UNIFIED AUTH] User type: " + userType);
-
             // Enrutamiento según tipo de usuario (API Gateway Pattern)
             switch (userType) {
                 case ADMIN:
                 case ANALYST:
                     // Staff/Admin: Solicitar clave secreta
-                    System.out.println("[UNIFIED AUTH] Redirecting to secret key page");
                     return "redirect:/auth/secret-key";
 
                 case DENUNCIANTE:
@@ -138,19 +126,14 @@ public class UnifiedAuthController {
                     // Denunciante: Generar hash anónimo y continuar a verificación biométrica
                     String citizenHash = hashCedula(form.getCedula());
                     session.setAttribute("citizenHash", citizenHash);
-                    System.out.println("[UNIFIED AUTH] Citizen hash generated and saved to session");
-                    System.out.println("[UNIFIED AUTH] Redirecting to biometric verification");
                     return "redirect:/denuncia/biometric";
             }
 
         } catch (SecurityException e) {
-            System.err.println("[UNIFIED AUTH] Security exception: " + e.getMessage());
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", e.getMessage());
             return "public/denuncia-login";
         } catch (Exception e) {
-            System.err.println("[UNIFIED AUTH] Unexpected error: " + e.getMessage());
-            e.printStackTrace();
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Error al procesar la autenticación. Por favor intente nuevamente.");
             return "public/denuncia-login";
@@ -212,12 +195,9 @@ public class UnifiedAuthController {
 
         try {
             // Verificar clave secreta contra AWS Secrets Manager
-            System.out.println("[CONTROLLER DEBUG] Validating secret key for cedula: " + cedula);
             boolean isValid = unifiedAuthService.validateSecretKey(cedula, form.getSecretKey());
-            System.out.println("[CONTROLLER DEBUG] Secret key validation result: " + isValid);
 
             if (!isValid) {
-                System.out.println("[CONTROLLER DEBUG] Secret key is invalid, redirecting...");
                 redirectAttributes.addFlashAttribute("error", "Clave secreta incorrecta");
                 return "redirect:/auth/secret-key?error";
             }
@@ -226,34 +206,26 @@ public class UnifiedAuthController {
             String userType = (String) session.getAttribute("userType");
             String email = unifiedAuthService.getStaffEmail(cedula);
             
-            System.out.println("[UNIFIED AUTH] Staff email for " + cedula + ": " + (email != null ? maskEmail(email) : "NOT CONFIGURED"));
-            
             if (email == null || email.isBlank()) {
                 // Si no tiene email configurado, mostrar error - MFA es obligatorio
-                System.err.println("[UNIFIED AUTH] ERROR: No email configured for staff " + cedula);
                 redirectAttributes.addFlashAttribute("error", "Error de configuracion: Email no configurado para MFA. Contacte al administrador.");
                 return "redirect:/auth/secret-key?error";
             }
             
             // Enviar OTP por email
             try {
-                System.out.println("[UNIFIED AUTH] Sending OTP to " + maskEmail(email) + "...");
                 String otpToken = unifiedAuthService.sendEmailOtp(email);
                 
                 if (otpToken == null) {
-                    System.err.println("[UNIFIED AUTH] ERROR: OTP token is null - email sending failed");
                     redirectAttributes.addFlashAttribute("error", "Error al enviar codigo de verificacion. Intente nuevamente.");
                     return "redirect:/auth/secret-key?error";
                 }
                 
                 session.setAttribute("otpToken", otpToken);
                 session.setAttribute("otpEmail", maskEmail(email));
-                System.out.println("[UNIFIED AUTH] OTP sent successfully to " + maskEmail(email));
                 return "redirect:/auth/verify-otp";
             } catch (Exception e) {
-                System.err.println("[UNIFIED AUTH] ERROR sending OTP: " + e.getMessage());
-                e.printStackTrace();
-                redirectAttributes.addFlashAttribute("error", "Error al enviar codigo de verificacion: " + e.getMessage());
+                redirectAttributes.addFlashAttribute("error", "Error al enviar codigo de verificacion. Intente nuevamente.");
                 return "redirect:/auth/secret-key?error";
             }
 
@@ -297,12 +269,9 @@ public class UnifiedAuthController {
         }
 
         try {
-            System.out.println("[UNIFIED AUTH] Verifying OTP code...");
             boolean isValid = unifiedAuthService.verifyOtp(otpToken, form.getOtpCode());
-            System.out.println("[UNIFIED AUTH] OTP verification result: " + isValid);
-            
+
             if (!isValid) {
-                System.out.println("[UNIFIED AUTH] OTP code invalid or expired");
                 redirectAttributes.addFlashAttribute("error", "Código incorrecto o expirado");
                 return "redirect:/auth/verify-otp?error";
             }
@@ -311,10 +280,8 @@ public class UnifiedAuthController {
             String userType = (String) session.getAttribute("userType");
             String apiKey = ""; // o obtenerlo de la configuración
             
-            System.out.println("[UNIFIED AUTH] Generating JWT for " + cedula + ", user type: " + userType);
             String jwt = jwtTokenProvider.generateToken(cedula, userType, apiKey);
-            System.out.println("[UNIFIED AUTH] JWT generated successfully");
-            
+
             // Guardar JWT en una cookie HttpOnly que se envíe automáticamente
             // IMPORTANTE: Sin "Bearer " porque las cookies no permiten espacios
             Cookie jwtCookie = new Cookie("Authorization", jwt);
@@ -324,29 +291,21 @@ public class UnifiedAuthController {
             jwtCookie.setMaxAge(86400); // 24 horas
             response.addCookie(jwtCookie);
             
-            System.out.println("[UNIFIED AUTH] JWT saved in cookie");
-            
             // Limpiar sesión
             session.setAttribute("authenticated", true);
             session.setAttribute("authMethod", "UNIFIED_ZTA_MFA");
             session.removeAttribute("otpToken");
             session.removeAttribute("otpEmail");
 
-            System.out.println("[UNIFIED AUTH] MFA successful for " + cedula + ", user type: " + userType);
-
             // Redirigir según rol - Directamente al Core (sin Gateway)
             if ("ADMIN".equals(userType)) {
-                System.out.println("[UNIFIED AUTH] Redirecting ADMIN to /admin");
                 return "redirect:/admin";
             } else {
-                System.out.println("[UNIFIED AUTH] Redirecting STAFF to /staff/casos");
                 return "redirect:/staff/casos";
             }
 
         } catch (Exception e) {
-            System.err.println("[UNIFIED AUTH] Error verifying OTP: " + e.getMessage());
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("error", "Error al verificar el código: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al verificar el código. Intente nuevamente.");
             return "redirect:/auth/verify-otp?error";
         }
     }

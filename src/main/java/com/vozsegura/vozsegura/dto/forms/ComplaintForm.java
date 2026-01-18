@@ -7,8 +7,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 public class ComplaintForm {
 
-    @NotBlank
-    @Size(max = 4000)
+    @NotBlank(message = "El detalle de la denuncia es requerido")
+    @Size(min = 50, max = 4000, message = "El detalle debe tener entre 50 y 4000 caracteres")
     private String detail;
 
     private MultipartFile[] evidences;

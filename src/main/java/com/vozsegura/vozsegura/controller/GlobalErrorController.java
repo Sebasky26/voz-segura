@@ -1,9 +1,12 @@
 package com.vozsegura.vozsegura.controller;
 
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,7 +25,10 @@ public class GlobalErrorController implements ErrorController {
      * Maneja la ruta /error por defecto de Spring Boot.
      */
     @RequestMapping("/error")
-    public String handleError() {
+    public String handleError(Model model) {
+        String requestId = generateRequestId();
+        model.addAttribute("requestId", requestId);
+        log.warn("Error genérico - requestId: {}", requestId);
         return "error/generic-error";
     }
 
@@ -31,10 +37,19 @@ public class GlobalErrorController implements ErrorController {
      * Registra internamente pero no expone detalles al usuario.
      */
     @ExceptionHandler(Exception.class)
-    public String handleException(Exception e) {
+    public String handleException(Exception e, Model model) {
+        String requestId = generateRequestId();
+        model.addAttribute("requestId", requestId);
         // Log interno sin exponer al usuario
-        log.error("Error no controlado", e);
+        log.error("Error no controlado - requestId: {} - {}", requestId, e.getMessage(), e);
         return "error/generic-error";
+    }
+
+    /**
+     * Genera un ID único de solicitud para trazabilidad.
+     */
+    private String generateRequestId() {
+        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 }
 

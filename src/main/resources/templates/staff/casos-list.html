@@ -1,103 +1,158 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Supervisión de denuncias</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}" href="/css/main.css"/>
+
+    <link rel="stylesheet" th:href="@{/css/main.css?v=2}" href="/css/main.css?v=2"/>
 </head>
+
 <body class="vs-app">
 
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
-    <div class="vs-container">
-        <div class="vs-header__logo">Voz Segura</div>
-        <nav class="vs-nav">
-            <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
+    <div class="vs-container vs-container-wide">
+
+        <a class="vs-brand" th:href="@{/staff/casos}" href="/staff/casos" aria-label="Ir a casos">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=2}"
+                 src="/img/logo-voz-segura.svg?v=2"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Supervisión de denuncias</div>
+            </div>
+        </a>
+
+        <nav class="vs-nav" aria-label="Navegación">
+            <a th:href="@{/staff/casos}" href="/staff/casos" class="vs-nav__link">Casos</a>
+            <a th:href="@{/admin/logs}" href="/admin/logs" class="vs-nav__link">Logs</a>
+            <a th:href="@{/auth/logout}" href="/auth/logout" class="vs-nav__link">Cerrar sesión</a>
         </nav>
+
     </div>
 </header>
 
-<main class="vs-container vs-container-wide">
-    <div class="vs-card">
+<main id="contenido" class="vs-container vs-container-wide">
+    <section class="vs-card" aria-labelledby="titulo-listado">
+
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Supervisión de denuncias</h1>
+            <h1 id="titulo-listado" class="vs-card__title">Supervisión de denuncias</h1>
             <p class="vs-card__subtitle">Listado de casos registrados en el sistema</p>
         </div>
 
-        <!-- Mensajes de éxito/error -->
-        <div th:if="${success}" class="vs-alert vs-alert--success" th:text="${success}"></div>
-        <div th:if="${error}" class="vs-alert vs-alert--error" th:text="${error}"></div>
+        <!-- Mensajes -->
+        <div th:if="${success}" class="vs-alert vs-alert--success" role="status" aria-live="polite" th:text="${success}"></div>
+        <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" aria-live="polite" th:text="${error}"></div>
 
-        <!-- Barra de filtros -->
-        <form th:action="@{/staff/casos}" method="get" class="vs-form vs-mb-6">
-            <div class="vs-form__group">
-                <label class="vs-form__label">Estado</label>
-                <select name="status" class="vs-select">
-                    <option value="">Todos</option>
-                    <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Pendiente</option>
-                    <option value="IN_REVIEW" th:selected="${selectedStatus == 'IN_REVIEW'}">En revisión</option>
-                    <option value="RESOLVED" th:selected="${selectedStatus == 'RESOLVED'}">Resuelto</option>
-                    <option value="DERIVED" th:selected="${selectedStatus == 'DERIVED'}">Derivado</option>
-                    <option value="ARCHIVED" th:selected="${selectedStatus == 'ARCHIVED'}">Archivado</option>
-                </select>
-            </div>
+        <!-- Filtros -->
+        <form th:action="@{/staff/casos}" method="get" class="vs-filters vs-mb-6" aria-label="Filtros">
+            <div class="vs-grid vs-grid--3cols">
 
-            <div class="vs-form__group">
-                <button type="submit" class="vs-button vs-button--primary">
-                    Filtrar
-                </button>
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="status">Estado</label>
+                    <select id="status" name="status" class="vs-select">
+                        <option value="">Todos</option>
+                        <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Pendiente</option>
+                        <option value="IN_REVIEW" th:selected="${selectedStatus == 'IN_REVIEW'}">En revisión</option>
+                        <option value="RESOLVED" th:selected="${selectedStatus == 'RESOLVED'}">Resuelto</option>
+                        <option value="DERIVED" th:selected="${selectedStatus == 'DERIVED'}">Derivado</option>
+                        <option value="ARCHIVED" th:selected="${selectedStatus == 'ARCHIVED'}">Archivado</option>
+                    </select>
+                </div>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="q">Buscar</label>
+                    <input id="q"
+                           name="q"
+                           class="vs-input"
+                           type="text"
+                           th:value="${q}"
+                           placeholder="Código o empresa (opcional)"
+                           autocomplete="off"/>
+                    <div class="vs-form__help">Ej: ABC-123 o “Empresa XYZ”.</div>
+                </div>
+
+                <div class="vs-form__group vs-filters__actions">
+                    <button type="submit" class="vs-button vs-button--primary">
+                        Aplicar filtros
+                    </button>
+
+                    <a th:href="@{/staff/casos}" href="/staff/casos" class="vs-button vs-button--secondary">
+                        Limpiar
+                    </a>
+                </div>
+
             </div>
         </form>
 
-        <!-- Tabla de casos -->
-        <div class="vs-table-wrapper">
+        <!-- Tabla -->
+        <div class="vs-table-wrapper" role="region" aria-label="Tabla de casos" tabindex="0">
             <table class="vs-table">
+                <caption class="vs-sr-only">Listado de denuncias</caption>
+
                 <thead>
                 <tr>
-                    <th>Código de seguimiento</th>
-                    <th>Estado</th>
-                    <th>Severidad</th>
-                    <th>Empresa denunciada</th>
-                    <th>Fecha de creación</th>
-                    <th>Acciones</th>
+                    <th scope="col">Código</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Severidad</th>
+                    <th scope="col">Empresa</th>
+                    <th scope="col">Creación</th>
+                    <th scope="col">Acciones</th>
                 </tr>
                 </thead>
+
                 <tbody>
-                <!-- Mensaje si no hay denuncias -->
                 <tr th:if="${#lists.isEmpty(complaints)}">
-                    <td colspan="6" class="vs-text-center vs-text-muted">
-                        No hay denuncias registradas en el sistema.
+                    <td colspan="6" class="vs-table-empty">
+                        No hay denuncias registradas con los filtros actuales.
                     </td>
                 </tr>
-                <!-- Iterar sobre las denuncias -->
+
                 <tr th:each="complaint : ${complaints}">
                     <td>
-                        <code th:text="${#strings.abbreviate(complaint.trackingId, 20)}">ABC123</code>
+                        <code class="vs-code-pill" th:text="${#strings.abbreviate(complaint.trackingId, 20)}">ABC123</code>
                     </td>
+
                     <td>
-                        <span class="vs-badge"
-                              th:classappend="${complaint.status == 'PENDING'} ? 'vs-badge--warning' :
-                                             (${complaint.status == 'IN_REVIEW'} ? 'vs-badge--info' :
-                                             (${complaint.status == 'RESOLVED'} ? 'vs-badge--success' :
-                                             (${complaint.status == 'DERIVED'} ? 'vs-badge--secondary' : 'vs-badge--default')))"
-                              th:text="${complaint.status}">
-                            PENDING
-                        </span>
+              <span class="vs-badge"
+                    th:classappend="${complaint.status == 'PENDING'} ? ' vs-badge--warning' :
+                                   (${complaint.status == 'IN_REVIEW'} ? ' vs-badge--info' :
+                                   (${complaint.status == 'RESOLVED'} ? ' vs-badge--success' :
+                                   (${complaint.status == 'DERIVED'} ? ' vs-badge--secondary' : ' vs-badge--default')))"
+                    th:text="${complaint.status == 'PENDING' ? 'Pendiente' :
+                              (complaint.status == 'IN_REVIEW' ? 'En revisión' :
+                              (complaint.status == 'RESOLVED' ? 'Resuelto' :
+                              (complaint.status == 'DERIVED' ? 'Derivado' :
+                              (complaint.status == 'ARCHIVED' ? 'Archivado' : complaint.status))))}">
+                Pendiente
+              </span>
                     </td>
+
                     <td>
-                        <span class="vs-badge"
-                              th:classappend="${complaint.severity == 'CRITICAL'} ? 'vs-badge--danger' :
-                                             (${complaint.severity == 'HIGH'} ? 'vs-badge--warning' :
-                                             (${complaint.severity == 'MEDIUM'} ? 'vs-badge--info' : 'vs-badge--default'))"
-                              th:text="${complaint.severity}">
-                            MEDIUM
-                        </span>
+              <span class="vs-badge"
+                    th:classappend="${complaint.severity == 'CRITICAL'} ? ' vs-badge--danger' :
+                                   (${complaint.severity == 'HIGH'} ? ' vs-badge--warning' :
+                                   (${complaint.severity == 'MEDIUM'} ? ' vs-badge--info' : ' vs-badge--default'))"
+                    th:text="${complaint.severity == 'CRITICAL' ? 'Crítica' :
+                              (complaint.severity == 'HIGH' ? 'Alta' :
+                              (complaint.severity == 'MEDIUM' ? 'Media' : 'Baja'))}">
+                Media
+              </span>
                     </td>
+
                     <td th:text="${complaint.companyName}">Empresa XYZ</td>
+
                     <td th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy - HH:mm')}">
                         24 ene 2026 - 09:22
                     </td>
-                    <td>
+
+                    <td class="vs-table-actions">
+                        <!-- Opción A: como lo tienes hoy (trackingId) -->
                         <a th:href="@{/staff/casos/{id}(id=${complaint.trackingId})}"
+                           href="#"
                            class="vs-button vs-button--secondary vs-button--sm">
                             Ver detalle
                         </a>
@@ -107,13 +162,18 @@
             </table>
         </div>
 
-        <!-- Contador de registros -->
-        <div class="vs-mt-4 vs-text-muted">
-            Total de denuncias: <strong th:text="${#lists.size(complaints)}">0</strong>
+        <!-- Pie -->
+        <div class="vs-list-footer">
+            <div class="vs-text-muted">
+                Total: <strong th:text="${#lists.size(complaints)}">0</strong>
+            </div>
         </div>
 
-    </div>
+    </section>
 </main>
 
 </body>
 </html>
+
+
+
