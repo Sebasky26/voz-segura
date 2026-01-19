@@ -70,6 +70,15 @@ cloudflare:
     site-key: ${CLOUDFLARE_SITE_KEY}
     secret-key: ${CLOUDFLARE_SECRET_KEY}
 
+# Didit Biometric Verification (desde .env)
+didit:
+  app-id: ${DIDIT_APP_ID}
+  api-key: ${DIDIT_API_KEY}
+  webhook-url: ${DIDIT_WEBHOOK_URL}
+  webhook-secret-key: ${DIDIT_WEBHOOK_SECRET_KEY}
+  workflow-id: ${DIDIT_WORKFLOW_ID}
+  api-url: ${DIDIT_API_URL}
+
 server:
   port: 8082
   error:
@@ -82,6 +91,7 @@ logging:
   level:
     root: INFO
     com.vozsegura.vozsegura: DEBUG
+    com.vozsegura.vozsegura.service.DiditService: DEBUG
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG

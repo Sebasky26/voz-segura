@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voz Segura — Verificación de Identidad</title>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+</head>
+
+<body class="vs-app">
+
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-brand" aria-label="Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=4}"
+                 src="/img/logo-voz-segura.svg?v=4"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Verificación de Identidad</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-verification">
+
+        <div class="vs-card__header">
+            <h1 id="titulo-verification" class="vs-card__title">Verificación de Identidad</h1>
+            <p class="vs-card__subtitle">Escanea tu documento para continuar</p>
+        </div>
+
+        <!-- Mensaje de error -->
+        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4" role="alert" th:text="${error}">
+            Error
+        </div>
+
+        <!-- Botón de verificación principal -->
+        <div class="vs-verification-container" style="text-align: center; padding: 3rem 0;">
+            <p style="margin-bottom: 2rem; font-size: 1.1rem; color: #333;">
+                Haz clic en el botón para comenzar la verificación de tu identidad con Didit.
+            </p>
+            
+            <a th:href="@{/verification/start}"
+               class="vs-button vs-button--primary vs-button--lg"
+               style="display: inline-block; padding: 1rem 2rem; font-size: 1.1rem;">
+                Iniciar Verificación
+            </a>
+        </div>
+
+        <!-- Información de seguridad -->
+        <div class="vs-alert vs-alert--info vs-mt-6" role="status" aria-live="polite">
+            <strong>🔒 Seguridad:</strong> Tu información se procesa de forma segura mediante Didit, 
+            un proveedor confiable de verificación de identidad. Tu documento no se almacena en nuestros servidores.
+        </div>
+
+        <!-- Términos -->
+        <div class="vs-alert vs-alert--info vs-mt-4" role="status" aria-live="polite" style="font-size: 0.9rem;">
+            <p><strong>Al continuar:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                <li>Aceptas los términos y condiciones de Voz Segura</li>
+                <li>Autorizas la verificación de tu identidad</li>
+                <li>Consientes el procesamiento de tus datos según nuestra política de privacidad</li>
+            </ul>
+        </div>
+
+    </section>
+</main>
+
+</body>
+</html>

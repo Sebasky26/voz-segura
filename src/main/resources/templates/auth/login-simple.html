@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voz Segura — Ingreso</title>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+</head>
+
+<body class="vs-app">
+
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
+<header class="vs-header">
+    <div class="vs-container">
+        <div class="vs-brand" aria-label="Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=4}"
+                 src="/img/logo-voz-segura.svg?v=4"
+                 alt="Logo de Voz Segura">
+            <div class="vs-brand__text">
+                <div class="vs-brand__title">Voz Segura</div>
+                <div class="vs-brand__subtitle">Denuncias Anónimas Seguras</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main id="contenido" class="vs-container">
+    <section class="vs-card" aria-labelledby="titulo-welcome">
+
+        <div class="vs-card__header">
+            <h1 id="titulo-welcome" class="vs-card__title">Bienvenido/a a Voz Segura</h1>
+            <p class="vs-card__subtitle">Plataforma segura para denuncias anónimas</p>
+        </div>
+
+        <!-- Mensaje de error si existe -->
+        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4" role="alert" th:text="${error}">
+            Error
+        </div>
+
+        <!-- Descripción -->
+        <div style="background-color: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; line-height: 1.6;">
+            <p>
+                En Voz Segura puedes presentar denuncias de forma <strong>segura y anónima</strong>. 
+                Tu identidad está protegida mediante cifrado de extremo a extremo.
+            </p>
+            <p style="margin-top: 1rem;">
+                Para comenzar, necesitamos verificar tu identidad de manera segura usando 
+                <strong>Didit</strong>, un proveedor confiable de verificación de documentos.
+            </p>
+        </div>
+
+        <!-- Botón principal -->
+        <div style="text-align: center; margin: 3rem 0;">
+            <a th:href="@{/auth/verify-start}"
+               class="vs-button vs-button--primary vs-button--lg"
+               style="display: inline-block; padding: 1rem 2.5rem; font-size: 1.1rem;">
+                Verificar Usuario
+            </a>
+        </div>
+
+        <!-- Información de seguridad -->
+        <div class="vs-alert vs-alert--info" role="status" aria-live="polite">
+            <strong>🔒 Información de Seguridad:</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li>Tu documento se verifica de forma segura con Didit</li>
+                <li>No almacenamos imágenes de tu documento</li>
+                <li>Tu identidad real nunca se expone en denuncias</li>
+                <li>Solo necesitamos tu cédula y nombre para verificación</li>
+            </ul>
+        </div>
+
+    </section>
+</main>
+
+</body>
+</html>

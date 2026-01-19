@@ -95,7 +95,15 @@ public class VozSeguraGatewayApplication {
                 )
 
                 // ============================================
-                // RUTA 7: Error (Pública)
+                // RUTA 7: Webhooks (Pública - sin autenticación JWT)
+                // ============================================
+                .route("webhooks", r -> r
+                        .path("/webhooks/**")
+                        .uri("http://localhost:8082")
+                )
+
+                // ============================================
+                // RUTA 8: Error (Pública)
                 // ============================================
                 .route("error-handler", r -> r
                         .path("/error", "/error/**")

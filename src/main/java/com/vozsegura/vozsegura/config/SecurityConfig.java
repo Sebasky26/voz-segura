@@ -30,12 +30,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // CSRF habilitado (el gateway valida tokens)
-            .csrf(Customizer.withDefaults())
+            // CSRF habilitado pero deshabilitado para webhooks externos
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/webhooks/**")  // Excluir webhooks de CSRF
+            )
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas (mantenidas sin cambios)
                 .requestMatchers("/auth/**", "/denuncia/**", "/seguimiento/**", "/terms", "/terms/**",
-                    "/css/**", "/js/**", "/img/**", "/images/**", "/favicon.ico", "/error", "/error/**")
+                    "/css/**", "/js/**", "/img/**", "/images/**", "/favicon.ico", "/error", "/error/**",
+                    "/webhooks/**")  // Agregar webhooks aquí también
                 .permitAll()
                 // El resto es validado por ApiGatewayFilter
                 // que verifica los headers del gateway

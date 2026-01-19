@@ -15,6 +15,8 @@ import com.vozsegura.vozsegura.client.OtpClient;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.Body;
@@ -53,6 +55,12 @@ public class AwsSesOtpClient implements OtpClient {
 
     @Value("${aws.ses.from-email:stalin.yungan@epn.edu.ec}")
     private String fromEmail;
+
+    @Value("${aws.access-key-id:}")
+    private String awsAccessKeyId;
+
+    @Value("${aws.secret-access-key:}")
+    private String awsSecretAccessKey;
 
     private SesClient sesClient;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -130,9 +138,24 @@ public class AwsSesOtpClient implements OtpClient {
         System.out.println("============================================");
 
         try {
-            this.sesClient = SesClient.builder()
-                    .region(Region.of(awsRegion))
-                    .build();
+            // Intentar crear cliente con credenciales explícitas si están disponibles
+            var builder = SesClient.builder()
+                    .region(Region.of(awsRegion));
+            
+            // Si tenemos credenciales explícitas en properties/env, usarlas
+            if (awsAccessKeyId != null && !awsAccessKeyId.isBlank() && 
+                awsSecretAccessKey != null && !awsSecretAccessKey.isBlank()) {
+                System.out.println("[AWS SES] Using explicit AWS credentials from environment");
+                AwsBasicCredentials credentials = AwsBasicCredentials.create(
+                        awsAccessKeyId,
+                        awsSecretAccessKey
+                );
+                builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
+            } else {
+                System.out.println("[AWS SES] Using default AWS credential chain");
+            }
+            
+            this.sesClient = builder.build();
             System.out.println("[AWS SES] Client initialized successfully");
         } catch (Exception e) {
             System.err.println("[AWS SES] Failed to initialize: " + e.getMessage());

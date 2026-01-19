@@ -1,102 +1,179 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Voz Segura — Verificación biométrica</title>
+    <title>Voz Segura — Verificación de Identidad</title>
 
     <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
 
 <body class="vs-app">
 
+<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
+                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
-                <div class="vs-brand__subtitle">Verificación biométrica</div>
+                <div class="vs-brand__subtitle">Verificación de Identidad - Didit</div>
             </div>
         </div>
     </div>
 </header>
 
-<main class="vs-container">
+<main id="contenido" class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-bio">
 
         <div class="vs-card__header">
-            <h1 id="titulo-bio" class="vs-card__title">Verificación biométrica</h1>
-            <p class="vs-card__subtitle">Sube una fotografía para continuar</p>
+            <h1 id="titulo-bio" class="vs-card__title">Verificación de Identidad</h1>
+            <p class="vs-card__subtitle">Escanea tu documento de identidad para continuar</p>
         </div>
 
-        <div id="bioUiError" class="vs-alert vs-alert--error vs-mb-4 vs-hidden" role="alert">
-            Selecciona una imagen válida antes de continuar.
+        <!-- Mensaje de error -->
+        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4" role="alert" th:text="${error}">
+            Error al iniciar verificación
         </div>
 
-        <div class="vs-camera-container" aria-label="Vista previa de la imagen">
-            <div class="vs-camera-preview">
-                <div class="vs-camera-frame" id="cameraPlaceholder" aria-hidden="true">
-                    <div class="vs-camera-icon" aria-hidden="true"></div>
-                </div>
-
-                <img id="photoPreview" class="vs-photo-preview" alt="Vista previa de la fotografía"/>
-
-                <button type="button" class="vs-camera-button" id="pickPhotoBtn" aria-label="Seleccionar fotografía">
-                    <span class="vs-sr-only">Seleccionar fotografía</span>
-                </button>
+        <!-- Verificación URL de Didit disponible -->
+        <div th:if="${verificationUrl}" id="diditContainer">
+            <div class="vs-info-box" aria-label="Instrucciones">
+                <div class="vs-info-box__title">Instrucciones:</div>
+                <ol class="vs-info-box__list">
+                    <li>Haz clic en el botón "Verificar Identidad"</li>
+                    <li>Sigue las instrucciones para escanear tu documento</li>
+                    <li>Completa cualquier verificación adicional requerida</li>
+                    <li>Se te redireccionará automáticamente después de completar</li>
+                </ol>
             </div>
-        </div>
 
-        <div class="vs-info-box" aria-label="Recomendaciones">
-            <div class="vs-info-box__title">Recomendaciones</div>
-            <ul class="vs-info-box__list">
-                <li>Centra el rostro en el marco.</li>
-                <li>Usa buena iluminación.</li>
-                <li>Evita filtros o imágenes borrosas.</li>
-            </ul>
-        </div>
+            <!-- Link a verificación de Didit -->
+            <div class="vs-verification-container" style="text-align: center; margin: 2rem 0;">
+                <a th:href="${verificationUrl}"
+                   class="vs-button vs-button--primary vs-button--lg"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    Verificar Identidad con Didit
+                </a>
+                <p style="margin-top: 1rem; font-size: 0.875rem; color: #666;">
+                    Se abrirá en una nueva ventana. Completa la verificación y regresa aquí.
+                </p>
+            </div>
 
-        <form th:action="@{/denuncia/biometric}"
-              method="post"
-              enctype="multipart/form-data"
-              th:object="${biometricOtpForm}"
-              class="vs-form"
-              id="biometricForm">
-
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-
-            <input type="file"
-                   th:field="*{biometricSample}"
-                   accept="image/*"
-                   id="photoInput"
-                   class="vs-hidden"
-                   required />
-
+            <!-- Verificar estado de la verificación -->
             <div class="vs-button-group vs-button-group--space-between">
                 <a th:href="@{/auth/login}" class="vs-button vs-button--ghost">
                     Volver al inicio
                 </a>
-
-                <button type="submit"
-                        class="vs-button vs-button--primary vs-button--lg"
-                        id="submitBtn"
-                        disabled>
-                    Continuar
+                <button type="button"
+                        class="vs-button vs-button--primary"
+                        id="checkStatusBtn"
+                        onclick="checkVerificationStatus()">
+                    Verificar Estado
                 </button>
             </div>
-        </form>
 
+            <!-- Indicador de estado -->
+            <div id="statusIndicator" class="vs-alert vs-alert--info vs-mt-4" role="status" aria-live="polite" style="display:none;">
+                <p>Esperando confirmación de verificación...</p>
+            </div>
+        </div>
+
+        <!-- Estado de carga inicial -->
+        <div th:unless="${verificationUrl}" id="loadingContainer" style="text-align: center; padding: 2rem;">
+            <div class="vs-spinner" style="margin-bottom: 1rem;"></div>
+            <p>Iniciando verificación. Por favor espera...</p>
+        </div>
+
+        <!-- Aviso de seguridad -->
         <div class="vs-alert vs-alert--info vs-mt-6" role="status" aria-live="polite">
-            La imagen se usa únicamente para esta verificación y se maneja de forma segura.
+            <strong>Seguridad:</strong> Tu información se procesa de forma segura mediante Didit, 
+            un proveedor confiable de verificación de identidad.
         </div>
 
     </section>
 </main>
 
-<script th:src="@{/js/biometric.js}" src="/js/biometric.js"></script>
+<script>
+    // Variables globales
+    const DIDIT_SESSION_ID = /*[[${diditSessionId}]]*/ null;
+    
+    let statusCheckInterval = null;
+
+    // Verificar automáticamente el estado cada 3 segundos
+    function startAutoCheck() {
+        if (statusCheckInterval) clearInterval(statusCheckInterval);
+        statusCheckInterval = setInterval(checkVerificationStatus, 3000);
+    }
+
+    // Detener la verificación automática
+    function stopAutoCheck() {
+        if (statusCheckInterval) clearInterval(statusCheckInterval);
+    }
+
+    // Verificar el estado de la verificación
+    async function checkVerificationStatus() {
+        if (!DIDIT_SESSION_ID) return;
+
+        try {
+            const response = await fetch('/denuncia/biometric/status', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/html'
+                }
+            });
+
+            if (response.ok) {
+                // Buscar si en la respuesta hay "verified":true
+                const text = await response.text();
+                if (text.includes('verified') && text.includes('true')) {
+                    stopAutoCheck();
+                    document.getElementById('statusIndicator').style.display = 'none';
+                    
+                    // Redirigir después de 1 segundo
+                    setTimeout(() => {
+                        submitVerification();
+                    }, 1000);
+                }
+            }
+        } catch (error) {
+            console.error('Error checking status:', error);
+        }
+    }
+
+    // Enviar verificación completada al servidor
+    function submitVerification() {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/denuncia/biometric/verify';
+        
+        // Agregar CSRF token
+        const csrfElement = document.querySelector('input[name="_csrf"]');
+        if (csrfElement) {
+            const csrf = csrfElement.cloneNode(true);
+            form.appendChild(csrf);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Mostrar indicador de estado cuando se hace clic en verificar estado
+    document.getElementById('checkStatusBtn')?.addEventListener('click', function() {
+        document.getElementById('statusIndicator').style.display = 'block';
+        startAutoCheck();
+    });
+
+    // Iniciar verificación automática si hay una sesión activa
+    if (DIDIT_SESSION_ID) {
+        startAutoCheck();
+    }
+</script>
 
 </body>
 </html>

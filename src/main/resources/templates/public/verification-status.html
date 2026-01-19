@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Estado de Verificación</title>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+</head>
+
+<body class="vs-app">
+
+<div class="vs-container">
+    <!-- Verificación completada -->
+    <div th:if="${verified == true}" class="vs-card">
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">✓ Verificación Completada</h1>
+        </div>
+
+        <div class="vs-alert vs-alert--success vs-mb-4">
+            <p><strong th:text="'Nombre: ' + ${fullName}"></strong></p>
+            <p><strong th:text="'Documento: ' + ${documentNumber}"></strong></p>
+            <p><strong th:text="'Estado: ' + ${status}"></strong></p>
+        </div>
+
+        <p>Redireccionando a los siguientes pasos...</p>
+    </div>
+
+    <!-- Verificación pendiente -->
+    <div th:if="${verified == false}" class="vs-card">
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Verificación en Progreso</h1>
+        </div>
+
+        <div class="vs-alert vs-alert--info vs-mb-4">
+            <p th:text="${message}">Esperando resultado de verificación...</p>
+        </div>
+
+        <p>Esta página se actualizará automáticamente cuando se complete la verificación.</p>
+    </div>
+
+    <!-- Error -->
+    <div th:if="${error}" class="vs-card">
+        <div class="vs-card__header">
+            <h1 class="vs-card__title">Error en Verificación</h1>
+        </div>
+
+        <div class="vs-alert vs-alert--error vs-mb-4">
+            <p th:text="${error}">Error al verificar estado</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
