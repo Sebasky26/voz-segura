@@ -4,11 +4,11 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Agregar información</title>
-    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=6}" href="/css/main.css?v=6"/>
 </head>
 <body class="vs-app">
 <header class="vs-header">
-    <div class="vs-container">
+    <div class="vs-container vs-container-wide">
         <div class="vs-brand">
             <img class="vs-brand__logo" th:src="@{/img/logo-voz-segura.svg?v=4}" alt="Logo">
             <div class="vs-brand__text">
@@ -18,36 +18,102 @@
         </div>
     </div>
 </header>
-<main class="vs-container">
-    <section class="vs-card">
+<main class="vs-container vs-container-wide">
+    <section class="vs-card" aria-labelledby="titulo-editar">
         <div class="vs-card__header">
-            <h1 class="vs-card__title">Información adicional requerida</h1>
-            <p class="vs-card__subtitle">Código: <code class="vs-code" th:text="${trackingId}">XXXX</code></p>
+            <h1 id="titulo-editar" class="vs-card__title">Información adicional requerida</h1>
+            <p class="vs-card__subtitle">
+                Código de seguimiento: <code class="vs-code" th:text="${trackingId}">XXXX</code>
+            </p>
         </div>
-        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4"><p th:text="${error}">Error</p></div>
-        <div class="vs-alert vs-alert--warning vs-mb-6" th:if="${analystNotes}">
-            <h3 class="vs-h4">Solicitud del analista:</h3>
-            <blockquote class="vs-blockquote" th:text="${analystNotes}">Detalle</blockquote>
+
+        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4">
+            <p th:text="${error}">Error</p>
         </div>
-        <form th:action="@{/denuncia/editar/{id}(id=${trackingId})}" method="post" enctype="multipart/form-data" th:object="${additionalInfoForm}" class="vs-form">
+
+        <!-- Mensaje del analista -->
+        <div class="vs-section vs-mb-6" th:if="${analystNotes}">
+            <h3 class="vs-section__title">Solicitud del analista</h3>
+            <p class="vs-form__help vs-mb-4">El analista ha solicitado la siguiente información adicional:</p>
+            <div class="vs-blockquote" th:text="${analystNotes}">Detalle de la solicitud</div>
+        </div>
+
+        <form th:action="@{/denuncia/editar/{id}(id=${trackingId})}"
+              method="post"
+              enctype="multipart/form-data"
+              th:object="${additionalInfoForm}"
+              class="vs-form"
+              id="editForm">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-            <div class="vs-form__group">
-                <label class="vs-form__label vs-form__label--required" for="additionalInfo">Información adicional</label>
-                <textarea th:field="*{additionalInfo}" id="additionalInfo" class="vs-textarea" rows="8" required minlength="20" maxlength="5000" placeholder="Proporciona la información solicitada..."></textarea>
-                <div class="vs-form__help">Mínimo 20 caracteres, máximo 5000.</div>
+
+            <!-- Información adicional -->
+            <div class="vs-section">
+                <div class="vs-section__title">Respuesta</div>
+                <p class="vs-form__help vs-mb-4">Proporciona la información solicitada con el mayor detalle posible.</p>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label vs-form__label--required" for="additionalInfo">
+                        Información adicional
+                    </label>
+                    <textarea th:field="*{additionalInfo}"
+                              id="additionalInfo"
+                              class="vs-textarea"
+                              rows="8"
+                              required
+                              minlength="20"
+                              maxlength="5000"
+                              placeholder="Describe con detalle la información solicitada..."
+                              aria-describedby="infoHelp infoCount"></textarea>
+                    <div class="vs-form__help" id="infoHelp">
+                        Mínimo 20 caracteres, máximo 5000.
+                    </div>
+                    <div class="vs-form__help">
+                        <span id="infoCount">0 caracteres</span>
+                    </div>
+                    <div th:if="${#fields.hasErrors('additionalInfo')}" class="vs-form__error">
+                        <span th:errors="*{additionalInfo}">Error</span>
+                    </div>
+                </div>
             </div>
-            <div class="vs-form__group">
-                <label class="vs-form__label" for="evidences">Evidencias adicionales (opcional)</label>
-                <input type="file" th:field="*{evidences}" id="evidences" class="vs-input-file" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.mp4,.doc,.docx"/>
-                <div class="vs-form__help">Formatos: JPG, PNG, GIF, PDF, MP4, DOC. Máx 25MB.</div>
+
+            <!-- Nuevas evidencias -->
+            <div class="vs-section">
+                <div class="vs-section__title">Evidencias adicionales (opcional)</div>
+                <p class="vs-form__help vs-mb-4">Si tienes documentos o archivos que respalden tu información, puedes adjuntarlos.</p>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="evidences">Adjuntar archivos</label>
+                    <div class="vs-file-upload">
+                        <input type="file"
+                               name="evidences"
+                               id="evidences"
+                               class="vs-file-upload__input"
+                               multiple
+                               accept="image/*,video/*,.pdf,.doc,.docx"
+                               aria-describedby="evidenceHelp"/>
+                        <label for="evidences" class="vs-file-upload__label">
+                            <span>Adjuntar archivos</span>
+                        </label>
+                    </div>
+                    <div id="evidenceHelp" class="vs-form__help">
+                        Formatos: JPG, PNG, GIF, PDF, MP4, DOC. Máximo 25MB por archivo.
+                    </div>
+                    <div id="fileList" class="vs-file-list"></div>
+                </div>
             </div>
+
             <div class="vs-divider"></div>
+
             <div class="vs-button-group vs-button-group--space-between">
-                <a th:href="@{/seguimiento}" class="vs-button vs-button--secondary">Cancelar</a>
-                <button type="submit" class="vs-button vs-button--primary">Enviar información</button>
+                <a th:href="@{/seguimiento}" class="vs-button vs-button--ghost">Cancelar</a>
+                <button type="submit" class="vs-button vs-button--primary vs-button--lg">
+                    Enviar información
+                </button>
             </div>
         </form>
     </section>
 </main>
+
+<script th:src="@{/js/edit-complaint.js}" src="/js/edit-complaint.js"></script>
 </body>
 </html>

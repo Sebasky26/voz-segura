@@ -23,6 +23,7 @@ import com.vozsegura.vozsegura.security.EncryptionService;
 import com.vozsegura.vozsegura.service.AuditService;
 import com.vozsegura.vozsegura.service.ComplaintService;
 import com.vozsegura.vozsegura.service.DerivationService;
+import com.vozsegura.vozsegura.service.SystemConfigService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -46,17 +47,20 @@ public class StaffCaseController {
     private final EvidenceRepository evidenceRepository;
     private final EncryptionService encryptionService;
     private final AuditService auditService;
+    private final SystemConfigService systemConfigService;
 
     public StaffCaseController(ComplaintService complaintService,
                                 DerivationService derivationService,
                                 EvidenceRepository evidenceRepository,
                                 EncryptionService encryptionService,
-                                AuditService auditService) {
+                                AuditService auditService,
+                                SystemConfigService systemConfigService) {
         this.complaintService = complaintService;
         this.derivationService = derivationService;
         this.evidenceRepository = evidenceRepository;
         this.encryptionService = encryptionService;
         this.auditService = auditService;
+        this.systemConfigService = systemConfigService;
     }
 
     @GetMapping({"/casos", "/casos-list", ""})
@@ -104,9 +108,8 @@ public class StaffCaseController {
         model.addAttribute("complaint", complaint);
         model.addAttribute("decryptedText", decryptedText);
         model.addAttribute("evidences", evidences);
-        model.addAttribute("complaintTypes", getComplaintTypes());
-        model.addAttribute("priorities", getPriorities());
-        model.addAttribute("statuses", getStatuses());
+        model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesAsArray());
+        model.addAttribute("priorities", systemConfigService.getPrioritiesAsArray());
 
         return "staff/caso-detalle";
     }
@@ -147,8 +150,7 @@ public class StaffCaseController {
 
         complaintService.updateStatus(trackingId, newStatus, username, userType);
 
-        String statusLabel = getStatusLabel(newStatus);
-        redirectAttributes.addFlashAttribute("success", "Estado actualizado a: " + statusLabel);
+        redirectAttributes.addFlashAttribute("success", "Estado actualizado correctamente");
         return "redirect:/staff/casos/" + trackingId;
     }
 
@@ -270,43 +272,5 @@ public class StaffCaseController {
     private String getUsername(HttpSession session) {
         String username = (String) session.getAttribute("username");
         return username != null ? username : "ANALYST";
-    }
-
-    private String[][] getComplaintTypes() {
-        return new String[][] {
-            {"LABOR_RIGHTS", "Derechos Laborales"},
-            {"HARASSMENT", "Acoso Laboral"},
-            {"DISCRIMINATION", "Discriminación"},
-            {"SAFETY", "Seguridad Laboral"},
-            {"FRAUD", "Fraude"},
-            {"OTHER", "Otro"}
-        };
-    }
-
-    private String[][] getPriorities() {
-        return new String[][] {
-            {"LOW", "Baja"},
-            {"MEDIUM", "Media"},
-            {"HIGH", "Alta"},
-            {"CRITICAL", "Crítica"}
-        };
-    }
-
-    private String[][] getStatuses() {
-        return new String[][] {
-            {"PENDING", "Pendiente"},
-            {"IN_REVIEW", "En Revisión"},
-            {"NEEDS_INFO", "Requiere Información"},
-            {"APPROVED", "Aprobado"},
-            {"REJECTED", "Rechazado"},
-            {"DERIVED", "Derivado"}
-        };
-    }
-
-    private String getStatusLabel(String status) {
-        for (String[] s : getStatuses()) {
-            if (s[0].equals(status)) return s[1];
-        }
-        return status;
     }
 }

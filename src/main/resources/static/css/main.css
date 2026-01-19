@@ -392,21 +392,151 @@ a:focus-visible {
 }
 
 .vs-button--sm {
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-xs);
+}
+
+/* ============================================
+   ACTION BOXES (para acciones del analista)
+   ============================================ */
+.vs-action-box {
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-base);
+}
+
+.vs-action-box:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.vs-action-box--success {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.vs-action-box--success:hover {
+    border-color: var(--success);
+}
+
+.vs-action-box--warning {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.vs-action-box--warning:hover {
+    border-color: var(--warning);
+}
+
+.vs-action-box--danger {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.vs-action-box--danger:hover {
+    border-color: var(--danger);
+}
+
+.vs-action-box .vs-h4 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+/* ============================================
+   PASSWORD TOGGLE BUTTON (mejorado)
+   ============================================ */
+.vs-password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.vs-password-wrapper .vs-input {
+    flex: 1;
+    padding-right: 100px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.vs-password-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-4);
+    min-width: 100px;
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    border: 2px solid var(--gray-300);
+    border-left: none;
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    color: var(--gray-700);
     font-size: var(--font-size-sm);
-    min-height: 38px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
 }
 
-.vs-button--lg {
-    padding: var(--space-4) var(--space-8);
-    font-size: var(--font-size-lg);
-    min-height: 52px;
+.vs-password-toggle:hover {
+    background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(59, 130, 246, 0.15) 100%);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
-.vs-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
+.vs-password-toggle:focus {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* ============================================
+   H4 HEADING
+   ============================================ */
+.vs-h4 {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+/* ============================================
+   FORM GROUP INLINE
+   ============================================ */
+.vs-form-inline {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-end;
+}
+
+.vs-form-inline .vs-form__group {
+    flex: 1;
+}
+
+/* ============================================
+   CARD INFO (para mostrar información importante)
+   ============================================ */
+.vs-card-info {
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+}
+
+.vs-card-info__title {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--gray-600);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vs-card-info__content {
+    font-size: var(--font-size-base);
+    color: var(--gray-900);
 }
 
 /* ============================================
@@ -1563,3 +1693,147 @@ code {
     padding: var(--space-1) var(--space-3);
     font-size: var(--font-size-xs);
 }
+
+/* ============================================
+   ACTION BOXES (para acciones del analista)
+   ============================================ */
+.vs-action-box {
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-base);
+}
+
+.vs-action-box:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.vs-action-box--success {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.vs-action-box--success:hover {
+    border-color: var(--success);
+}
+
+.vs-action-box--warning {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.vs-action-box--warning:hover {
+    border-color: var(--warning);
+}
+
+.vs-action-box--danger {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.vs-action-box--danger:hover {
+    border-color: var(--danger);
+}
+
+.vs-action-box .vs-h4 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+/* ============================================
+   PASSWORD TOGGLE BUTTON (mejorado)
+   ============================================ */
+.vs-password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.vs-password-wrapper .vs-input {
+    flex: 1;
+    padding-right: 100px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.vs-password-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-4);
+    min-width: 100px;
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    border: 2px solid var(--gray-300);
+    border-left: none;
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    color: var(--gray-700);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.vs-password-toggle:hover {
+    background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(59, 130, 246, 0.15) 100%);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.vs-password-toggle:focus {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* ============================================
+   H4 HEADING
+   ============================================ */
+.vs-h4 {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+/* ============================================
+   FORM GROUP INLINE
+   ============================================ */
+.vs-form-inline {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-end;
+}
+
+.vs-form-inline .vs-form__group {
+    flex: 1;
+}
+
+/* ============================================
+   CARD INFO (para mostrar información importante)
+   ============================================ */
+.vs-card-info {
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+}
+
+.vs-card-info__title {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--gray-600);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vs-card-info__content {
+    font-size: var(--font-size-base);
+    color: var(--gray-900);
+}
+

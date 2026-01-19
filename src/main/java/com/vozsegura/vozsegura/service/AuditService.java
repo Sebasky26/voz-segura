@@ -29,6 +29,7 @@ public class AuditService {
     /**
      * Registra un evento de auditoría.
      * IMPORTANTE: nunca pasar datos personales en los parámetros.
+     * Este método NUNCA debe lanzar excepciones para no afectar el flujo principal.
      *
      * @param actorRole rol del actor (ADMIN, ANALYST, SYSTEM, PUBLIC)
      * @param actorUsername username del actor (null si es público/sistema)
@@ -38,33 +39,44 @@ public class AuditService {
      */
     @Transactional
     public void logEvent(String actorRole, String actorUsername, String eventType, String trackingId, String details) {
-        AuditEvent event = new AuditEvent();
-        event.setEventTime(OffsetDateTime.now());
-        event.setActorRole(actorRole);
-        // Usar hash corto del username si existe, para no exponer datos sensibles
-        event.setActorUsername(actorUsername != null ? hashShort(actorUsername) : null);
-        event.setEventType(eventType);
-        event.setTrackingId(trackingId);
-        event.setDetails(truncate(details, 500));
-        auditEventRepository.save(event);
+        try {
+            AuditEvent event = new AuditEvent();
+            event.setEventTime(OffsetDateTime.now());
+            event.setActorRole(actorRole != null ? actorRole : "UNKNOWN");
+            // Usar hash corto del username si existe, para no exponer datos sensibles
+            event.setActorUsername(actorUsername != null ? hashShort(actorUsername) : null);
+            event.setEventType(eventType != null ? eventType : "UNKNOWN");
+            event.setTrackingId(trackingId);
+            event.setDetails(truncate(details, 500));
+            auditEventRepository.save(event);
+        } catch (Exception e) {
+            // Log silencioso - nunca propagar error de auditoría
+            System.err.println("[AUDIT] Error registrando evento: " + e.getMessage());
+        }
     }
 
     /**
      * Registra un evento de auditoría con ID de sesión.
+     * Este método NUNCA debe lanzar excepciones para no afectar el flujo principal.
      */
     @Transactional
     public void logEventWithSession(String actorRole, String sessionId, String cedula,
                                      String eventType, String trackingId, String details) {
-        AuditEvent event = new AuditEvent();
-        event.setEventTime(OffsetDateTime.now());
-        event.setActorRole(actorRole);
-        // Generar identificador único hasheado que combina sesión y cédula
-        String hashedId = generateSecureUserId(sessionId, cedula);
-        event.setActorUsername(hashedId);
-        event.setEventType(eventType);
-        event.setTrackingId(trackingId);
-        event.setDetails(truncate(details, 500));
-        auditEventRepository.save(event);
+        try {
+            AuditEvent event = new AuditEvent();
+            event.setEventTime(OffsetDateTime.now());
+            event.setActorRole(actorRole != null ? actorRole : "UNKNOWN");
+            // Generar identificador único hasheado que combina sesión y cédula
+            String hashedId = generateSecureUserId(sessionId, cedula);
+            event.setActorUsername(hashedId);
+            event.setEventType(eventType != null ? eventType : "UNKNOWN");
+            event.setTrackingId(trackingId);
+            event.setDetails(truncate(details, 500));
+            auditEventRepository.save(event);
+        } catch (Exception e) {
+            // Log silencioso - nunca propagar error de auditoría
+            System.err.println("[AUDIT] Error registrando evento: " + e.getMessage());
+        }
     }
 
     /**

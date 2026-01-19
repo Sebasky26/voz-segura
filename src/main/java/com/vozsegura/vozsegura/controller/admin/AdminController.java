@@ -20,6 +20,7 @@ import com.vozsegura.vozsegura.domain.entity.DestinationEntity;
 import com.vozsegura.vozsegura.repo.AuditEventRepository;
 import com.vozsegura.vozsegura.repo.DestinationEntityRepository;
 import com.vozsegura.vozsegura.service.DerivationService;
+import com.vozsegura.vozsegura.service.SystemConfigService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -30,13 +31,16 @@ public class AdminController {
     private final DerivationService derivationService;
     private final AuditEventRepository auditEventRepository;
     private final DestinationEntityRepository destinationEntityRepository;
+    private final SystemConfigService systemConfigService;
 
     public AdminController(DerivationService derivationService,
                            AuditEventRepository auditEventRepository,
-                           DestinationEntityRepository destinationEntityRepository) {
+                           DestinationEntityRepository destinationEntityRepository,
+                           SystemConfigService systemConfigService) {
         this.derivationService = derivationService;
         this.auditEventRepository = auditEventRepository;
         this.destinationEntityRepository = destinationEntityRepository;
+        this.systemConfigService = systemConfigService;
     }
 
     @GetMapping({"", "/panel"})
@@ -61,12 +65,11 @@ public class AdminController {
         }
 
         List<DerivationRule> rules = derivationService.findAllRules();
-        // Cargar entidades desde BD, no hardcodeadas
         List<DestinationEntity> entidades = destinationEntityRepository.findByActiveTrueOrderByNameAsc();
 
         model.addAttribute("rules", rules);
-        model.addAttribute("complaintTypes", getComplaintTypes());
-        model.addAttribute("priorities", getPriorities());
+        model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesForRules());
+        model.addAttribute("priorities", systemConfigService.getPrioritiesForRules());
         model.addAttribute("entidades", entidades);
 
         return "admin/reglas";
@@ -190,7 +193,7 @@ public class AdminController {
 
         model.addAttribute("events", events);
         model.addAttribute("selectedEventType", eventType);
-        model.addAttribute("eventTypes", getEventTypes());
+        model.addAttribute("eventTypes", systemConfigService.getEventTypesAsArray());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", events.getTotalPages());
 
@@ -218,50 +221,5 @@ public class AdminController {
 
     private String emptyToNull(String value) {
         return (value == null || value.isBlank()) ? null : value;
-    }
-
-    private String[][] getComplaintTypes() {
-        return new String[][] {
-            {"", "Cualquiera"},
-            {"LABOR_RIGHTS", "Derechos Laborales"},
-            {"HARASSMENT", "Acoso Laboral"},
-            {"DISCRIMINATION", "Discriminación"},
-            {"SAFETY", "Seguridad Laboral"},
-            {"FRAUD", "Fraude"},
-            {"OTHER", "Otro"}
-        };
-    }
-
-    private String[][] getPriorities() {
-        return new String[][] {
-            {"", "Cualquiera"},
-            {"LOW", "Baja"},
-            {"MEDIUM", "Media"},
-            {"HIGH", "Alta"},
-            {"CRITICAL", "Crítica"}
-        };
-    }
-
-    private String[][] getEventTypes() {
-        return new String[][] {
-            {"", "Todos"},
-            {"LOGIN_SUCCESS", "Inicio de sesión exitoso"},
-            {"LOGIN_FAILED", "Intento de acceso fallido"},
-            {"LOGIN_ERROR", "Error en autenticación"},
-            {"LOGIN_STEP1_SUCCESS", "Verificación identidad OK"},
-            {"LOGOUT", "Cierre de sesión"},
-            {"COMPLAINT_CREATED", "Denuncia creada"},
-            {"STATUS_CHANGED", "Estado cambiado"},
-            {"COMPLAINT_CLASSIFIED", "Denuncia clasificada"},
-            {"MORE_INFO_REQUESTED", "Información solicitada"},
-            {"ADDITIONAL_INFO_SUBMITTED", "Info adicional enviada"},
-            {"COMPLAINT_REJECTED", "Denuncia rechazada"},
-            {"COMPLAINT_DERIVED", "Denuncia derivada"},
-            {"CASE_DERIVED", "Caso derivado"},
-            {"EVIDENCE_VIEWED", "Evidencia visualizada"},
-            {"RULE_CREATED", "Regla creada"},
-            {"RULE_UPDATED", "Regla actualizada"},
-            {"RULE_DELETED", "Regla eliminada"}
-        };
     }
 }
