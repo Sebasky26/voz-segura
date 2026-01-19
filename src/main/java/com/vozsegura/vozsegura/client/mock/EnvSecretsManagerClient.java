@@ -49,23 +49,13 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
 
     @PostConstruct
     public void init() {
-        System.out.println("===========================================");
-        System.out.println(" HYBRID SECRETS CLIENT - SECURE MODE");
-        System.out.println(" Local (.env): DB config, data keys");
-        System.out.println(" AWS Secrets Manager: Staff credentials");
-        System.out.println(" Region: " + awsRegion);
-        System.out.println("===========================================");
-
         // Intentar inicializar cliente AWS para secretos sensibles
         try {
             this.awsClient = software.amazon.awssdk.services.secretsmanager.SecretsManagerClient.builder()
                     .region(Region.of(awsRegion))
                     .build();
             awsAvailable = true;
-            System.out.println("[HYBRID] AWS Secrets Manager connected - STAFF secrets secured");
         } catch (Exception e) {
-            System.err.println("[HYBRID] WARNING: AWS not available - " + e.getMessage());
-            System.err.println("[HYBRID] Staff authentication will use fallback (NOT RECOMMENDED)");
             awsAvailable = false;
         }
     }
@@ -74,14 +64,11 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
     public void cleanup() {
         if (awsClient != null) {
             awsClient.close();
-            System.out.println("[HYBRID] AWS client closed");
         }
     }
 
     @Override
     public String getSecretString(String secretName) {
-        System.out.println("[HYBRID] Requesting secret: " + secretName);
-
         // ╔══════════════════════════════════════════════════════════════╗
         // ║ SECRETOS SENSIBLES → SIEMPRE DESDE AWS (Máxima seguridad)   ║
         // ╚══════════════════════════════════════════════════════════════╝
@@ -96,30 +83,25 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
         // 1. Variables de entorno del sistema
         String envValue = System.getenv(secretName);
         if (envValue != null && !envValue.isEmpty()) {
-            System.out.println("[HYBRID] Found in system environment: " + secretName);
             return envValue;
         }
 
         // 2. Spring Environment (incluye .env)
         String springEnvValue = environment.getProperty(secretName);
         if (springEnvValue != null && !springEnvValue.isEmpty()) {
-            System.out.println("[HYBRID] Found in Spring Environment: " + secretName);
             return springEnvValue;
         }
 
         // 3. Clave de datos inyectada
         if ("VOZSEGURA_DATA_KEY_B64".equals(secretName) && dataKeyB64 != null && !dataKeyB64.isEmpty()) {
-            System.out.println("[HYBRID] Found VOZSEGURA_DATA_KEY_B64 from @Value");
             return dataKeyB64;
         }
 
         // 4. Valor por defecto para clave de cifrado (solo dev)
         if ("VOZSEGURA_DATA_KEY_B64".equals(secretName)) {
-            System.out.println("[HYBRID] Using default development encryption key");
             return "XP0OU/9rhJRkPgjUp1ncpQwCu+GwesQNwCQuv5gNkpY=";
         }
 
-        System.out.println("[HYBRID] Secret not found: " + secretName);
         return null;
     }
 
@@ -129,29 +111,20 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
      */
     private String getStaffSecretFromAws(String secretName) {
         if (!awsAvailable || awsClient == null) {
-            System.err.println("[HYBRID] WARNING: AWS not available for staff secret: " + secretName);
-            System.err.println("[HYBRID] SECURITY RISK: Cannot authenticate staff securely");
             return null; // Fallar de forma segura - no usar fallbacks para credenciales
         }
 
         try {
-            System.out.println("[HYBRID] Fetching staff secret from AWS: " + secretName);
-
             GetSecretValueRequest request = GetSecretValueRequest.builder()
                     .secretId(secretName)
                     .build();
 
             GetSecretValueResponse response = awsClient.getSecretValue(request);
-            String secretValue = response.secretString();
-
-            System.out.println("[HYBRID] Staff secret retrieved securely from AWS");
-            return secretValue;
+            return response.secretString();
 
         } catch (SecretsManagerException e) {
-            System.err.println("[HYBRID] ❌ AWS error for '" + secretName + "': " + e.awsErrorDetails().errorMessage());
             return null;
         } catch (Exception ex) {
-            System.err.println("[HYBRID] ❌ Unexpected error: " + ex.getMessage());
             return null;
         }
     }

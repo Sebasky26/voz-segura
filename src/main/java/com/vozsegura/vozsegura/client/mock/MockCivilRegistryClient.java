@@ -1,8 +1,6 @@
 package com.vozsegura.vozsegura.client.mock;
 
 import com.vozsegura.vozsegura.client.CivilRegistryClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -23,12 +21,11 @@ import org.springframework.stereotype.Component;
 @Profile({"dev", "default"})
 public class MockCivilRegistryClient implements CivilRegistryClient {
 
-    private static final Logger log = LoggerFactory.getLogger(MockCivilRegistryClient.class);
-
     @Override
     public String verifyCitizen(String cedula, String codigoDactilar) {
         // PASO 1: Validación matemática con algoritmo Módulo 10
-        if (!validarCedulaEcuatoriana(cedula)) {
+        // En desarrollo, también permitimos cédulas de prueba específicas
+        if (!validarCedulaEcuatoriana(cedula) && !esCedulaDePrueba(cedula)) {
             return null;
         }
         
@@ -40,6 +37,20 @@ public class MockCivilRegistryClient implements CivilRegistryClient {
         // PASO 3: Simulación de consulta exitosa al Registro Civil
         String citizenRef = "CITIZEN-" + cedula;
         return citizenRef;
+    }
+
+    /**
+     * Verifica si es una cédula de prueba permitida en desarrollo.
+     * Estas cédulas están configuradas para usuarios ADMIN/ANALYST en la base de datos.
+     */
+    private boolean esCedulaDePrueba(String cedula) {
+        // Lista de cédulas de prueba permitidas solo en desarrollo
+        return cedula != null && (
+            cedula.equals("1234567890") ||    // admin de prueba
+            cedula.equals("0987654321") ||    // analista de prueba
+            cedula.equals("1712345678") ||    // cédula de prueba válida Pichincha
+            cedula.equals("0912345674")       // cédula de prueba válida Guayas
+        );
     }
 
     @Override

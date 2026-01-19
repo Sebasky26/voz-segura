@@ -55,7 +55,9 @@
         form.addEventListener('submit', function(e) {
             if (textarea && textarea.value.trim().length < 20) {
                 e.preventDefault();
-                alert('La información debe tener al menos 20 caracteres.');
+                if (typeof vsNotify === 'function') {
+                    vsNotify('Validación', 'La información debe tener al menos 20 caracteres.', 'warning');
+                }
                 textarea.focus();
             }
         });

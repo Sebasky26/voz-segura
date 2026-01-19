@@ -27,6 +27,10 @@
 </header>
 
 <main class="vs-container vs-container-wide">
+    <!-- Notificaciones -->
+    <div th:if="${success}" data-vs-success th:data-vs-success="${success}" style="display:none;"></div>
+    <div th:if="${error}" data-vs-error th:data-vs-error="${error}" style="display:none;"></div>
+    
     <section class="vs-card" aria-labelledby="titulo-panel">
         <div class="vs-card__header">
             <h1 id="titulo-panel" class="vs-card__title">Panel de Administración</h1>
@@ -70,5 +74,6 @@
     </section>
 </main>
 
+<script th:src="@{/js/notifications.js}" src="/js/notifications.js"></script>
 </body>
 </html>

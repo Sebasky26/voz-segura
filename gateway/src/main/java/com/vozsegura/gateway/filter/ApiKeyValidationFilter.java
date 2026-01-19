@@ -1,6 +1,5 @@
 package com.vozsegura.gateway.filter;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -20,7 +19,6 @@ import reactor.core.publisher.Mono;
  * 
  * @author Voz Segura Team
  */
-@Slf4j
 @Component
 public class ApiKeyValidationFilter implements WebFilter {
 
@@ -35,12 +33,6 @@ public class ApiKeyValidationFilter implements WebFilter {
         String path = exchange.getRequest().getPath().value();
         String remoteAddr = getRemoteAddress(exchange);
 
-        // Registrar petición
-        log.debug("[API KEY FILTER] {} {} from {}", 
-                exchange.getRequest().getMethod(), 
-                path, 
-                remoteAddr);
-
         // Si la petición tiene un JWT válido (Authorization header o cookie), saltar validación de API Key
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         String cookieHeader = exchange.getRequest().getHeaders().getFirst("Cookie");
@@ -49,7 +41,6 @@ public class ApiKeyValidationFilter implements WebFilter {
                         (cookieHeader != null && cookieHeader.contains("Authorization="));
         
         if (hasJwt) {
-            log.debug("[API KEY FILTER] JWT detected, skipping API Key validation for {}", path);
             return chain.filter(exchange);
         }
 
@@ -59,14 +50,9 @@ public class ApiKeyValidationFilter implements WebFilter {
                     .getFirst("X-Api-Key");
 
             if (!isValidApiKey(apiKey)) {
-                log.warn("[API KEY FILTER] Invalid or missing API Key for {} from {}",
-                        path, remoteAddr);
                 exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                 return exchange.getResponse().setComplete();
             }
-
-            log.info("[API KEY FILTER] Valid API Key for {} from {}",
-                    path, remoteAddr);
         }
 
         return chain.filter(exchange);

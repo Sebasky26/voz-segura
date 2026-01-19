@@ -72,12 +72,6 @@ public class MockOtpClient implements OtpClient {
         
         // Guardar token con su estado
         tokensActivos.put(otpId, new TokenData(codigo, destination));
-        
-        // En desarrollo: imprimir código para testing (SOLO en dev)
-        // En producción esto se envía vía AWS SES/SNS
-        if (Boolean.parseBoolean(System.getenv().getOrDefault("DEV_SHOW_OTP", "false"))) {
-            System.out.println("[DEV] OTP Code: " + codigo);
-        }
 
         return otpId;
     }

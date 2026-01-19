@@ -35,8 +35,8 @@
             </p>
         </div>
 
-        <div th:if="${success}" class="vs-alert vs-alert--success" role="status" th:text="${success}"></div>
-        <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" th:text="${error}"></div>
+        <div th:if="${success}" data-vs-success th:data-vs-success="${success}" style="display:none;"></div>
+        <div th:if="${error}" data-vs-error th:data-vs-error="${error}" style="display:none;"></div>
 
         <!-- Formulario para crear regla -->
         <div class="vs-section vs-mb-6">
@@ -126,11 +126,12 @@
                         <form th:if="${rule.active}"
                               th:action="@{/admin/reglas/{id}/eliminar(id=${rule.id})}"
                               method="post"
-                              class="vs-inline">
+                              class="vs-inline vs-confirm-form"
+                              data-confirm-title="Desactivar regla"
+                              data-confirm-message="¿Está seguro que desea desactivar esta regla?">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <button type="submit"
-                                    class="vs-button vs-button--ghost vs-button--sm"
-                                    onclick="return confirm('¿Seguro que deseas desactivar esta regla?');">
+                                    class="vs-button vs-button--ghost vs-button--sm">
                                 Desactivar
                             </button>
                         </form>
@@ -138,11 +139,12 @@
                         <form th:unless="${rule.active}"
                               th:action="@{/admin/reglas/{id}/activar(id=${rule.id})}"
                               method="post"
-                              class="vs-inline">
+                              class="vs-inline vs-confirm-form"
+                              data-confirm-title="Activar regla"
+                              data-confirm-message="¿Está seguro que desea activar esta regla?">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <button type="submit"
-                                    class="vs-button vs-button--secondary vs-button--sm"
-                                    onclick="return confirm('¿Seguro que deseas activar esta regla?');">
+                                    class="vs-button vs-button--secondary vs-button--sm">
                                 Activar
                             </button>
                         </form>
@@ -158,5 +160,21 @@
     </section>
 </main>
 
+<script th:src="@{/js/notifications.js}" src="/js/notifications.js"></script>
+<script>
+    // Manejar formularios con confirmación personalizada
+    document.querySelectorAll('.vs-confirm-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = form.dataset.confirmTitle || 'Confirmar';
+            const message = form.dataset.confirmMessage || '¿Está seguro de continuar?';
+            vsConfirm(title, message, function() {
+                // Enviar el formulario sin volver a pasar por el evento
+                form.removeEventListener('submit', arguments.callee);
+                HTMLFormElement.prototype.submit.call(form);
+            });
+        });
+    });
+</script>
 </body>
 </html>

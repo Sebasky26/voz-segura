@@ -12,6 +12,21 @@ server:
   compression:
     enabled: true
 
+# ============================================
+# Zona Horaria - Ecuador (UTC-5)
+# ============================================
+spring.jackson.time-zone: America/Guayaquil
+
+# ============================================
+# Voz Segura Configuration
+# Gateway URL y Encryption
+# ============================================
+vozsegura:
+  gateway:
+    base-url: ${GATEWAY_BASE_URL:http://localhost:8080}
+  encryption:
+    key-b64: ${VOZSEGURA_DATA_KEY_B64}
+
 spring:
   application:
     name: voz-segura-core
@@ -20,12 +35,27 @@ spring:
   
   # ============================================
   # Database Configuration (desde .env)
+  # PgBouncer requiere desactivar prepared statements
   # ============================================
   datasource:
+    # IMPORTANTE: La URL debe incluir ?prepareThreshold=0 para PgBouncer
+    # Ejemplo: jdbc:postgresql://host:6543/db?prepareThreshold=0
     url: ${SUPABASE_DB_URL}
     username: ${SUPABASE_DB_USERNAME}
     password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 600000
+      # CRÍTICO: Propiedades del driver PostgreSQL para PgBouncer
+      data-source-properties:
+        prepareThreshold: "0"
+        preparedStatementCacheQueries: "0"
+        preparedStatementCacheSizeMiB: "0"
+        ApplicationName: "voz-segura-core"
   
   jpa:
     hibernate:
@@ -35,6 +65,15 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Zona horaria Ecuador para fechas en base de datos
+        jdbc:
+          time_zone: America/Guayaquil
+          batch_size: 0
+          use_scrollable_resultset: false
+          use_get_generated_keys: false
+        # Desactivar caché de queries que usa prepared statements
+        query:
+          plan_cache_max_size: 64
 
   # ============================================
   # Web / Static Resources Configuration
@@ -83,13 +122,6 @@ supabase:
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 
 # ============================================
-# Encryption Configuration (desde .env)
-# ============================================
-vozsegura:
-  encryption:
-    key-b64: ${VOZSEGURA_DATA_KEY_B64}
-
-# ============================================
 # AWS Configuration (desde .env)
 # ============================================
 aws:
@@ -122,18 +154,17 @@ voice:
   encryption-key-secret-name: VOZSEGURA_DATA_KEY_B64
 
 # ============================================
-# Logging
+# Logging - Producción (mínimo, sin información sensible)
 # ============================================
 logging:
   level:
-    root: INFO
-    com.vozsegura.vozsegura: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
+    root: WARN
+    com.vozsegura.vozsegura: WARN
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"
   file:
     name: logs/core.log
     max-size: 10MB

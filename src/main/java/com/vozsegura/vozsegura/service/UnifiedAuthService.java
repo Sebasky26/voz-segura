@@ -51,6 +51,7 @@ public class UnifiedAuthService {
     public String verifyCitizenIdentity(String cedula, String codigoDactilar) {
         // Verificar contra Registro Civil (API Externa)
         String citizenRef = civilRegistryClient.verifyCitizen(cedula, codigoDactilar);
+        
         if (citizenRef == null) {
             throw new SecurityException("Identificación inválida. Verifique sus datos.");
         }
@@ -68,6 +69,7 @@ public class UnifiedAuthService {
 
         if (staffUser.isPresent()) {
             String role = staffUser.get().getRole();
+            
             if ("ADMIN".equals(role)) {
                 return UserType.ADMIN;
             } else if ("ANALYST".equals(role)) {

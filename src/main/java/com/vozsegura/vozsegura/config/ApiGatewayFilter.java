@@ -2,8 +2,7 @@ package com.vozsegura.vozsegura.config;
 
 import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +29,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @Order(1)
 public class ApiGatewayFilter implements Filter {
 
-    private static final Logger log = LoggerFactory.getLogger(ApiGatewayFilter.class);
+    @Value("${vozsegura.gateway.base-url:http://localhost:8080}")
+    private String gatewayBaseUrl;
 
     private static final String[] PUBLIC_PATHS = {
         "/auth/",
@@ -41,9 +41,10 @@ public class ApiGatewayFilter implements Filter {
         "/js/",
         "/img/",
         "/images/",
-        "/favicon.ico",
         "/error",
-        "/terms"
+        "/terms",
+        "/favicon.ico",
+        "/favicon.png"
     };
 
     @Override
@@ -98,15 +99,15 @@ public class ApiGatewayFilter implements Filter {
             }
         }
 
-        // Si no hay autenticación, redirigir a login
+        // Si no hay autenticación, redirigir a login del Gateway (8080)
         if (cedula == null || userType == null) {
-            httpResponse.sendRedirect("/auth/login?error=session_expired");
+            String loginUrl = gatewayBaseUrl + "/auth/login?session_expired";
+            httpResponse.sendRedirect(loginUrl);
             return;
         }
 
         // 3. Validar autorización
         if (!isAuthorized(requestUri, userType)) {
-            log.warn("Acceso no autorizado: {} intentó acceder a {}", userType, requestUri);
             httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                 "No tiene permisos para acceder a este recurso");
             return;
@@ -122,7 +123,7 @@ public class ApiGatewayFilter implements Filter {
     }
 
     private boolean isPublicPath(String requestUri) {
-        if (requestUri.equals("/") || requestUri.equals("/favicon.ico")) {
+        if (requestUri.equals("/")) {
             return true;
         }
         for (String publicPath : PUBLIC_PATHS) {
@@ -157,12 +158,12 @@ public class ApiGatewayFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        log.info("Voz Segura Core Service initialized - Security Filter active");
+        // Silent init
     }
 
     @Override
     public void destroy() {
-        log.info("Voz Segura Core Service shutting down");
+        // Silent destroy
     }
 }
 

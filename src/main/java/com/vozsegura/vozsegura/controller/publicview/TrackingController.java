@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.vozsegura.vozsegura.config.GatewayConfig;
 import com.vozsegura.vozsegura.domain.entity.Complaint;
 import com.vozsegura.vozsegura.dto.ComplaintStatusDto;
 import com.vozsegura.vozsegura.dto.forms.TrackingForm;
@@ -37,13 +38,16 @@ public class TrackingController {
     private final ComplaintService complaintService;
     private final EvidenceRepository evidenceRepository;
     private final RateLimiter rateLimiter;
+    private final GatewayConfig gatewayConfig;
 
     public TrackingController(ComplaintService complaintService,
                                EvidenceRepository evidenceRepository,
-                               RateLimiter rateLimiter) {
+                               RateLimiter rateLimiter,
+                               GatewayConfig gatewayConfig) {
         this.complaintService = complaintService;
         this.evidenceRepository = evidenceRepository;
         this.rateLimiter = rateLimiter;
+        this.gatewayConfig = gatewayConfig;
     }
 
     /**
@@ -55,7 +59,7 @@ public class TrackingController {
         // Verificar que el usuario esté autenticado
         Boolean authenticated = (Boolean) session.getAttribute("authenticated");
         if (authenticated == null || !authenticated) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         model.addAttribute("trackingForm", new TrackingForm());
@@ -76,7 +80,7 @@ public class TrackingController {
         // Verificar que el usuario esté autenticado
         Boolean authenticated = (Boolean) session.getAttribute("authenticated");
         if (authenticated == null || !authenticated) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         // Rate limiting basado en IP para prevenir enumeración

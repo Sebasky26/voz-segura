@@ -1,5 +1,6 @@
 package com.vozsegura.gateway;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -17,6 +18,9 @@ import com.vozsegura.gateway.filter.JwtAuthenticationGatewayFilterFactory;
  * - Validación de API Keys
  * - Auditoría y logging completo
  * - Zero Trust Architecture (ZTA)
+ * 
+ * SEGURIDAD: Todas las URLs de servicios backend vienen de configuración,
+ * no hay valores hardcodeados.
  * 
  * @author Voz Segura Team
  */
@@ -40,16 +44,24 @@ public class VozSeguraGatewayApplication {
      * - Rutas protegidas (staff, admin)
      * - Reescrituras de URL
      * - Filtros por ruta
+     * 
+     * @param builder RouteLocatorBuilder
+     * @param jwtFilterFactory Filtro JWT
+     * @param coreServiceUri URI del servicio core desde configuración
      */
     @Bean
-    public RouteLocator routeLocator(RouteLocatorBuilder builder, JwtAuthenticationGatewayFilterFactory jwtFilterFactory) {
+    public RouteLocator routeLocator(
+            RouteLocatorBuilder builder, 
+            JwtAuthenticationGatewayFilterFactory jwtFilterFactory,
+            @Value("${vozsegura.core-service.uri}") String coreServiceUri) {
+        
         return builder.routes()
                 // ============================================
                 // RUTA 1: Autenticación (Pública)
                 // ============================================
                 .route("auth-service", r -> r
                         .path("/auth/**")
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================
@@ -57,7 +69,7 @@ public class VozSeguraGatewayApplication {
                 // ============================================
                 .route("denuncia-public", r -> r
                         .path("/denuncia/**")
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================
@@ -65,15 +77,23 @@ public class VozSeguraGatewayApplication {
                 // ============================================
                 .route("terms-public", r -> r
                         .path("/terms", "/terms/**")
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
+                )
+
+                // ============================================
+                // RUTA 3.5: Seguimiento de Denuncias (Pública)
+                // ============================================
+                .route("seguimiento-public", r -> r
+                        .path("/seguimiento", "/seguimiento/**")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================
                 // RUTA 4: Recursos Estáticos (Pública)
                 // ============================================
                 .route("static-resources", r -> r
-                        .path("/css/**", "/js/**", "/images/**", "/img/**", "/favicon.ico")
-                        .uri("http://localhost:8082")
+                        .path("/css/**", "/js/**", "/images/**", "/img/**")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================
@@ -82,7 +102,7 @@ public class VozSeguraGatewayApplication {
                 .route("staff-protected", r -> r
                         .path("/staff/**")
                         .filters(f -> f.filter(jwtFilterFactory.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================
@@ -91,7 +111,7 @@ public class VozSeguraGatewayApplication {
                 .route("admin-protected", r -> r
                         .path("/admin/**")
                         .filters(f -> f.filter(jwtFilterFactory.apply(new JwtAuthenticationGatewayFilterFactory.Config())))
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================
@@ -107,7 +127,7 @@ public class VozSeguraGatewayApplication {
                 // ============================================
                 .route("error-handler", r -> r
                         .path("/error", "/error/**")
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
                 )
 
                 .build();

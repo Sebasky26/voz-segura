@@ -3,18 +3,25 @@
 # ============================================
 
 server:
-  port: 8080
+  port: ${GATEWAY_PORT:8080}
 
-# JWT Development
+# ============================================
+# Service URIs - Configuración desde variables de entorno
+# ============================================
+vozsegura:
+  core-service:
+    uri: ${CORE_SERVICE_URI:http://localhost:8082}
+
+# JWT Development (NUNCA usar valores por defecto en producción)
 jwt:
-  secret: ${JWT_SECRET:dev-secret-key-change-in-production-32-chars}
+  secret: ${JWT_SECRET}
   expiration: 86400000
 
 # Supabase
 supabase:
-  project-url: ${SUPABASE_PROJECT_URL:}
-  anon-key: ${SUPABASE_ANON_KEY:}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  project-url: ${SUPABASE_PROJECT_URL}
+  anon-key: ${SUPABASE_ANON_KEY}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 
 spring:
   cloud:

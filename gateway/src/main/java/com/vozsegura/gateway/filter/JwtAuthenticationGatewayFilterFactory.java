@@ -3,7 +3,6 @@ package com.vozsegura.gateway.filter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -26,7 +25,6 @@ import java.util.Collections;
  * 
  * @author Voz Segura Team
  */
-@Slf4j
 @Component
 public class JwtAuthenticationGatewayFilterFactory
         extends AbstractGatewayFilterFactory<JwtAuthenticationGatewayFilterFactory.Config> {
@@ -42,8 +40,6 @@ public class JwtAuthenticationGatewayFilterFactory
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
             String path = exchange.getRequest().getPath().value();
-            log.info("[JWT FILTER] Processing request for path: {}", path);
-            log.info("[JWT FILTER] Using JWT secret: {}...", jwtSecret != null ? jwtSecret.substring(0, Math.min(20, jwtSecret.length())) : "NULL");
             
             try {
                 // 1. Extraer token del header Authorization o de cookies
@@ -52,7 +48,6 @@ public class JwtAuthenticationGatewayFilterFactory
 
                 // Si no está en Authorization header, buscar en cookies
                 if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                    log.info("[JWT FILTER] No JWT in Authorization header, checking cookies...");
                     String cookieHeader = exchange.getRequest().getHeaders()
                             .getFirst(HttpHeaders.COOKIE);
                     if (cookieHeader != null) {
@@ -62,7 +57,6 @@ public class JwtAuthenticationGatewayFilterFactory
                                 // La cookie solo tiene el token, sin "Bearer "
                                 String tokenFromCookie = cookie.trim().substring("Authorization=".length());
                                 authHeader = "Bearer " + tokenFromCookie;
-                                log.info("[JWT FILTER] Token extracted from cookie");
                                 break;
                             }
                         }
@@ -70,14 +64,11 @@ public class JwtAuthenticationGatewayFilterFactory
                 }
 
                 if (authHeader == null) {
-                    log.warn("[JWT FILTER] Authorization header/cookie missing for path: {}",
-                            exchange.getRequest().getPath());
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
 
                 if (!authHeader.startsWith("Bearer ")) {
-                    log.warn("[JWT FILTER] Invalid Authorization format");
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
@@ -98,13 +89,9 @@ public class JwtAuthenticationGatewayFilterFactory
                 String apiKey = claims.get("apiKey", String.class);
 
                 if (cedula == null || userType == null || apiKey == null) {
-                    log.warn("[JWT FILTER] Missing required claims in token");
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
-
-                log.info("[JWT FILTER] Token validated for user: {} (type: {})",
-                        cedula, userType);
 
                 // 4. Agregar información de usuario a headers para el backend
                 var mutatedRequest = exchange.getRequest().mutate()
@@ -122,11 +109,9 @@ public class JwtAuthenticationGatewayFilterFactory
                 return chain.filter(mutatedExchange);
 
             } catch (JwtException e) {
-                log.error("[JWT FILTER] JWT validation failed: {}", e.getMessage());
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             } catch (Exception e) {
-                log.error("[JWT FILTER] Unexpected error: {}", e.getMessage(), e);
                 exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
                 return exchange.getResponse().setComplete();
             }

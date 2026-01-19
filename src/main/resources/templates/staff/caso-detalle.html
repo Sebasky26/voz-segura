@@ -34,8 +34,9 @@
             </p>
         </div>
 
-        <div th:if="${success}" class="vs-alert vs-alert--success" role="status" th:text="${success}"></div>
-        <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" th:text="${error}"></div>
+        <!-- Datos para notificaciones (ocultos, procesados por JS) -->
+        <div th:if="${success}" data-vs-success th:data-vs-success="${success}" style="display:none;"></div>
+        <div th:if="${error}" data-vs-error th:data-vs-error="${error}" style="display:none;"></div>
 
         <!-- Resumen (sin summary-card ni badges inventados) -->
         <div class="vs-section vs-mb-6">
@@ -243,6 +244,7 @@
     </section>
 </main>
 
+<script th:src="@{/js/notifications.js}" src="/js/notifications.js"></script>
 <script th:src="@{/js/staff-case.js}" src="/js/staff-case.js"></script>
 </body>
 </html>

@@ -2,24 +2,25 @@ package com.vozsegura.vozsegura.controller;
 
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.vozsegura.vozsegura.config.GatewayConfig;
 
 /**
  * Controlador global de errores.
  * Evita exponer información sensible en mensajes de error.
  */
 @Controller
-@ControllerAdvice
 public class GlobalErrorController implements ErrorController {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalErrorController.class);
+    
+    private final GatewayConfig gatewayConfig;
+    
+    public GlobalErrorController(GatewayConfig gatewayConfig) {
+        this.gatewayConfig = gatewayConfig;
+    }
 
     /**
      * Maneja la ruta /error por defecto de Spring Boot.
@@ -28,20 +29,7 @@ public class GlobalErrorController implements ErrorController {
     public String handleError(Model model) {
         String requestId = generateRequestId();
         model.addAttribute("requestId", requestId);
-        log.warn("Error genérico - requestId: {}", requestId);
-        return "error/generic-error";
-    }
-
-    /**
-     * Maneja excepciones no controladas.
-     * Registra internamente pero no expone detalles al usuario.
-     */
-    @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, Model model) {
-        String requestId = generateRequestId();
-        model.addAttribute("requestId", requestId);
-        // Log interno sin exponer al usuario
-        log.error("Error no controlado - requestId: {} - {}", requestId, e.getMessage(), e);
+        model.addAttribute("loginUrl", gatewayConfig.getLoginUrl());
         return "error/generic-error";
     }
 

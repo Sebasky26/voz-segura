@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.vozsegura.vozsegura.config.GatewayConfig;
 import com.vozsegura.vozsegura.domain.entity.Complaint;
 import com.vozsegura.vozsegura.domain.entity.Evidence;
 import com.vozsegura.vozsegura.repo.EvidenceRepository;
@@ -48,19 +49,22 @@ public class StaffCaseController {
     private final EncryptionService encryptionService;
     private final AuditService auditService;
     private final SystemConfigService systemConfigService;
+    private final GatewayConfig gatewayConfig;
 
     public StaffCaseController(ComplaintService complaintService,
                                 DerivationService derivationService,
                                 EvidenceRepository evidenceRepository,
                                 EncryptionService encryptionService,
                                 AuditService auditService,
-                                SystemConfigService systemConfigService) {
+                                SystemConfigService systemConfigService,
+                                GatewayConfig gatewayConfig) {
         this.complaintService = complaintService;
         this.derivationService = derivationService;
         this.evidenceRepository = evidenceRepository;
         this.encryptionService = encryptionService;
         this.auditService = auditService;
         this.systemConfigService = systemConfigService;
+        this.gatewayConfig = gatewayConfig;
     }
 
     @GetMapping({"/casos", "/casos-list", ""})
@@ -70,7 +74,7 @@ public class StaffCaseController {
             Model model) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         List<Complaint> complaints;
@@ -92,26 +96,31 @@ public class StaffCaseController {
                            RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        Optional<Complaint> complaintOpt = complaintService.findByTrackingId(trackingId);
-        if (complaintOpt.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Denuncia no encontrada");
+        try {
+            Optional<Complaint> complaintOpt = complaintService.findByTrackingId(trackingId);
+            if (complaintOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Denuncia no encontrada");
+                return "redirect:/staff/casos";
+            }
+
+            Complaint complaint = complaintOpt.get();
+            String decryptedText = complaintService.decryptComplaintText(complaint.getEncryptedText());
+            List<Evidence> evidences = evidenceRepository.findByComplaintId(complaint.getId());
+
+            model.addAttribute("complaint", complaint);
+            model.addAttribute("decryptedText", decryptedText);
+            model.addAttribute("evidences", evidences);
+            model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesAsArray());
+            model.addAttribute("priorities", systemConfigService.getPrioritiesAsArray());
+
+            return "staff/caso-detalle";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al cargar el caso: " + e.getMessage());
             return "redirect:/staff/casos";
         }
-
-        Complaint complaint = complaintOpt.get();
-        String decryptedText = complaintService.decryptComplaintText(complaint.getEncryptedText());
-        List<Evidence> evidences = evidenceRepository.findByComplaintId(complaint.getId());
-
-        model.addAttribute("complaint", complaint);
-        model.addAttribute("decryptedText", decryptedText);
-        model.addAttribute("evidences", evidences);
-        model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesAsArray());
-        model.addAttribute("priorities", systemConfigService.getPrioritiesAsArray());
-
-        return "staff/caso-detalle";
     }
 
     @PostMapping("/casos/{trackingId}/clasificar")
@@ -124,12 +133,16 @@ public class StaffCaseController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
-        complaintService.classifyComplaint(trackingId, complaintType, priority, analystNotes, username);
-        redirectAttributes.addFlashAttribute("success", "Clasificación actualizada");
+        try {
+            String username = getUsername(session);
+            complaintService.classifyComplaint(trackingId, complaintType, priority, analystNotes, username);
+            redirectAttributes.addFlashAttribute("success", "Clasificación actualizada");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al guardar la clasificación: " + e.getMessage());
+        }
         return "redirect:/staff/casos/" + trackingId;
     }
 
@@ -141,16 +154,20 @@ public class StaffCaseController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
-        String userType = (String) session.getAttribute("userType");
-        if (userType == null) userType = "ANALYST";
+        try {
+            String username = getUsername(session);
+            String userType = (String) session.getAttribute("userType");
+            if (userType == null) userType = "ANALYST";
 
-        complaintService.updateStatus(trackingId, newStatus, username, userType);
+            complaintService.updateStatus(trackingId, newStatus, username, userType);
 
-        redirectAttributes.addFlashAttribute("success", "Estado actualizado correctamente");
+            redirectAttributes.addFlashAttribute("success", "Estado actualizado correctamente");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al actualizar estado: " + e.getMessage());
+        }
         return "redirect:/staff/casos/" + trackingId;
     }
 
@@ -161,7 +178,7 @@ public class StaffCaseController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         String username = getUsername(session);
@@ -185,13 +202,18 @@ public class StaffCaseController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
-        complaintService.requestMoreInfo(trackingId, motivo, username);
-        redirectAttributes.addFlashAttribute("success",
-                "Se ha solicitado más información al denunciante");
+        try {
+            String username = getUsername(session);
+            complaintService.requestMoreInfo(trackingId, motivo, username);
+            redirectAttributes.addFlashAttribute("success",
+                    "Se ha solicitado más información al denunciante");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Error al solicitar información: " + e.getMessage());
+        }
         return "redirect:/staff/casos/" + trackingId;
     }
 
@@ -203,12 +225,17 @@ public class StaffCaseController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
-        complaintService.rejectComplaint(trackingId, motivo, username);
-        redirectAttributes.addFlashAttribute("success", "Denuncia rechazada");
+        try {
+            String username = getUsername(session);
+            complaintService.rejectComplaint(trackingId, motivo, username);
+            redirectAttributes.addFlashAttribute("success", "Denuncia rechazada correctamente");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Error al rechazar la denuncia: " + e.getMessage());
+        }
         return "redirect:/staff/casos/" + trackingId;
     }
 

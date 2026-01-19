@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.vozsegura.vozsegura.config.GatewayConfig;
 import com.vozsegura.vozsegura.domain.entity.AuditEvent;
 import com.vozsegura.vozsegura.domain.entity.DerivationRule;
 import com.vozsegura.vozsegura.domain.entity.DestinationEntity;
@@ -32,21 +33,24 @@ public class AdminController {
     private final AuditEventRepository auditEventRepository;
     private final DestinationEntityRepository destinationEntityRepository;
     private final SystemConfigService systemConfigService;
+    private final GatewayConfig gatewayConfig;
 
     public AdminController(DerivationService derivationService,
                            AuditEventRepository auditEventRepository,
                            DestinationEntityRepository destinationEntityRepository,
-                           SystemConfigService systemConfigService) {
+                           SystemConfigService systemConfigService,
+                           GatewayConfig gatewayConfig) {
         this.derivationService = derivationService;
         this.auditEventRepository = auditEventRepository;
         this.destinationEntityRepository = destinationEntityRepository;
         this.systemConfigService = systemConfigService;
+        this.gatewayConfig = gatewayConfig;
     }
 
     @GetMapping({"", "/panel"})
     public String panel(HttpSession session, Model model) {
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         long totalRules = derivationService.findAllRules().size();
@@ -61,7 +65,7 @@ public class AdminController {
     @GetMapping("/reglas")
     public String reglas(HttpSession session, Model model) {
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         List<DerivationRule> rules = derivationService.findAllRules();
@@ -87,7 +91,7 @@ public class AdminController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         String username = getUsername(session);
@@ -120,22 +124,26 @@ public class AdminController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
+        try {
+            String username = getUsername(session);
 
-        DerivationRule updated = new DerivationRule();
-        updated.setName(name);
-        updated.setComplaintTypeMatch(emptyToNull(complaintTypeMatch));
-        updated.setSeverityMatch(emptyToNull(severityMatch));
-        updated.setPriorityMatch(emptyToNull(priorityMatch));
-        updated.setDestination(destination);
-        updated.setDescription(description);
-        updated.setActive(active);
+            DerivationRule updated = new DerivationRule();
+            updated.setName(name);
+            updated.setComplaintTypeMatch(emptyToNull(complaintTypeMatch));
+            updated.setSeverityMatch(emptyToNull(severityMatch));
+            updated.setPriorityMatch(emptyToNull(priorityMatch));
+            updated.setDestination(destination);
+            updated.setDescription(description);
+            updated.setActive(active);
 
-        derivationService.updateRule(id, updated, username);
-        redirectAttributes.addFlashAttribute("success", "Regla actualizada correctamente");
+            derivationService.updateRule(id, updated, username);
+            redirectAttributes.addFlashAttribute("success", "Regla actualizada correctamente");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al actualizar la regla: " + e.getMessage());
+        }
         return "redirect:/admin/reglas";
     }
 
@@ -146,12 +154,16 @@ public class AdminController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
-        derivationService.deleteRule(id, username);
-        redirectAttributes.addFlashAttribute("success", "Regla desactivada correctamente");
+        try {
+            String username = getUsername(session);
+            derivationService.deleteRule(id, username);
+            redirectAttributes.addFlashAttribute("success", "Regla desactivada correctamente");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al desactivar la regla: " + e.getMessage());
+        }
         return "redirect:/admin/reglas";
     }
 
@@ -162,12 +174,16 @@ public class AdminController {
             RedirectAttributes redirectAttributes) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
-        String username = getUsername(session);
-        derivationService.activateRule(id, username);
-        redirectAttributes.addFlashAttribute("success", "Regla activada correctamente");
+        try {
+            String username = getUsername(session);
+            derivationService.activateRule(id, username);
+            redirectAttributes.addFlashAttribute("success", "Regla activada correctamente");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error al activar la regla: " + e.getMessage());
+        }
         return "redirect:/admin/reglas";
     }
 
@@ -179,7 +195,7 @@ public class AdminController {
             Model model) {
 
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
 
         PageRequest pageRequest = PageRequest.of(page, 50, Sort.by(Sort.Direction.DESC, "eventTime"));
@@ -203,7 +219,7 @@ public class AdminController {
     @GetMapping("/revelacion")
     public String revelacion(HttpSession session, Model model) {
         if (!isAuthenticated(session)) {
-            return "redirect:/auth/login?session_expired";
+            return gatewayConfig.redirectToSessionExpired();
         }
         return "admin/revelacion";
     }

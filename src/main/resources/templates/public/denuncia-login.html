@@ -179,6 +179,10 @@
             <div class="vs-form__group">
                 <label class="vs-form__label vs-form__label--required">Verificación de seguridad</label>
 
+                <div id="turnstileLoading" class="vs-form__help vs-text-muted">
+                    Cargando verificación de seguridad...
+                </div>
+
                 <div class="cf-turnstile"
                      th:data-sitekey="${turnstileSiteKey}"
                      data-theme="light"

@@ -1,97 +1,375 @@
 package com.vozsegura.vozsegura.service;
 
+import com.vozsegura.vozsegura.domain.entity.SystemConfig;
+import com.vozsegura.vozsegura.repo.SystemConfigRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.logging.Logger;
+import java.util.List;
 
 /**
- * Servicio para obtener configuraciones del sistema.
- * NOTA: Actualmente usa valores por defecto para evitar dependencias de tablas de configuración.
- * Cuando las tablas de configuración estén disponibles, se puede habilitar la lectura desde BD.
+ * Servicio para obtener configuraciones del sistema desde la base de datos.
+ * TODAS las configuraciones se obtienen EXCLUSIVAMENTE de la base de datos.
+ * No hay valores hardcodeados por seguridad - Zero Trust Architecture.
  */
 @Service
 public class SystemConfigService {
 
-    private static final Logger logger = Logger.getLogger(SystemConfigService.class.getName());
+    private final SystemConfigRepository systemConfigRepository;
 
-    public SystemConfigService() {
-        // Constructor vacío - usa valores por defecto
+    // Constantes para grupos de configuración
+    public static final String GROUP_COMPLAINT_TYPE = "COMPLAINT_TYPE";
+    public static final String GROUP_PRIORITY = "PRIORITY";
+    public static final String GROUP_EVENT_TYPE = "EVENT_TYPE";
+    public static final String GROUP_STATUS = "STATUS";
+    public static final String GROUP_SEVERITY = "SEVERITY";
+
+    public SystemConfigService(SystemConfigRepository systemConfigRepository) {
+        this.systemConfigRepository = systemConfigRepository;
     }
 
     /**
-     * Convierte lista de ComplaintType a array para select (compatibilidad con vistas existentes).
+     * Verifica que la configuración del sistema esté presente en la base de datos.
+     * @return true si la configuración está completa, false si falta algo
+     */
+    public boolean isConfigurationComplete() {
+        try {
+            boolean hasComplaintTypes = !systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_COMPLAINT_TYPE).isEmpty();
+            boolean hasPriorities = !systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_PRIORITY).isEmpty();
+            boolean hasStatuses = !systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_STATUS).isEmpty();
+            boolean hasEventTypes = !systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_EVENT_TYPE).isEmpty();
+            boolean hasSeverities = !systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_SEVERITY).isEmpty();
+
+            return hasComplaintTypes && hasPriorities && hasStatuses && hasEventTypes && hasSeverities;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene los tipos de denuncia desde la base de datos.
+     * @return Array de [código, etiqueta] o array vacío si no hay datos
      */
     public String[][] getComplaintTypesAsArray() {
-        return new String[][] {
-            {"", "Seleccionar..."},
-            {"LABOR_RIGHTS", "Derechos Laborales"},
-            {"HARASSMENT", "Acoso Laboral"},
-            {"DISCRIMINATION", "Discriminación"},
-            {"SAFETY", "Seguridad Laboral"},
-            {"FRAUD", "Fraude"},
-            {"OTHER", "Otro"}
-        };
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_COMPLAINT_TYPE);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size() + 1][2];
+            result[0] = new String[]{"", "Seleccionar..."};
+
+            for (int i = 0; i < configs.size(); i++) {
+                result[i + 1] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
     }
 
     /**
-     * Convierte lista de PriorityLevel a array para select.
+     * Obtiene las prioridades desde la base de datos.
+     * @return Array de [código, etiqueta] o array vacío si no hay datos
      */
     public String[][] getPrioritiesAsArray() {
-        return new String[][] {
-            {"LOW", "Baja"},
-            {"MEDIUM", "Media"},
-            {"HIGH", "Alta"},
-            {"CRITICAL", "Crítica"}
-        };
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_PRIORITY);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size()][2];
+            for (int i = 0; i < configs.size(); i++) {
+                result[i] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
     }
 
     /**
-     * Convierte lista de EventType a array para select en filtros.
+     * Obtiene los tipos de evento para filtros de auditoría desde la base de datos.
+     * @return Array de [código, etiqueta] o array vacío si no hay datos
      */
     public String[][] getEventTypesAsArray() {
-        return new String[][] {
-            {"", "Todos"},
-            {"LOGIN_SUCCESS", "Inicio de sesión exitoso"},
-            {"LOGIN_FAILED", "Intento de acceso fallido"},
-            {"LOGOUT", "Cierre de sesión"},
-            {"COMPLAINT_CREATED", "Denuncia creada"},
-            {"STATUS_CHANGED", "Estado cambiado"},
-            {"COMPLAINT_CLASSIFIED", "Denuncia clasificada"},
-            {"MORE_INFO_REQUESTED", "Información solicitada"},
-            {"COMPLAINT_REJECTED", "Denuncia rechazada"},
-            {"CASE_DERIVED", "Caso derivado"},
-            {"EVIDENCE_VIEWED", "Evidencia visualizada"},
-            {"RULE_CREATED", "Regla creada"},
-            {"RULE_UPDATED", "Regla actualizada"},
-            {"RULE_DELETED", "Regla eliminada"}
-        };
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_EVENT_TYPE);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size() + 1][2];
+            result[0] = new String[]{"", "Todos"};
+
+            for (int i = 0; i < configs.size(); i++) {
+                result[i + 1] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
     }
 
     /**
-     * Convierte lista de ComplaintType a array para reglas (con opción "Cualquiera").
+     * Tipos de denuncia para reglas de derivación (con opción "Cualquiera").
+     * @return Array de [código, etiqueta] incluyendo opción vacía
      */
     public String[][] getComplaintTypesForRules() {
-        return new String[][] {
-            {"", "Cualquiera"},
-            {"LABOR_RIGHTS", "Derechos Laborales"},
-            {"HARASSMENT", "Acoso Laboral"},
-            {"DISCRIMINATION", "Discriminación"},
-            {"SAFETY", "Seguridad Laboral"},
-            {"FRAUD", "Fraude"},
-            {"OTHER", "Otro"}
-        };
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_COMPLAINT_TYPE);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size() + 1][2];
+            result[0] = new String[]{"", "Cualquiera"};
+
+            for (int i = 0; i < configs.size(); i++) {
+                result[i + 1] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
     }
 
     /**
-     * Convierte lista de PriorityLevel a array para reglas (con opción "Cualquiera").
+     * Prioridades para reglas de derivación (con opción "Cualquiera").
+     * @return Array de [código, etiqueta] incluyendo opción vacía
      */
     public String[][] getPrioritiesForRules() {
-        return new String[][] {
-            {"", "Cualquiera"},
-            {"LOW", "Baja"},
-            {"MEDIUM", "Media"},
-            {"HIGH", "Alta"},
-            {"CRITICAL", "Crítica"}
-        };
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_PRIORITY);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size() + 1][2];
+            result[0] = new String[]{"", "Cualquiera"};
+
+            for (int i = 0; i < configs.size(); i++) {
+                result[i + 1] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
+    }
+
+    /**
+     * Severidades para reglas de derivación (con opción "Cualquiera").
+     * @return Array de [código, etiqueta] incluyendo opción vacía
+     */
+    public String[][] getSeveritiesForRules() {
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_SEVERITY);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size() + 1][2];
+            result[0] = new String[]{"", "Cualquiera"};
+
+            for (int i = 0; i < configs.size(); i++) {
+                result[i + 1] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
+    }
+
+    /**
+     * Traduce un código de tipo de denuncia a su etiqueta en español.
+     * @param typeCode Código del tipo de denuncia
+     * @return Etiqueta traducida o el código si no se encuentra
+     */
+    public String translateComplaintType(String typeCode) {
+        if (typeCode == null || typeCode.isBlank()) {
+            return "No clasificado";
+        }
+
+        try {
+            SystemConfig config = systemConfigRepository
+                    .findByConfigGroupAndConfigKeyAndActiveTrue(GROUP_COMPLAINT_TYPE, typeCode);
+
+            if (config != null) {
+                return config.getDisplayLabel();
+            }
+
+            return typeCode;
+        } catch (Exception e) {
+            return typeCode;
+        }
+    }
+
+    /**
+     * Traduce un código de prioridad a su etiqueta en español.
+     * @param priorityCode Código de la prioridad
+     * @return Etiqueta traducida o el código si no se encuentra
+     */
+    public String translatePriority(String priorityCode) {
+        if (priorityCode == null || priorityCode.isBlank()) {
+            return "No definida";
+        }
+
+        try {
+            SystemConfig config = systemConfigRepository
+                    .findByConfigGroupAndConfigKeyAndActiveTrue(GROUP_PRIORITY, priorityCode);
+
+            if (config != null) {
+                return config.getDisplayLabel();
+            }
+
+            return priorityCode;
+        } catch (Exception e) {
+            return priorityCode;
+        }
+    }
+
+    /**
+     * Obtiene las severidades desde la base de datos.
+     * @return Array de [código, etiqueta] o array vacío si no hay datos
+     */
+    public String[][] getSeveritiesAsArray() {
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_SEVERITY);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size()][2];
+            for (int i = 0; i < configs.size(); i++) {
+                result[i] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
+    }
+
+    /**
+     * Obtiene los estados desde la base de datos.
+     * @return Array de [código, etiqueta] o array vacío si no hay datos
+     */
+    public String[][] getStatusesAsArray() {
+        try {
+            List<SystemConfig> configs = systemConfigRepository
+                    .findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_STATUS);
+
+            if (configs.isEmpty()) {
+                return new String[][]{{"", "Error: Configuración no disponible"}};
+            }
+
+            String[][] result = new String[configs.size()][2];
+            for (int i = 0; i < configs.size(); i++) {
+                result[i] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+            }
+
+            return result;
+        } catch (Exception e) {
+            return new String[][]{{"", "Error: No se pudo cargar configuración"}};
+        }
+    }
+
+    /**
+     * Traduce un código de estado a su etiqueta en español.
+     * @param statusCode Código del estado
+     * @return Etiqueta traducida o el código si no se encuentra
+     */
+    public String translateStatus(String statusCode) {
+        if (statusCode == null || statusCode.isBlank()) {
+            return "Desconocido";
+        }
+
+        try {
+            SystemConfig config = systemConfigRepository
+                    .findByConfigGroupAndConfigKeyAndActiveTrue(GROUP_STATUS, statusCode);
+
+            if (config != null) {
+                return config.getDisplayLabel();
+            }
+
+            return statusCode;
+        } catch (Exception e) {
+            return statusCode;
+        }
+    }
+
+    /**
+     * Traduce un código de severidad a su etiqueta en español.
+     * @param severityCode Código de la severidad
+     * @return Etiqueta traducida o el código si no se encuentra
+     */
+    public String translateSeverity(String severityCode) {
+        if (severityCode == null || severityCode.isBlank()) {
+            return "No definida";
+        }
+
+        try {
+            SystemConfig config = systemConfigRepository
+                    .findByConfigGroupAndConfigKeyAndActiveTrue(GROUP_SEVERITY, severityCode);
+
+            if (config != null) {
+                return config.getDisplayLabel();
+            }
+
+            return severityCode;
+        } catch (Exception e) {
+            return severityCode;
+        }
+    }
+
+    /**
+     * Traduce un código de tipo de evento a su etiqueta en español.
+     * @param eventTypeCode Código del tipo de evento
+     * @return Etiqueta traducida o el código si no se encuentra
+     */
+    public String translateEventType(String eventTypeCode) {
+        if (eventTypeCode == null || eventTypeCode.isBlank()) {
+            return "Evento desconocido";
+        }
+
+        try {
+            SystemConfig config = systemConfigRepository
+                    .findByConfigGroupAndConfigKeyAndActiveTrue(GROUP_EVENT_TYPE, eventTypeCode);
+
+            if (config != null) {
+                return config.getDisplayLabel();
+            }
+
+            return eventTypeCode;
+        } catch (Exception e) {
+            return eventTypeCode;
+        }
     }
 }
+

@@ -130,7 +130,7 @@ a:focus-visible {
 
 .vs-container {
     width: 100%;
-    max-width: 680px;
+    max-width: 780px;
     margin: 0 auto;
     padding: var(--space-6);
 }
@@ -639,6 +639,197 @@ a:focus-visible {
 
 .vs-modal--hidden {
     display: none !important;
+}
+
+/* ============================================
+   MODAL DE NOTIFICACIONES MEJORADO
+   ============================================ */
+.vs-modal-overlay--notification {
+    opacity: 0;
+    transition: opacity var(--transition-base);
+}
+
+.vs-modal-overlay--visible {
+    opacity: 1;
+}
+
+.vs-modal--notification {
+    max-width: 420px;
+    text-align: center;
+    animation: modalSlideIn 0.25s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.vs-modal__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin: var(--space-4) auto var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--gray-100);
+}
+
+.vs-modal__icon--success {
+    background: rgba(16, 185, 129, 0.15);
+}
+
+.vs-modal__icon--error {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.vs-modal__icon--warning {
+    background: rgba(245, 158, 11, 0.15);
+}
+
+.vs-modal__icon--info {
+    background: rgba(6, 182, 212, 0.15);
+}
+
+.vs-modal--notification .vs-modal__header {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.vs-modal--notification .vs-modal__body {
+    padding-top: var(--space-2);
+}
+
+.vs-modal--notification .vs-modal__footer {
+    border-top: none;
+    justify-content: center;
+    padding-top: var(--space-2);
+}
+
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
+.vs-toast-container {
+    position: fixed;
+    top: var(--space-6);
+    right: var(--space-6);
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-width: 400px;
+    pointer-events: none;
+}
+
+.vs-toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border-left: 4px solid var(--gray-400);
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease-out;
+    pointer-events: auto;
+}
+
+.vs-toast--visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.vs-toast--hiding {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.vs-toast--success {
+    border-left-color: var(--success);
+}
+
+.vs-toast--error {
+    border-left-color: var(--danger);
+}
+
+.vs-toast--warning {
+    border-left-color: var(--warning);
+}
+
+.vs-toast--info {
+    border-left-color: var(--info);
+}
+
+.vs-toast__icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.vs-toast--success .vs-toast__icon {
+    color: var(--success);
+}
+
+.vs-toast--error .vs-toast__icon {
+    color: var(--danger);
+}
+
+.vs-toast--warning .vs-toast__icon {
+    color: var(--warning);
+}
+
+.vs-toast--info .vs-toast__icon {
+    color: var(--info);
+}
+
+.vs-toast__message {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    color: var(--gray-800);
+    line-height: 1.4;
+}
+
+.vs-toast__close {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--gray-500);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.vs-toast__close:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+@media (max-width: 480px) {
+    .vs-toast-container {
+        top: var(--space-4);
+        right: var(--space-4);
+        left: var(--space-4);
+        max-width: none;
+    }
 }
 
 /* ============================================

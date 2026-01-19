@@ -2,8 +2,6 @@ package com.vozsegura.vozsegura.config;
 
 import javax.sql.DataSource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
@@ -26,8 +24,6 @@ import com.zaxxer.hikari.HikariDataSource;
 @Profile({"aws", "prod"})
 public class AwsDatabaseConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(AwsDatabaseConfig.class);
-
     private final SecretsManagerClient secretsManagerClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -40,7 +36,6 @@ public class AwsDatabaseConfig {
 
     @Bean
     public DataSource dataSource(DataSourceProperties properties) {
-        log.info("Loading database credentials from AWS Secrets Manager");
 
         try {
             String secretJson = secretsManagerClient.getSecretString(databaseSecretName);
@@ -79,11 +74,9 @@ public class AwsDatabaseConfig {
             dataSource.setMaxLifetime(600000);
             dataSource.setConnectionTestQuery("SELECT 1");
             
-            log.info("DataSource configured successfully");
             return dataSource;
             
         } catch (Exception e) {
-            log.error("Failed to configure DataSource from AWS Secrets Manager", e);
             throw new IllegalStateException("Cannot configure database from AWS Secrets Manager", e);
         }
     }

@@ -3,25 +3,44 @@
 
     // ======= Turnstile state =======
     let turnstileValid = false;
+    let turnstileLoaded = false;
+    let turnstileToken = null;
 
     // Turnstile callbacks (deben ser globales porque Turnstile los llama por nombre)
-    window.onTurnstileSuccess = function () {
+    window.onTurnstileSuccess = function (token) {
         turnstileValid = true;
+        turnstileLoaded = true;
+        turnstileToken = token;
         hide(document.getElementById("turnstileError"));
+        hide(document.getElementById("turnstileLoading"));
         updateSubmit();
     };
 
     window.onTurnstileExpired = function () {
         turnstileValid = false;
+        turnstileToken = null;
+        show(document.getElementById("turnstileError"));
+        updateSubmit();
+        // Intentar recargar el widget
+        reloadTurnstile();
+    };
+
+    window.onTurnstileError = function (error) {
+        turnstileValid = false;
+        turnstileToken = null;
         show(document.getElementById("turnstileError"));
         updateSubmit();
     };
 
-    window.onTurnstileError = function () {
-        turnstileValid = false;
-        show(document.getElementById("turnstileError"));
-        updateSubmit();
-    };
+    // Función para recargar Turnstile si está disponible
+    function reloadTurnstile() {
+        if (typeof turnstile !== 'undefined' && turnstile.reset) {
+            const widget = document.querySelector('.cf-turnstile');
+            if (widget) {
+                turnstile.reset(widget);
+            }
+        }
+    }
 
     // ======= Elements =======
     const form = document.getElementById("loginForm");
@@ -139,7 +158,7 @@
             const okCed = validateCedula();
             const okCd = validateCodigoDactilar();
             const okTerms = !!(termsCheck && termsCheck.checked);
-            const okTurn = turnstileValid;
+            const okTurn = turnstileValid && turnstileToken;
 
             // Si algo falla, bloquea y muestra mensajes
             if (!(okCed && okCd && okTerms && okTurn)) {

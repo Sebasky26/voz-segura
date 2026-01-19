@@ -4,6 +4,9 @@
     const detailCount = document.getElementById("detailCount");
     const detailError = document.getElementById("detailError");
 
+    const companyContact = document.getElementById("companyContact");
+    const contactError = document.getElementById("contactError");
+
     const fileInput = document.getElementById("evidences");
     const fileList = document.getElementById("fileList");
     const filesError = document.getElementById("filesError");
@@ -17,6 +20,10 @@
     const MAX_BYTES = 25 * 1024 * 1024; // 25MB
 
     let selectedFiles = [];
+
+    // Expresiones regulares para validación de contacto
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const PHONE_REGEX = /^(0[2-9]\d{7,8}|0[9]\d{8})$/; // Teléfono Ecuador: convencional 0X-XXXXXXX o celular 09XXXXXXXX
 
     function formatFileSize(bytes) {
         if (!bytes) return "0 Bytes";
@@ -39,6 +46,28 @@
     function show(el, yes) {
         if (!el) return;
         el.classList.toggle("vs-hidden", !yes);
+    }
+
+    function validateContact() {
+        if (!companyContact) return true;
+        
+        const value = (companyContact.value || "").trim();
+        if (!value) return false;
+
+        // Limpiar guiones y espacios para la validación de teléfono
+        const cleanValue = value.replace(/[-\s]/g, "");
+        
+        // Validar si es email o teléfono
+        const isEmail = EMAIL_REGEX.test(value);
+        const isPhone = PHONE_REGEX.test(cleanValue);
+        
+        const ok = isEmail || isPhone;
+        
+        show(contactError, !ok);
+        companyContact.classList.toggle("vs-field--invalid", !ok);
+        companyContact.classList.toggle("vs-field--valid", ok);
+        
+        return ok;
     }
 
     function validateDetail() {
@@ -148,10 +177,16 @@
         validateDetail();
     }
 
+    if (companyContact) {
+        companyContact.addEventListener("input", validateContact);
+        companyContact.addEventListener("blur", validateContact);
+    }
+
     if (fileInput) {
         fileInput.addEventListener("change", () => {
             const newFiles = Array.from(fileInput.files || []);
 
+            // Si es la primera selección, limpiar array anterior
             // ACUMULAR archivos en lugar de reemplazar
             newFiles.forEach(newFile => {
                 // Evitar duplicados por nombre
@@ -171,23 +206,35 @@
                 }
             }
 
+            // IMPORTANTE: Sincronizar inmediatamente después de agregar archivos
             syncInputFiles();
             renderFiles();
+        });
+
+        // Sincronizar archivos antes de enviar el formulario
+        form?.addEventListener("submit", (e) => {
+            // Asegurarse de que los archivos estén sincronizados antes de enviar
+            syncInputFiles();
         });
     }
 
     if (form) {
         form.addEventListener("submit", (e) => {
+            // Sincronizar archivos antes de validar
+            syncInputFiles();
+            
             const okDetail = validateDetail();
+            const okContact = validateContact();
             const okFiles = validateFiles(selectedFiles);
 
             show(filesError, !okFiles);
-            show(formError, !(okDetail && okFiles));
+            show(formError, !(okDetail && okContact && okFiles));
 
-            if (!(okDetail && okFiles)) {
+            if (!(okDetail && okContact && okFiles)) {
                 e.preventDefault();
                 // foco suave al primer campo con problema
                 if (!okDetail && detail) detail.focus();
+                else if (!okContact && companyContact) companyContact.focus();
                 else if (!okFiles && fileInput) fileInput.focus();
             }
         });

@@ -10,7 +10,6 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * Servicio para validar tokens de Cloudflare Turnstile.
@@ -26,8 +25,6 @@ import java.util.logging.Logger;
 @Service
 public class CloudflareTurnstileService {
 
-    private static final Logger logger = Logger.getLogger(CloudflareTurnstileService.class.getName());
-
     @Value("${cloudflare.turnstile.site-key}")
     private String siteKey;
 
@@ -35,8 +32,6 @@ public class CloudflareTurnstileService {
     private String secretKey;
 
     private static final String TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-    private static final int TIMEOUT_SECONDS = 5;
-    private static final double SUCCESS_THRESHOLD = 0.0; // Cualquier respuesta exitosa es válida
 
     private final RestTemplate restTemplate;
 
@@ -61,21 +56,14 @@ public class CloudflareTurnstileService {
     public boolean verifyTurnstileToken(String token, String remoteIp) {
         // Validaciones básicas
         if (token == null || token.isBlank()) {
-            logger.warning("[TURNSTILE] Token vacío o nulo - verificar que el widget esté renderizando correctamente");
             return false;
         }
 
         if (secretKey == null || secretKey.isBlank()) {
-            logger.severe("[TURNSTILE] ERROR: Secret key no configurada en servidor. Verificar variable CLOUDFLARE_SECRET_KEY en .env");
             return false;
         }
 
-        logger.info("[TURNSTILE] Site Key configurada: " + (siteKey != null ? siteKey.substring(0, Math.min(10, siteKey.length())) + "..." : "NULL"));
-        logger.info("[TURNSTILE] Secret Key configurada: " + (secretKey != null ? secretKey.substring(0, Math.min(10, secretKey.length())) + "..." : "NULL"));
-
         try {
-            logger.info("[TURNSTILE] Validando token Turnstile");
-
             // Preparar solicitud HTTP
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("secret", secretKey);
@@ -101,26 +89,16 @@ public class CloudflareTurnstileService {
 
             // Validar respuesta
             if (response == null) {
-                logger.severe("[TURNSTILE] Respuesta nula de Cloudflare");
                 return false;
             }
 
-            if (!response.isSuccess()) {
-                logger.warning("[TURNSTILE] Validación fallida - Errores: " + String.join(", ", response.getErrorCodes()));
-                return false;
-            }
-
-            logger.info("[TURNSTILE] Token validado exitosamente");
-            return true;
+            return response.isSuccess();
 
         } catch (RestClientException e) {
-            logger.severe("[TURNSTILE] Error conectando a Cloudflare: " + e.getMessage());
             // En producción, fallar cerrado (seguro): retornar false
             return false;
 
         } catch (Exception e) {
-            logger.severe("[TURNSTILE] Error inesperado validando Turnstile: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }

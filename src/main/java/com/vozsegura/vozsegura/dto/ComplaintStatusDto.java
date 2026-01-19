@@ -12,13 +12,15 @@ public class ComplaintStatusDto {
     private String status;
     private String statusLabel;
     private String severity;
+    private String severityLabel;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private int evidenceCount;
     private String derivedTo;          // Entidad a la que fue derivado
     private String analystNotes;       // Notas del analista (para mostrar motivo)
     private boolean requiresMoreInfo;  // Si requiere más información
-    private String complaintType;      // Tipo de denuncia
+    private String complaintType;      // Tipo de denuncia (código)
+    private String complaintTypeLabel; // Tipo de denuncia (etiqueta en español)
 
     public ComplaintStatusDto() {}
 
@@ -28,6 +30,7 @@ public class ComplaintStatusDto {
         this.status = status;
         this.statusLabel = translateStatus(status);
         this.severity = severity;
+        this.severityLabel = translateSeverity(severity);
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.evidenceCount = evidenceCount;
@@ -41,6 +44,7 @@ public class ComplaintStatusDto {
         this.analystNotes = analystNotes;
         this.requiresMoreInfo = requiresMoreInfo;
         this.complaintType = complaintType;
+        this.complaintTypeLabel = translateComplaintType(complaintType);
     }
 
     private String translateStatus(String status) {
@@ -58,13 +62,38 @@ public class ComplaintStatusDto {
         };
     }
 
+    private String translateSeverity(String severity) {
+        if (severity == null) return "No definida";
+        return switch (severity) {
+            case "LOW" -> "Baja";
+            case "MEDIUM" -> "Media";
+            case "HIGH" -> "Alta";
+            case "CRITICAL" -> "Crítica";
+            default -> severity;
+        };
+    }
+
+    private String translateComplaintType(String type) {
+        if (type == null) return "No clasificado";
+        return switch (type) {
+            case "LABOR_RIGHTS" -> "Derechos Laborales";
+            case "HARASSMENT" -> "Acoso Laboral";
+            case "DISCRIMINATION" -> "Discriminación";
+            case "SAFETY" -> "Seguridad Laboral";
+            case "FRAUD" -> "Fraude";
+            case "OTHER" -> "Otro";
+            default -> type;
+        };
+    }
+
     public String getTrackingId() { return trackingId; }
     public void setTrackingId(String trackingId) { this.trackingId = trackingId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; this.statusLabel = translateStatus(status); }
     public String getStatusLabel() { return statusLabel; }
     public String getSeverity() { return severity; }
-    public void setSeverity(String severity) { this.severity = severity; }
+    public void setSeverity(String severity) { this.severity = severity; this.severityLabel = translateSeverity(severity); }
+    public String getSeverityLabel() { return severityLabel; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
@@ -78,5 +107,9 @@ public class ComplaintStatusDto {
     public boolean isRequiresMoreInfo() { return requiresMoreInfo; }
     public void setRequiresMoreInfo(boolean requiresMoreInfo) { this.requiresMoreInfo = requiresMoreInfo; }
     public String getComplaintType() { return complaintType; }
-    public void setComplaintType(String complaintType) { this.complaintType = complaintType; }
+    public void setComplaintType(String complaintType) { 
+        this.complaintType = complaintType; 
+        this.complaintTypeLabel = translateComplaintType(complaintType);
+    }
+    public String getComplaintTypeLabel() { return complaintTypeLabel; }
 }

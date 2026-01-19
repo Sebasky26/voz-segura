@@ -111,9 +111,12 @@
                                maxlength="120"
                                placeholder="Correo o teléfono de la empresa"
                                autocomplete="off"
-                               aria-describedby="contactHelp"/>
+                               aria-describedby="contactHelp contactError"/>
                         <div id="contactHelp" class="vs-form__help">
                             Correo electrónico o número de teléfono de la empresa denunciada.
+                        </div>
+                        <div id="contactError" class="vs-form__error vs-hidden" role="alert">
+                            Ingresa un correo válido (ejemplo@empresa.com) o teléfono válido (0987654321 o 02-1234567).
                         </div>
                     </div>
                 </div>

@@ -43,16 +43,8 @@ public class HttpExternalDerivationClient implements ExternalDerivationClient {
 
     @Override
     public boolean derivateCase(String caseId, String destination, String encryptedPayload) {
-        System.out.println("╔══════════════════════════════════════════════════════╗");
-        System.out.println("║  [DERIVACIÓN] Iniciando transmisión segura          ║");
-        System.out.println("╠══════════════════════════════════════════════════════╣");
-        System.out.println("║  Caso: " + caseId);
-        System.out.println("║  Destino: " + destination);
-        System.out.println("╚══════════════════════════════════════════════════════╝");
-
         // En desarrollo, simular si la URL contiene "mock" o "localhost"
         if (destination.contains("mock") || destination.contains("localhost") || destination.contains("example")) {
-            System.out.println("[DERIVACIÓN] Modo simulación - Derivación exitosa (mock)");
             return true;
         }
 
@@ -79,24 +71,16 @@ public class HttpExternalDerivationClient implements ExternalDerivationClient {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200 || response.statusCode() == 201 || response.statusCode() == 202) {
-                System.out.println("[DERIVACIÓN] ✓ Caso derivado exitosamente");
-                System.out.println("[DERIVACIÓN] Respuesta: " + response.body());
                 return true;
             } else {
-                System.err.println("[DERIVACIÓN] ✗ Entidad receptora rechazó la solicitud");
-                System.err.println("[DERIVACIÓN] Código HTTP: " + response.statusCode());
-                System.err.println("[DERIVACIÓN] Respuesta: " + response.body());
                 return false;
             }
 
         } catch (java.net.ConnectException e) {
-            System.err.println("[DERIVACIÓN] ✗ Error de conexión: " + e.getMessage());
             return false;
         } catch (java.net.http.HttpTimeoutException e) {
-            System.err.println("[DERIVACIÓN] ✗ Timeout: La entidad receptora no respondió a tiempo");
             return false;
         } catch (Exception e) {
-            System.err.println("[DERIVACIÓN] ✗ Error crítico: " + e.getMessage());
             return false;
         }
     }

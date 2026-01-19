@@ -40,8 +40,8 @@
             <p class="vs-card__subtitle">Listado de casos registrados en el sistema</p>
         </div>
 
-        <div th:if="${success}" class="vs-alert vs-alert--success" role="status" aria-live="polite" th:text="${success}"></div>
-        <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" aria-live="polite" th:text="${error}"></div>
+        <div th:if="${success}" data-vs-success th:data-vs-success="${success}" style="display:none;"></div>
+        <div th:if="${error}" data-vs-error th:data-vs-error="${error}" style="display:none;"></div>
 
         <!-- Filtros -->
         <form th:action="@{/staff/casos}" method="get" class="vs-mb-6" aria-label="Filtros">
@@ -144,5 +144,6 @@
     </section>
 </main>
 
+<script th:src="@{/js/notifications.js}" src="/js/notifications.js"></script>
 </body>
 </html>

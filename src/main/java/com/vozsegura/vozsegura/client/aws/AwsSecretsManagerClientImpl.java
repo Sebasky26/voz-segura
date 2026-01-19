@@ -59,19 +59,11 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
 
     @PostConstruct
     public void init() {
-        System.out.println("===========================================");
-        System.out.println(" AWS SECRETS MANAGER - INITIALIZING");
-        System.out.println(" Region: " + awsRegion);
-        System.out.println(" Secret Name: " + databaseSecretName);
-        System.out.println("===========================================");
-        
         try {
             this.awsClient = software.amazon.awssdk.services.secretsmanager.SecretsManagerClient.builder()
                     .region(Region.of(awsRegion))
                     .build();
-            System.out.println("[AWS SM] Client initialized successfully");
         } catch (Exception e) {
-            System.err.println("[AWS SM] Failed to initialize client: " + e.getMessage());
             throw new IllegalStateException("Cannot initialize AWS Secrets Manager", e);
         }
     }
@@ -80,7 +72,6 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     public void cleanup() {
         if (awsClient != null) {
             awsClient.close();
-            System.out.println("[AWS SM] Client closed");
         }
     }
 
@@ -88,11 +79,8 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     public String getSecretString(String secretName) {
         // Verificar cache
         if (isCacheValid(secretName)) {
-            System.out.println("[AWS SM] Cache hit for: " + secretName);
             return secretsCache.get(secretName);
         }
-
-        System.out.println("[AWS SM] Fetching secret: " + secretName);
 
         try {
             // Resolver el nombre del secreto en AWS
@@ -109,14 +97,11 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
             secretsCache.put(secretName, secretValue);
             cacheTimes.put(secretName, System.currentTimeMillis());
             
-            System.out.println("[AWS SM] Secret retrieved successfully: " + secretName);
             return secretValue;
 
         } catch (SecretsManagerException e) {
-            System.err.println("[AWS SM] Error fetching secret '" + secretName + "': " + e.awsErrorDetails().errorMessage());
             return null;
         } catch (Exception ex) {
-            System.err.println("[AWS SM] Unexpected error: " + ex.getMessage());
             return null;
         }
     }
@@ -153,7 +138,6 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     public void invalidateCache(String secretName) {
         secretsCache.remove(secretName);
         cacheTimes.remove(secretName);
-        System.out.println("[AWS SM] Cache invalidated for: " + secretName);
     }
 
     /**
@@ -162,6 +146,5 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     public void invalidateAllCache() {
         secretsCache.clear();
         cacheTimes.clear();
-        System.out.println("[AWS SM] All cache invalidated");
     }
 }

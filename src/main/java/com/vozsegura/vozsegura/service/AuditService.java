@@ -50,8 +50,7 @@ public class AuditService {
             event.setDetails(truncate(details, 500));
             auditEventRepository.save(event);
         } catch (Exception e) {
-            // Log silencioso - nunca propagar error de auditoría
-            System.err.println("[AUDIT] Error registrando evento: " + e.getMessage());
+            // Silent - nunca propagar error de auditoría
         }
     }
 
@@ -74,8 +73,7 @@ public class AuditService {
             event.setDetails(truncate(details, 500));
             auditEventRepository.save(event);
         } catch (Exception e) {
-            // Log silencioso - nunca propagar error de auditoría
-            System.err.println("[AUDIT] Error registrando evento: " + e.getMessage());
+            // Silent - nunca propagar error de auditoría
         }
     }
 
