@@ -7,11 +7,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 
 /**
  * Servicio de auditoría.
  * Registra eventos sin incluir datos personales (cédula, biometría, etc).
+ * Utiliza IDs hasheados para identificar usuarios de forma segura.
  */
 @Service
 public class AuditService {
@@ -37,11 +41,59 @@ public class AuditService {
         AuditEvent event = new AuditEvent();
         event.setEventTime(OffsetDateTime.now());
         event.setActorRole(actorRole);
-        event.setActorUsername(actorUsername);
+        // Usar hash corto del username si existe, para no exponer datos sensibles
+        event.setActorUsername(actorUsername != null ? hashShort(actorUsername) : null);
         event.setEventType(eventType);
         event.setTrackingId(trackingId);
         event.setDetails(truncate(details, 500));
         auditEventRepository.save(event);
+    }
+
+    /**
+     * Registra un evento de auditoría con ID de sesión.
+     */
+    @Transactional
+    public void logEventWithSession(String actorRole, String sessionId, String cedula,
+                                     String eventType, String trackingId, String details) {
+        AuditEvent event = new AuditEvent();
+        event.setEventTime(OffsetDateTime.now());
+        event.setActorRole(actorRole);
+        // Generar identificador único hasheado que combina sesión y cédula
+        String hashedId = generateSecureUserId(sessionId, cedula);
+        event.setActorUsername(hashedId);
+        event.setEventType(eventType);
+        event.setTrackingId(trackingId);
+        event.setDetails(truncate(details, 500));
+        auditEventRepository.save(event);
+    }
+
+    /**
+     * Genera un ID de usuario seguro (hash corto) para los logs.
+     * Combina sessionId y cédula para crear un identificador único no reversible.
+     */
+    public String generateSecureUserId(String sessionId, String cedula) {
+        if (sessionId == null && cedula == null) {
+            return "ANON-" + System.currentTimeMillis() % 100000;
+        }
+
+        String combined = (sessionId != null ? sessionId : "") + ":" + (cedula != null ? cedula : "");
+        return hashShort(combined);
+    }
+
+    /**
+     * Genera un hash corto (8 caracteres) de un string.
+     * Suficiente para identificación en logs sin exponer datos.
+     */
+    private String hashShort(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            String b64 = Base64.getEncoder().encodeToString(hash);
+            // Tomar solo los primeros 8 caracteres del hash
+            return "USR-" + b64.substring(0, 8).replaceAll("[+/=]", "X");
+        } catch (Exception e) {
+            return "USR-" + input.hashCode();
+        }
     }
 
     /**

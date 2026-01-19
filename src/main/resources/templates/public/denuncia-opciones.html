@@ -9,14 +9,11 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -26,17 +23,18 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-opciones">
 
         <div class="vs-card__header">
             <h1 id="titulo-opciones" class="vs-card__title">Verificación completada</h1>
-            <p class="vs-card__subtitle">Tu identidad ha sido verificada correctamente. Selecciona una opción para continuar.</p>
+            <p class="vs-card__subtitle">
+                Tu identidad ha sido verificada correctamente. Selecciona una opción para continuar.
+            </p>
         </div>
 
         <div class="vs-grid vs-grid--2cols vs-mb-6">
-            <!-- Opción 1: Nueva denuncia -->
-            <a th:href="@{/denuncia/form}" href="/denuncia/form" class="vs-action-card">
+            <a th:href="@{/denuncia/form}" class="vs-action-card">
                 <div class="vs-action-card__title">Crear nueva denuncia</div>
                 <p class="vs-action-card__text">
                     Registra un nuevo caso de forma anónima y segura.
@@ -44,8 +42,7 @@
                 <span class="vs-action-card__cta">Iniciar denuncia →</span>
             </a>
 
-            <!-- Opción 2: Consultar seguimiento -->
-            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-action-card">
+            <a th:href="@{/seguimiento}" class="vs-action-card">
                 <div class="vs-action-card__title">Consultar seguimiento</div>
                 <p class="vs-action-card__text">
                     Revisa el estado de una denuncia existente con tu código de seguimiento.
@@ -57,7 +54,7 @@
         <div class="vs-divider"></div>
 
         <div class="vs-text-center">
-            <a th:href="@{/auth/logout}" href="/auth/logout" class="vs-button vs-button--ghost">
+            <a th:href="@{/auth/logout}" class="vs-button vs-button--ghost">
                 Cerrar sesión
             </a>
         </div>

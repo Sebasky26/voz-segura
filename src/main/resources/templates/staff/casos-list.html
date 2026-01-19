@@ -1,4 +1,4 @@
-﻿﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -10,15 +10,12 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
 
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -27,15 +24,15 @@
         </div>
 
         <nav class="vs-nav" aria-label="Navegación">
-            <a th:href="@{/staff/casos}" href="/staff/casos" class="vs-nav__link">Casos</a>
-            <a th:href="@{/admin/logs}" href="/admin/logs" class="vs-nav__link">Logs</a>
-            <a th:href="@{/auth/logout}" href="/auth/logout" class="vs-nav__link">Cerrar sesión</a>
+            <a th:href="@{/staff/casos}" class="vs-nav__link">Casos</a>
+            <a th:href="@{/admin/logs}" class="vs-nav__link">Logs</a>
+            <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
         </nav>
 
     </div>
 </header>
 
-<main id="contenido" class="vs-container vs-container-wide">
+<main class="vs-container vs-container-wide">
     <section class="vs-card" aria-labelledby="titulo-listado">
 
         <div class="vs-card__header">
@@ -43,12 +40,11 @@
             <p class="vs-card__subtitle">Listado de casos registrados en el sistema</p>
         </div>
 
-        <!-- Mensajes -->
         <div th:if="${success}" class="vs-alert vs-alert--success" role="status" aria-live="polite" th:text="${success}"></div>
         <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" aria-live="polite" th:text="${error}"></div>
 
         <!-- Filtros -->
-        <form th:action="@{/staff/casos}" method="get" class="vs-filters vs-mb-6" aria-label="Filtros">
+        <form th:action="@{/staff/casos}" method="get" class="vs-mb-6" aria-label="Filtros">
             <div class="vs-grid vs-grid--3cols">
 
                 <div class="vs-form__group">
@@ -76,14 +72,17 @@
                     <div class="vs-form__help">Ej: ABC-123 o “Empresa XYZ”.</div>
                 </div>
 
-                <div class="vs-form__group vs-filters__actions">
-                    <button type="submit" class="vs-button vs-button--primary">
-                        Aplicar filtros
-                    </button>
+                <div class="vs-form__group">
+                    <label class="vs-form__label">&nbsp;</label>
+                    <div class="vs-button-group">
+                        <button type="submit" class="vs-button vs-button--primary">
+                            Aplicar filtros
+                        </button>
 
-                    <a th:href="@{/staff/casos}" href="/staff/casos" class="vs-button vs-button--secondary">
-                        Limpiar
-                    </a>
+                        <a th:href="@{/staff/casos}" class="vs-button vs-button--secondary">
+                            Limpiar
+                        </a>
+                    </div>
                 </div>
 
             </div>
@@ -114,35 +113,12 @@
 
                 <tr th:each="complaint : ${complaints}">
                     <td>
-                        <code class="vs-code-pill" th:text="${#strings.abbreviate(complaint.trackingId, 20)}">ABC123</code>
+                        <code th:text="${#strings.abbreviate(complaint.trackingId, 20)}">ABC123</code>
                     </td>
 
-                    <td>
-              <span class="vs-badge"
-                    th:classappend="${complaint.status == 'PENDING'} ? ' vs-badge--warning' :
-                                   (${complaint.status == 'IN_REVIEW'} ? ' vs-badge--info' :
-                                   (${complaint.status == 'RESOLVED'} ? ' vs-badge--success' :
-                                   (${complaint.status == 'DERIVED'} ? ' vs-badge--secondary' : ' vs-badge--default')))"
-                    th:text="${complaint.status == 'PENDING' ? 'Pendiente' :
-                              (complaint.status == 'IN_REVIEW' ? 'En revisión' :
-                              (complaint.status == 'RESOLVED' ? 'Resuelto' :
-                              (complaint.status == 'DERIVED' ? 'Derivado' :
-                              (complaint.status == 'ARCHIVED' ? 'Archivado' : complaint.status))))}">
-                Pendiente
-              </span>
-                    </td>
+                    <td th:text="${complaint.status}">PENDING</td>
 
-                    <td>
-              <span class="vs-badge"
-                    th:classappend="${complaint.severity == 'CRITICAL'} ? ' vs-badge--danger' :
-                                   (${complaint.severity == 'HIGH'} ? ' vs-badge--warning' :
-                                   (${complaint.severity == 'MEDIUM'} ? ' vs-badge--info' : ' vs-badge--default'))"
-                    th:text="${complaint.severity == 'CRITICAL' ? 'Crítica' :
-                              (complaint.severity == 'HIGH' ? 'Alta' :
-                              (complaint.severity == 'MEDIUM' ? 'Media' : 'Baja'))}">
-                Media
-              </span>
-                    </td>
+                    <td th:text="${complaint.severity}">MEDIUM</td>
 
                     <td th:text="${complaint.companyName}">Empresa XYZ</td>
 
@@ -151,9 +127,7 @@
                     </td>
 
                     <td class="vs-table-actions">
-                        <!-- Opción A: como lo tienes hoy (trackingId) -->
                         <a th:href="@{/staff/casos/{id}(id=${complaint.trackingId})}"
-                           href="#"
                            class="vs-button vs-button--secondary vs-button--sm">
                             Ver detalle
                         </a>
@@ -163,11 +137,8 @@
             </table>
         </div>
 
-        <!-- Pie -->
-        <div class="vs-list-footer">
-            <div class="vs-text-muted">
-                Total: <strong th:text="${#lists.size(complaints)}">0</strong>
-            </div>
+        <div class="vs-form__help vs-mt-4">
+            Total: <strong th:text="${#lists.size(complaints)}">0</strong>
         </div>
 
     </section>
@@ -175,11 +146,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
-

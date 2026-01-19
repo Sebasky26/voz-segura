@@ -61,14 +61,17 @@ public class CloudflareTurnstileService {
     public boolean verifyTurnstileToken(String token, String remoteIp) {
         // Validaciones básicas
         if (token == null || token.isBlank()) {
-            logger.warning("[TURNSTILE] Token vacío o nulo");
+            logger.warning("[TURNSTILE] Token vacío o nulo - verificar que el widget esté renderizando correctamente");
             return false;
         }
 
         if (secretKey == null || secretKey.isBlank()) {
-            logger.severe("[TURNSTILE] ERROR: Secret key no configurada en servidor");
+            logger.severe("[TURNSTILE] ERROR: Secret key no configurada en servidor. Verificar variable CLOUDFLARE_SECRET_KEY en .env");
             return false;
         }
+
+        logger.info("[TURNSTILE] Site Key configurada: " + (siteKey != null ? siteKey.substring(0, Math.min(10, siteKey.length())) + "..." : "NULL"));
+        logger.info("[TURNSTILE] Secret Key configurada: " + (secretKey != null ? secretKey.substring(0, Math.min(10, secretKey.length())) + "..." : "NULL"));
 
         try {
             logger.info("[TURNSTILE] Validando token Turnstile");

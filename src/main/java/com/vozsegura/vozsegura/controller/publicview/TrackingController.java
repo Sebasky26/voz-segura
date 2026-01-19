@@ -109,18 +109,23 @@ public class TrackingController {
         // Contar evidencias
         int evidenceCount = evidenceRepository.countByComplaint(complaint);
 
-        // Crear DTO con información no sensible
+        // Crear DTO con información completa para el denunciante
         ComplaintStatusDto status = new ComplaintStatusDto(
             complaint.getTrackingId(),
             complaint.getStatus(),
             complaint.getSeverity(),
             complaint.getCreatedAt(),
             complaint.getUpdatedAt(),
-            evidenceCount
+            evidenceCount,
+            complaint.getDerivedTo(),
+            complaint.getAnalystNotes(),
+            complaint.isRequiresMoreInfo(),
+            complaint.getComplaintType()
         );
 
         model.addAttribute("complaintStatus", status);
         model.addAttribute("trackingForm", form);
+        model.addAttribute("trackingId", trackingId);
 
         return "public/seguimiento-resultado";
     }

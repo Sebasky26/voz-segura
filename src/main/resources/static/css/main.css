@@ -237,6 +237,9 @@ a:focus-visible {
 .vs-card__subtitle {
     font-size: var(--font-size-sm);
     color: var(--gray-600);
+    max-width: 48ch;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ============================================
@@ -979,10 +982,6 @@ code {
     flex-wrap: wrap;
 }
 
-.vs-inline {
-    display: inline;
-}
-
 /* ============================================
    LISTA SIMPLE (bullets bonitos y sobrios)
    ============================================ */
@@ -1065,13 +1064,6 @@ code {
 .vs-timer {
     font-size: var(--font-size-sm);
     color: var(--gray-600);
-}
-
-/* Bloque de error más “amable” */
-.vs-card__subtitle {
-    max-width: 48ch;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 /* ============================================
@@ -1413,4 +1405,161 @@ code {
 
 .vs-inline {
     display: inline;
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.vs-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.vs-badge--info {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.vs-badge--success {
+    background: rgba(16, 185, 129, 0.14);
+    color: var(--success);
+}
+
+.vs-badge--warning {
+    background: rgba(245, 158, 11, 0.14);
+    color: var(--warning);
+}
+
+.vs-badge--danger {
+    background: rgba(239, 68, 68, 0.14);
+    color: var(--danger);
+}
+
+/* ============================================
+   BLOCKQUOTE
+   ============================================ */
+.vs-blockquote {
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-style: italic;
+    color: var(--gray-700);
+}
+
+/* ============================================
+   CODE
+   ============================================ */
+.vs-code {
+    display: inline-block;
+    padding: var(--space-1) var(--space-2);
+    background: var(--gray-100);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: var(--font-size-sm);
+    color: var(--primary);
+}
+
+/* ============================================
+   ENTITY CARD
+   ============================================ */
+.vs-entity-card {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 2px solid var(--success);
+    border-radius: var(--radius-lg);
+    margin-top: var(--space-3);
+}
+
+.vs-entity-card strong {
+    color: var(--success);
+    font-size: var(--font-size-lg);
+}
+
+/* ============================================
+   INPUT WITH ACTION (botón mostrar clave)
+   ============================================ */
+.vs-input-with-action {
+    display: flex;
+    gap: 0;
+}
+
+.vs-input-with-action .vs-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    flex: 1;
+}
+
+.vs-input-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-4);
+    background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
+    border: 2px solid var(--border);
+    border-left: none;
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    color: var(--gray-700);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    min-width: 90px;
+}
+
+.vs-input-action:hover {
+    background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(59, 130, 246, 0.2) 100%);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.vs-input-action:focus {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* ============================================
+   INPUT FILE MEJORADO
+   ============================================ */
+.vs-input-file {
+    width: 100%;
+    padding: var(--space-3);
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.vs-input-file:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.vs-input-file:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+}
+
+/* ============================================
+   BUTTONS SMALL
+   ============================================ */
+.vs-button--sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-xs);
 }

@@ -3,6 +3,7 @@ package com.vozsegura.vozsegura.controller;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.logging.Logger;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,14 +41,21 @@ import jakarta.validation.Valid;
 @RequestMapping("/auth")
 public class UnifiedAuthController {
 
+    private static final Logger logger = Logger.getLogger(UnifiedAuthController.class.getName());
+
     private final UnifiedAuthService unifiedAuthService;
     private final CloudflareTurnstileService turnstileService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.vozsegura.vozsegura.service.AuditService auditService;
 
-    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService, JwtTokenProvider jwtTokenProvider) {
+    public UnifiedAuthController(UnifiedAuthService unifiedAuthService,
+                                  CloudflareTurnstileService turnstileService,
+                                  JwtTokenProvider jwtTokenProvider,
+                                  com.vozsegura.vozsegura.service.AuditService auditService) {
         this.unifiedAuthService = unifiedAuthService;
         this.turnstileService = turnstileService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.auditService = auditService;
     }
 
     /**
@@ -83,7 +91,11 @@ public class UnifiedAuthController {
 
         // Validar token de Turnstile
         String turnstileToken = request.getParameter("cf-turnstile-response");
+        logger.info("[AUTH] Turnstile token recibido: " + (turnstileToken != null ? "presente (" + turnstileToken.length() + " chars)" : "NULL"));
+        logger.info("[AUTH] Site Key configurada: " + turnstileService.getSiteKey());
+
         if (turnstileToken == null || turnstileToken.isBlank()) {
+            logger.warning("[AUTH] Token de Turnstile vacío o nulo - el widget puede no estar renderizando correctamente");
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Verificación de Turnstile fallida. Por favor intente nuevamente.");
             return "public/denuncia-login";
@@ -91,13 +103,17 @@ public class UnifiedAuthController {
 
         // Obtener IP del cliente para validación adicional
         String clientIp = getClientIp(request);
-        
+        logger.info("[AUTH] IP del cliente: " + clientIp);
+
         // Verificar token Turnstile
         if (!turnstileService.verifyTurnstileToken(turnstileToken, clientIp)) {
+            logger.warning("[AUTH] Validación de Turnstile falló en el servicio");
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "No se pudo verificar que eres una persona. Por favor intenta de nuevo.");
             return "public/denuncia-login";
         }
+
+        logger.info("[AUTH] Turnstile validado exitosamente, procediendo con autenticación");
 
         try {
             // Paso 1: Verificar identidad contra Registro Civil (sin CAPTCHA)
@@ -119,6 +135,9 @@ public class UnifiedAuthController {
                 case ADMIN:
                 case ANALYST:
                     // Staff/Admin: Solicitar clave secreta
+                    auditService.logEventWithSession(userType.name(), session.getId(),
+                        form.getCedula(), "LOGIN_STEP1_SUCCESS", null,
+                        "Verificación de identidad exitosa - Requiere MFA");
                     return "redirect:/auth/secret-key";
 
                 case DENUNCIANTE:
@@ -127,14 +146,23 @@ public class UnifiedAuthController {
                     String citizenHash = hashCedula(form.getCedula());
                     session.setAttribute("citizenHash", citizenHash);
                     session.setAttribute("authenticated", true);
+                    auditService.logEventWithSession("DENUNCIANTE", session.getId(),
+                        form.getCedula(), "LOGIN_SUCCESS", null,
+                        "Acceso exitoso como denunciante");
                     return "redirect:/denuncia/biometric";
             }
 
         } catch (SecurityException e) {
+            // Registrar intento fallido
+            auditService.logEventWithSession("UNKNOWN", session.getId(),
+                form.getCedula(), "LOGIN_FAILED", null, "Verificación de identidad fallida");
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", e.getMessage());
             return "public/denuncia-login";
         } catch (Exception e) {
+            // Registrar error
+            auditService.logEventWithSession("UNKNOWN", session.getId(),
+                form.getCedula(), "LOGIN_ERROR", null, "Error en proceso de autenticación");
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("error", "Error al procesar la autenticación. Por favor intente nuevamente.");
             return "public/denuncia-login";
@@ -298,6 +326,10 @@ public class UnifiedAuthController {
             session.removeAttribute("otpToken");
             session.removeAttribute("otpEmail");
 
+            // Registrar login exitoso
+            auditService.logEventWithSession(userType, session.getId(), cedula,
+                "LOGIN_SUCCESS", null, "Acceso MFA completado exitosamente");
+
             // Redirigir según rol - Directamente al Core (sin Gateway)
             if ("ADMIN".equals(userType)) {
                 return "redirect:/admin";
@@ -365,6 +397,13 @@ public class UnifiedAuthController {
      */
     @GetMapping("/logout")
     public String logout(HttpSession session) {
+        // Registrar logout antes de invalidar la sesión
+        String userType = (String) session.getAttribute("userType");
+        String cedula = (String) session.getAttribute("cedula");
+        if (userType != null || cedula != null) {
+            auditService.logEventWithSession(userType != null ? userType : "UNKNOWN",
+                session.getId(), cedula, "LOGOUT", null, "Sesión cerrada por el usuario");
+        }
         session.invalidate();
         return "redirect:/auth/login?logout";
     }

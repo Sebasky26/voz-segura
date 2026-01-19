@@ -10,15 +10,12 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container">
 
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -29,7 +26,7 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-login">
 
         <div class="vs-card__header">
@@ -48,7 +45,7 @@
             Sesión cerrada correctamente.
         </div>
 
-        <form method="post" th:action="@{/login}" action="/login" class="vs-form" autocomplete="on">
+        <form method="post" th:action="@{/login}" class="vs-form" autocomplete="on">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
             <div class="vs-form__group">
@@ -92,9 +89,10 @@
                 Ingresar
             </button>
 
-            <div class="vs-login-footnote">
-                <span class="vs-badge vs-badge--info">Acceso protegido</span>
-                <span class="vs-text-muted">Tus datos se envían de forma segura.</span>
+            <div class="vs-mt-4">
+                <div class="vs-alert vs-alert--info" role="status">
+                    Acceso protegido. Tus datos se envían de forma segura.
+                </div>
             </div>
 
         </form>
@@ -106,10 +104,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-

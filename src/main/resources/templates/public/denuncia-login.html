@@ -13,14 +13,12 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <!-- Modal Términos -->
 <div class="vs-modal-overlay vs-modal--hidden" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
     <div class="vs-modal" role="document">
         <div class="vs-modal__header">
-            <h2 class="vs-modal__title" id="termsTitle">Términos y condiciones</h2>
-            <button type="button" class="vs-modal__close" data-terms-close aria-label="Cerrar">
+            <h2 id="termsTitle">Términos y condiciones</h2>
+            <button type="button" data-terms-close aria-label="Cerrar">
                 &times;
             </button>
         </div>
@@ -77,7 +75,6 @@
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -87,7 +84,7 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-acceso">
 
         <div class="vs-card__header">
@@ -95,7 +92,6 @@
             <p class="vs-card__subtitle">Ingresa tus datos para continuar</p>
         </div>
 
-        <!-- Mensaje de sesión expirada -->
         <div th:if="${param.session_expired}" class="vs-alert vs-alert--warning" role="alert" aria-live="polite">
             <div>
                 <strong>Sesión cerrada por seguridad</strong>
@@ -103,7 +99,6 @@
             </div>
         </div>
 
-        <!-- Mensaje de logout exitoso -->
         <div th:if="${param.logout}" class="vs-alert vs-alert--info" role="alert" aria-live="polite">
             <div>
                 <strong>Sesión cerrada correctamente</strong>
@@ -111,7 +106,6 @@
             </div>
         </div>
 
-        <!-- Error backend -->
         <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" aria-live="polite">
             <div>
                 <strong>No se pudo completar el acceso</strong>
@@ -119,7 +113,6 @@
             </div>
         </div>
 
-        <!-- Error UI -->
         <div id="uiError" class="vs-alert vs-alert--error vs-hidden" role="alert" aria-live="polite">
             Revisa los campos y completa la verificación de seguridad.
         </div>
@@ -128,10 +121,10 @@
               method="post"
               th:object="${unifiedLoginForm}"
               class="vs-form"
-              id="loginForm"
-              novalidate>
+              id="loginForm">
 
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <!-- Turnstile automáticamente inyecta el campo cf-turnstile-response -->
 
             <!-- Cédula -->
             <div class="vs-form__group">
@@ -145,6 +138,7 @@
                        maxlength="10"
                        inputmode="numeric"
                        autocomplete="off"
+                       pattern="[0-9]{10}"
                        aria-describedby="cedulaHelp"/>
 
                 <div id="cedulaHelp" class="vs-form__help">
@@ -169,6 +163,7 @@
                        placeholder="A1234B5678"
                        autocomplete="off"
                        inputmode="text"
+                       pattern="[A-Za-z][0-9]{4}[A-Za-z][0-9]{4}"
                        aria-describedby="cdHelp cdError"/>
 
                 <div id="cdHelp" class="vs-form__help">
@@ -200,15 +195,25 @@
 
             <!-- Términos -->
             <label class="vs-checkbox" for="termsAcceptance">
-                <input type="checkbox" class="vs-checkbox__input" id="termsAcceptance" required/>
+                <input type="checkbox"
+                       class="vs-checkbox__input"
+                       id="termsAcceptance"
+                       name="termsAccepted"
+                       value="true"
+                       required/>
                 <span class="vs-checkbox__label">
-          He leído y acepto los términos y condiciones.
-          <button type="button" class="vs-link-btn" id="openTermsBtn">Ver términos</button>
-        </span>
+                    He leído y acepto los términos y condiciones.
+                </span>
             </label>
 
+            <div class="vs-button-group vs-mt-4">
+                <button type="button" class="vs-button vs-button--outline vs-button--sm" id="openTermsBtn">
+                    Ver términos
+                </button>
+            </div>
+
             <button type="submit"
-                    class="vs-button vs-button--primary vs-button--block vs-button--lg"
+                    class="vs-button vs-button--primary vs-button--block vs-button--lg vs-mt-4"
                     id="submitBtn"
                     disabled>
                 Iniciar sesión
@@ -216,11 +221,10 @@
         </form>
 
         <div class="vs-alert vs-alert--info vs-mt-6">
-            <p class="vs-small-muted">
+            <p class="vs-form__help">
                 La información se valida con fuentes oficiales y se gestiona de forma confidencial.
             </p>
         </div>
-
 
     </section>
 </main>
@@ -228,10 +232,3 @@
 <script th:src="@{/js/unified-login.js}" src="/js/unified-login.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-

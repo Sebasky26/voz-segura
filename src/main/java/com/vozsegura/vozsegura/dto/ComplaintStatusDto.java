@@ -15,6 +15,10 @@ public class ComplaintStatusDto {
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private int evidenceCount;
+    private String derivedTo;          // Entidad a la que fue derivado
+    private String analystNotes;       // Notas del analista (para mostrar motivo)
+    private boolean requiresMoreInfo;  // Si requiere más información
+    private String complaintType;      // Tipo de denuncia
 
     public ComplaintStatusDto() {}
 
@@ -27,6 +31,16 @@ public class ComplaintStatusDto {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.evidenceCount = evidenceCount;
+    }
+
+    public ComplaintStatusDto(String trackingId, String status, String severity,
+                               OffsetDateTime createdAt, OffsetDateTime updatedAt, int evidenceCount,
+                               String derivedTo, String analystNotes, boolean requiresMoreInfo, String complaintType) {
+        this(trackingId, status, severity, createdAt, updatedAt, evidenceCount);
+        this.derivedTo = derivedTo;
+        this.analystNotes = analystNotes;
+        this.requiresMoreInfo = requiresMoreInfo;
+        this.complaintType = complaintType;
     }
 
     private String translateStatus(String status) {
@@ -57,4 +71,12 @@ public class ComplaintStatusDto {
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
     public int getEvidenceCount() { return evidenceCount; }
     public void setEvidenceCount(int evidenceCount) { this.evidenceCount = evidenceCount; }
+    public String getDerivedTo() { return derivedTo; }
+    public void setDerivedTo(String derivedTo) { this.derivedTo = derivedTo; }
+    public String getAnalystNotes() { return analystNotes; }
+    public void setAnalystNotes(String analystNotes) { this.analystNotes = analystNotes; }
+    public boolean isRequiresMoreInfo() { return requiresMoreInfo; }
+    public void setRequiresMoreInfo(boolean requiresMoreInfo) { this.requiresMoreInfo = requiresMoreInfo; }
+    public String getComplaintType() { return complaintType; }
+    public void setComplaintType(String complaintType) { this.complaintType = complaintType; }
 }

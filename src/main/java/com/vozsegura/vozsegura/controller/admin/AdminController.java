@@ -245,17 +245,23 @@ public class AdminController {
     private String[][] getEventTypes() {
         return new String[][] {
             {"", "Todos"},
+            {"LOGIN_SUCCESS", "Inicio de sesión exitoso"},
+            {"LOGIN_FAILED", "Intento de acceso fallido"},
+            {"LOGIN_ERROR", "Error en autenticación"},
+            {"LOGIN_STEP1_SUCCESS", "Verificación identidad OK"},
+            {"LOGOUT", "Cierre de sesión"},
             {"COMPLAINT_CREATED", "Denuncia creada"},
             {"STATUS_CHANGED", "Estado cambiado"},
             {"COMPLAINT_CLASSIFIED", "Denuncia clasificada"},
             {"MORE_INFO_REQUESTED", "Información solicitada"},
+            {"ADDITIONAL_INFO_SUBMITTED", "Info adicional enviada"},
             {"COMPLAINT_REJECTED", "Denuncia rechazada"},
             {"COMPLAINT_DERIVED", "Denuncia derivada"},
+            {"CASE_DERIVED", "Caso derivado"},
+            {"EVIDENCE_VIEWED", "Evidencia visualizada"},
             {"RULE_CREATED", "Regla creada"},
             {"RULE_UPDATED", "Regla actualizada"},
-            {"RULE_DELETED", "Regla eliminada"},
-            {"LOGIN_SUCCESS", "Inicio de sesión"},
-            {"LOGIN_FAILED", "Intento fallido"}
+            {"RULE_DELETED", "Regla eliminada"}
         };
     }
 }

@@ -275,4 +275,45 @@ public class ComplaintService {
             auditService.logEvent(actorRole, actorUsername, "CASE_DERIVED", trackingId, "Derivado a: " + destination);
         });
     }
+
+    /**
+     * Agrega información adicional a una denuncia que requiere más información.
+     */
+    @Transactional
+    public void addAdditionalInfo(String trackingId, String additionalInfo, MultipartFile[] newEvidences) {
+        complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
+            // Agregar la información adicional al texto cifrado existente
+            String existingText = "";
+            try {
+                existingText = encryptionService.decryptFromBase64(complaint.getEncryptedText());
+            } catch (Exception e) {
+                existingText = "[Texto original no disponible]";
+            }
+
+            String updatedText = existingText + "\n\n--- INFORMACIÓN ADICIONAL (" +
+                                 OffsetDateTime.now().toString() + ") ---\n" + additionalInfo;
+            complaint.setEncryptedText(encryptionService.encryptToBase64(updatedText));
+
+            // Cambiar estado a IN_REVIEW para que el analista lo revise de nuevo
+            complaint.setStatus("IN_REVIEW");
+            complaint.setRequiresMoreInfo(false);
+            complaint.setUpdatedAt(OffsetDateTime.now());
+
+            // Agregar nota interna
+            String notes = complaint.getAnalystNotes();
+            complaint.setAnalystNotes((notes != null ? notes + "\n" : "") +
+                                      "[Respuesta del denunciante recibida el " +
+                                      OffsetDateTime.now().toString() + "]");
+
+            complaintRepository.save(complaint);
+
+            // Procesar nuevas evidencias si las hay
+            if (newEvidences != null) {
+                processEvidences(complaint, newEvidences);
+            }
+
+            auditService.logEvent("PUBLIC", null, "ADDITIONAL_INFO_SUBMITTED", trackingId,
+                                  "Información adicional enviada por denunciante");
+        });
+    }
 }

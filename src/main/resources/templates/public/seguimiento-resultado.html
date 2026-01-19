@@ -6,12 +6,15 @@
     <title>Voz Segura - Estado de denuncia</title>
     <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
+
 <body class="vs-app">
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
-            <img class="vs-brand__logo" th:src="@{/img/logo-voz-segura.svg?v=4}" src="/img/logo-voz-segura.svg?v=4" alt="Logo de Voz Segura">
+            <img class="vs-brand__logo"
+                 th:src="@{/img/logo-voz-segura.svg?v=4}"
+                 alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
                 <div class="vs-brand__subtitle">Estado de denuncia</div>
@@ -19,60 +22,123 @@
         </div>
     </div>
 </header>
-<main id="contenido" class="vs-container">
+
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-estado">
         <div class="vs-card__header">
             <h1 id="titulo-estado" class="vs-card__title">Estado de tu denuncia</h1>
-            <p class="vs-card__subtitle">Informacion actualizada de tu caso</p>
+            <p class="vs-card__subtitle">Información actualizada de tu caso</p>
         </div>
-        <div class="vs-grid vs-grid--2cols vs-mb-6">
-            <div class="vs-summary-card">
-                <div class="vs-summary-card__label">Codigo de seguimiento</div>
-                <div class="vs-code-pill" th:text="${complaintStatus.trackingId}">XXXX-XXXX</div>
-            </div>
-            <div class="vs-summary-card">
-                <div class="vs-summary-card__label">Estado actual</div>
-                <div>
-                    <span class="vs-badge vs-badge--lg"
-                          th:classappend="${complaintStatus.status == 'PENDING'} ? ' vs-badge--warning' :
-                                         (${complaintStatus.status == 'IN_REVIEW'} ? ' vs-badge--info' :
-                                         (${complaintStatus.status == 'RESOLVED'} ? ' vs-badge--success' :
-                                         (${complaintStatus.status == 'DERIVED'} ? ' vs-badge--secondary' : ' vs-badge--default')))"
+
+        <!-- Resumen -->
+        <div class="vs-section vs-mb-6">
+            <h3 class="vs-section__title">Resumen</h3>
+
+            <div class="vs-grid vs-grid--2cols">
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Código de seguimiento</label>
+                    <code class="vs-code" th:text="${complaintStatus.trackingId}">XXXX-XXXX</code>
+                </div>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Estado actual</label>
+                    <span class="vs-badge"
+                          th:classappend="${complaintStatus.status == 'REJECTED'} ? 'vs-badge--danger' :
+                                          (${complaintStatus.status == 'APPROVED' or complaintStatus.status == 'DERIVED'} ? 'vs-badge--success' :
+                                          (${complaintStatus.status == 'NEEDS_INFO'} ? 'vs-badge--warning' : 'vs-badge--info'))"
                           th:text="${complaintStatus.statusLabel}">Pendiente</span>
                 </div>
             </div>
         </div>
+
+        <!-- Mensaje según estado -->
+        <!-- RECHAZADO -->
+        <div th:if="${complaintStatus.status == 'REJECTED'}" class="vs-alert vs-alert--error vs-mb-6">
+            <h3 class="vs-h4">Denuncia no procede</h3>
+            <p>Tu denuncia ha sido revisada y no procede por el siguiente motivo:</p>
+            <blockquote class="vs-blockquote" th:if="${complaintStatus.analystNotes != null}"
+                        th:text="${complaintStatus.analystNotes}">
+                Motivo no especificado.
+            </blockquote>
+            <p th:if="${complaintStatus.analystNotes == null}">No se especificó un motivo.</p>
+        </div>
+
+        <!-- APROBADO/DERIVADO -->
+        <div th:if="${complaintStatus.status == 'APPROVED' or complaintStatus.status == 'DERIVED'}" class="vs-alert vs-alert--success vs-mb-6">
+            <h3 class="vs-h4">Denuncia aprobada</h3>
+            <p>Tu denuncia ha sido revisada y aprobada. Será atendida por la siguiente entidad:</p>
+            <div class="vs-entity-card" th:if="${complaintStatus.derivedTo != null}">
+                <strong th:text="${complaintStatus.derivedTo}">Entidad receptora</strong>
+            </div>
+            <p th:if="${complaintStatus.derivedTo == null}">La entidad será asignada próximamente.</p>
+        </div>
+
+        <!-- REQUIERE MÁS INFO -->
+        <div th:if="${complaintStatus.status == 'NEEDS_INFO'}" class="vs-alert vs-alert--warning vs-mb-6">
+            <h3 class="vs-h4">Se requiere información adicional</h3>
+            <p>El analista ha solicitado más información para poder procesar tu denuncia:</p>
+            <blockquote class="vs-blockquote" th:if="${complaintStatus.analystNotes != null}"
+                        th:text="${complaintStatus.analystNotes}">
+                Detalle de la solicitud.
+            </blockquote>
+            <div class="vs-mt-4">
+                <a th:href="@{/denuncia/editar/{id}(id=${complaintStatus.trackingId})}"
+                   class="vs-button vs-button--primary">
+                    Agregar información
+                </a>
+            </div>
+        </div>
+
+        <!-- EN REVISIÓN -->
+        <div th:if="${complaintStatus.status == 'IN_REVIEW'}" class="vs-alert vs-alert--info vs-mb-6">
+            <h3 class="vs-h4">Tu denuncia está siendo revisada</h3>
+            <p>Un analista está revisando tu caso. Te notificaremos cuando haya novedades.</p>
+        </div>
+
+        <!-- PENDIENTE -->
+        <div th:if="${complaintStatus.status == 'PENDING'}" class="vs-alert vs-alert--info vs-mb-6">
+            <h3 class="vs-h4">Denuncia en cola de revisión</h3>
+            <p>Tu denuncia ha sido recibida y está en espera de ser asignada a un analista.</p>
+        </div>
+
+        <!-- Detalles -->
         <div class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Detalles</h3>
+
             <div class="vs-grid vs-grid--2cols">
                 <div class="vs-form__group">
                     <label class="vs-form__label">Fecha de registro</label>
-                    <p class="vs-text" th:text="${#temporals.format(complaintStatus.createdAt, 'dd MMMM yyyy - HH:mm')}">01 enero 2026</p>
+                    <p th:text="${#temporals.format(complaintStatus.createdAt, 'dd MMMM yyyy - HH:mm')}">
+                        01 enero 2026 - 00:00
+                    </p>
                 </div>
+
                 <div class="vs-form__group">
-                    <label class="vs-form__label">Ultima actualizacion</label>
-                    <p class="vs-text" th:text="${#temporals.format(complaintStatus.updatedAt, 'dd MMMM yyyy - HH:mm')}">01 enero 2026</p>
+                    <label class="vs-form__label">Última actualización</label>
+                    <p th:text="${#temporals.format(complaintStatus.updatedAt, 'dd MMMM yyyy - HH:mm')}">
+                        01 enero 2026 - 00:00
+                    </p>
                 </div>
+
                 <div class="vs-form__group">
                     <label class="vs-form__label">Evidencias adjuntas</label>
-                    <p class="vs-text" th:text="${complaintStatus.evidenceCount} + ' archivo(s)'">0 archivo(s)</p>
+                    <p th:text="${complaintStatus.evidenceCount} + ' archivo(s)'">0 archivo(s)</p>
+                </div>
+
+                <div class="vs-form__group" th:if="${complaintStatus.complaintType != null}">
+                    <label class="vs-form__label">Tipo de denuncia</label>
+                    <p th:text="${complaintStatus.complaintType}">No clasificado</p>
                 </div>
             </div>
         </div>
-        <div class="vs-alert vs-alert--info vs-mb-6">
-            <h3 class="vs-h3">Informacion importante</h3>
-            <ul class="vs-list">
-                <li>Tu denuncia esta siendo procesada de forma confidencial.</li>
-                <li>No podemos mostrar el contenido por razones de seguridad.</li>
-                <li>Si necesitas agregar informacion, contacta al canal oficial.</li>
-            </ul>
-        </div>
+
         <div class="vs-button-group vs-button-group--space-between">
-            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--secondary">Nueva consulta</a>
-            <a th:href="@{/denuncia/opciones}" href="/denuncia/opciones" class="vs-button vs-button--primary">Volver a opciones</a>
+            <a th:href="@{/seguimiento}" class="vs-button vs-button--secondary">Nueva consulta</a>
+            <a th:href="@{/denuncia/opciones}" class="vs-button vs-button--primary">Volver a opciones</a>
         </div>
+
     </section>
 </main>
+
 </body>
 </html>
-

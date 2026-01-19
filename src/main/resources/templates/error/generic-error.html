@@ -10,14 +10,11 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -27,7 +24,7 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-error">
 
         <div class="vs-card__header">
@@ -42,22 +39,20 @@
         </div>
 
         <div class="vs-section">
-            <p class="vs-text">
+            <p>
                 Si el problema continúa, vuelve a intentarlo más tarde o contacta a soporte con el código de referencia.
             </p>
 
-            <!-- Código de referencia (opcional)
-                 En backend puedes enviar requestId/correlationId. -->
-            <p class="vs-text-muted vs-mt-4">
+            <p class="vs-form__help vs-mt-4">
                 Código de referencia:
-                <code th:text="${requestId}" aria-label="Código de referencia">N/D</code>
+                <code th:text="${requestId ?: 'N/D'}" aria-label="Código de referencia">N/D</code>
             </p>
         </div>
 
         <div class="vs-divider"></div>
 
         <div class="vs-button-group vs-button-group--space-between">
-            <a th:href="@{/}" href="/" class="vs-button vs-button--secondary">
+            <a th:href="@{/}" class="vs-button vs-button--secondary">
                 Volver al inicio
             </a>
 
@@ -73,10 +68,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-

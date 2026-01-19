@@ -3,6 +3,9 @@ package com.vozsegura.vozsegura.controller.staff;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,11 +13,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.vozsegura.vozsegura.domain.entity.Complaint;
 import com.vozsegura.vozsegura.domain.entity.Evidence;
 import com.vozsegura.vozsegura.repo.EvidenceRepository;
+import com.vozsegura.vozsegura.security.EncryptionService;
+import com.vozsegura.vozsegura.service.AuditService;
 import com.vozsegura.vozsegura.service.ComplaintService;
 import com.vozsegura.vozsegura.service.DerivationService;
 
@@ -38,13 +44,19 @@ public class StaffCaseController {
     private final ComplaintService complaintService;
     private final DerivationService derivationService;
     private final EvidenceRepository evidenceRepository;
+    private final EncryptionService encryptionService;
+    private final AuditService auditService;
 
     public StaffCaseController(ComplaintService complaintService,
                                 DerivationService derivationService,
-                                EvidenceRepository evidenceRepository) {
+                                EvidenceRepository evidenceRepository,
+                                EncryptionService encryptionService,
+                                AuditService auditService) {
         this.complaintService = complaintService;
         this.derivationService = derivationService;
         this.evidenceRepository = evidenceRepository;
+        this.encryptionService = encryptionService;
+        this.auditService = auditService;
     }
 
     @GetMapping({"/casos", "/casos-list", ""})
@@ -196,6 +208,58 @@ public class StaffCaseController {
         complaintService.rejectComplaint(trackingId, motivo, username);
         redirectAttributes.addFlashAttribute("success", "Denuncia rechazada");
         return "redirect:/staff/casos/" + trackingId;
+    }
+
+    /**
+     * Descarga una evidencia específica (descifrada).
+     */
+    @GetMapping("/evidencias/{id}")
+    @ResponseBody
+    public ResponseEntity<byte[]> downloadEvidence(@PathVariable("id") Long id,
+                                                   HttpSession session) {
+        if (!isAuthenticated(session)) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Optional<Evidence> evidenceOpt = evidenceRepository.findById(id);
+        if (evidenceOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Evidence evidence = evidenceOpt.get();
+
+        try {
+            // Descifrar el contenido
+            byte[] encryptedBytes = evidence.getEncryptedContent();
+            String encryptedB64 = new String(encryptedBytes, java.nio.charset.StandardCharsets.UTF_8);
+            String decryptedB64 = encryptionService.decryptFromBase64(encryptedB64);
+            byte[] decryptedContent = java.util.Base64.getDecoder().decode(decryptedB64);
+
+            // Registrar auditoría
+            String username = getUsername(session);
+            auditService.logEvent("ANALYST", username, "EVIDENCE_VIEWED",
+                                  evidence.getComplaint().getTrackingId(),
+                                  "Evidencia visualizada: " + evidence.getFileName());
+
+            // Determinar content type
+            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            if (evidence.getContentType() != null) {
+                try {
+                    mediaType = MediaType.parseMediaType(evidence.getContentType());
+                } catch (Exception e) {
+                    // Usar default
+                }
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + evidence.getFileName() + "\"")
+                    .body(decryptedContent);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     private boolean isAuthenticated(HttpSession session) {

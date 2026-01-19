@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -10,14 +10,11 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -27,7 +24,7 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-bio">
 
         <div class="vs-card__header">
@@ -35,12 +32,10 @@
             <p class="vs-card__subtitle">Sube una fotografía para continuar</p>
         </div>
 
-        <!-- Mensaje UI (sin alert) -->
         <div id="bioUiError" class="vs-alert vs-alert--error vs-mb-4 vs-hidden" role="alert">
             Selecciona una imagen válida antes de continuar.
         </div>
 
-        <!-- “Cámara” (UI) -->
         <div class="vs-camera-container" aria-label="Vista previa de la imagen">
             <div class="vs-camera-preview">
                 <div class="vs-camera-frame" id="cameraPlaceholder" aria-hidden="true">
@@ -55,7 +50,6 @@
             </div>
         </div>
 
-        <!-- Recomendaciones -->
         <div class="vs-info-box" aria-label="Recomendaciones">
             <div class="vs-info-box__title">Recomendaciones</div>
             <ul class="vs-info-box__list">
@@ -65,14 +59,12 @@
             </ul>
         </div>
 
-        <!-- Formulario -->
         <form th:action="@{/denuncia/biometric}"
               method="post"
               enctype="multipart/form-data"
               th:object="${biometricOtpForm}"
               class="vs-form"
-              id="biometricForm"
-              novalidate>
+              id="biometricForm">
 
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
@@ -81,10 +73,10 @@
                    accept="image/*"
                    id="photoInput"
                    class="vs-hidden"
-                   aria-hidden="true"/>
+                   required />
 
             <div class="vs-button-group vs-button-group--space-between">
-                <a th:href="@{/auth/login}" href="/auth/login" class="vs-button vs-button--ghost">
+                <a th:href="@{/auth/login}" class="vs-button vs-button--ghost">
                     Volver al inicio
                 </a>
 
@@ -97,7 +89,6 @@
             </div>
         </form>
 
-        <!-- Aviso -->
         <div class="vs-alert vs-alert--info vs-mt-6" role="status" aria-live="polite">
             La imagen se usa únicamente para esta verificación y se maneja de forma segura.
         </div>
@@ -109,10 +100,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-

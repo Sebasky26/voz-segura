@@ -6,8 +6,9 @@
     <title>Voz Segura — Detalle de caso</title>
     <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
+
 <body class="vs-app">
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
         <div class="vs-brand" aria-label="Voz Segura">
@@ -23,122 +24,221 @@
         </nav>
     </div>
 </header>
-<main id="contenido" class="vs-container vs-container-wide">
+
+<main class="vs-container vs-container-wide">
     <section class="vs-card" aria-labelledby="titulo-caso">
         <div class="vs-card__header">
             <h1 id="titulo-caso" class="vs-card__title">Detalle de caso</h1>
-            <p class="vs-card__subtitle">Código: <code class="vs-code-pill" th:text="${complaint.trackingId}">ABC-123</code></p>
+            <p class="vs-card__subtitle">
+                Código: <code th:text="${complaint.trackingId}">ABC-123</code>
+            </p>
         </div>
+
         <div th:if="${success}" class="vs-alert vs-alert--success" role="status" th:text="${success}"></div>
         <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" th:text="${error}"></div>
-        <div class="vs-grid vs-grid--3cols vs-mb-6">
-            <div class="vs-summary-card">
-                <div class="vs-summary-card__label">Estado</div>
-                <span class="vs-badge vs-badge--lg" th:classappend="${complaint.status == 'PENDING'} ? ' vs-badge--warning' : (${complaint.status == 'IN_REVIEW'} ? ' vs-badge--info' : (${complaint.status == 'APPROVED' or complaint.status == 'DERIVED'} ? ' vs-badge--success' : (${complaint.status == 'NEEDS_INFO'} ? ' vs-badge--warning' : (${complaint.status == 'REJECTED'} ? ' vs-badge--danger' : ' vs-badge--default'))))" th:text="${complaint.status}">PENDING</span>
-            </div>
-            <div class="vs-summary-card">
-                <div class="vs-summary-card__label">Prioridad</div>
-                <span class="vs-badge vs-badge--lg" th:classappend="${complaint.priority == 'CRITICAL'} ? ' vs-badge--danger' : (${complaint.priority == 'HIGH'} ? ' vs-badge--warning' : (${complaint.priority == 'MEDIUM'} ? ' vs-badge--info' : ' vs-badge--default'))" th:text="${complaint.priority ?: 'Sin asignar'}">MEDIUM</span>
-            </div>
-            <div class="vs-summary-card">
-                <div class="vs-summary-card__label">Tipo</div>
-                <span class="vs-badge vs-badge--lg" th:text="${complaint.complaintType ?: 'Sin clasificar'}">-</span>
+
+        <!-- Resumen (sin summary-card ni badges inventados) -->
+        <div class="vs-section vs-mb-6">
+            <h3 class="vs-section__title">Resumen</h3>
+
+            <div class="vs-grid vs-grid--3cols">
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Estado</label>
+                    <p th:text="${complaint.status}">PENDING</p>
+                </div>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Prioridad</label>
+                    <p th:text="${complaint.priority ?: 'Sin asignar'}">MEDIUM</p>
+                </div>
+
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Tipo</label>
+                    <p th:text="${complaint.complaintType ?: 'Sin clasificar'}">-</p>
+                </div>
             </div>
         </div>
+
         <div th:if="${complaint.derivedTo}" class="vs-alert vs-alert--success vs-mb-6">
             <strong>Derivado a:</strong> <span th:text="${complaint.derivedTo}"></span>
         </div>
+
         <div class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Empresa denunciada</h3>
             <div class="vs-grid vs-grid--2cols">
-                <div class="vs-form__group"><label class="vs-form__label">Nombre</label><p th:text="${complaint.companyName}">Empresa</p></div>
-                <div class="vs-form__group"><label class="vs-form__label">Contacto</label><p th:text="${complaint.companyContact}">contacto</p></div>
-                <div class="vs-form__group vs-grid--full"><label class="vs-form__label">Dirección</label><p th:text="${complaint.companyAddress}">Dirección</p></div>
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Nombre</label>
+                    <p th:text="${complaint.companyName}">Empresa</p>
+                </div>
+                <div class="vs-form__group">
+                    <label class="vs-form__label">Contacto</label>
+                    <p th:text="${complaint.companyContact}">contacto</p>
+                </div>
+                <div class="vs-form__group vs-grid--full">
+                    <label class="vs-form__label">Dirección</label>
+                    <p th:text="${complaint.companyAddress}">Dirección</p>
+                </div>
             </div>
         </div>
+
         <div class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Contenido de la denuncia</h3>
             <div class="vs-textarea-readonly" th:text="${decryptedText}">Contenido...</div>
         </div>
+
         <div class="vs-section vs-mb-6">
-            <h3 class="vs-section__title">Evidencias (<span th:text="${#lists.size(evidences)}">0</span>)</h3>
-            <div th:if="${#lists.isEmpty(evidences)}" class="vs-alert vs-alert--info">No hay evidencias adjuntas.</div>
+            <h3 class="vs-section__title">
+                Evidencias (<span th:text="${#lists.size(evidences)}">0</span>)
+            </h3>
+
+            <div th:if="${#lists.isEmpty(evidences)}" class="vs-alert vs-alert--info">
+                No hay evidencias adjuntas.
+            </div>
+
             <div th:unless="${#lists.isEmpty(evidences)}" class="vs-table-wrapper">
                 <table class="vs-table">
-                    <thead><tr><th>Archivo</th><th>Tipo</th><th>Tamaño</th></tr></thead>
-                    <tbody><tr th:each="ev : ${evidences}"><td th:text="${ev.fileName}">archivo</td><td th:text="${ev.contentType}">tipo</td><td th:text="${ev.sizeBytes / 1024 + ' KB'}">100 KB</td></tr></tbody>
+                    <thead>
+                    <tr><th>Archivo</th><th>Tipo</th><th>Tamaño</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="ev : ${evidences}">
+                        <td th:text="${ev.fileName}">archivo</td>
+                        <td th:text="${ev.contentType}">tipo</td>
+                        <td th:text="${ev.sizeBytes / 1024 + ' KB'}">100 KB</td>
+                        <td>
+                            <a th:href="@{/staff/evidencias/{id}(id=${ev.id})}"
+                               target="_blank"
+                               class="vs-button vs-button--sm vs-button--secondary">
+                                Ver
+                            </a>
+                            <a th:href="@{/staff/evidencias/{id}(id=${ev.id})}"
+                               download
+                               th:download="${ev.fileName}"
+                               class="vs-button vs-button--sm vs-button--outline">
+                                Descargar
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
+
         <div th:if="${complaint.analystNotes}" class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Notas del analista</h3>
             <div class="vs-textarea-readonly" th:text="${complaint.analystNotes}"></div>
         </div>
+
         <div class="vs-section vs-mb-6" th:unless="${complaint.status == 'DERIVED' or complaint.status == 'REJECTED'}">
             <h3 class="vs-section__title">Clasificación</h3>
+
             <form th:action="@{/staff/casos/{id}/clasificar(id=${complaint.trackingId})}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
                 <div class="vs-grid vs-grid--3cols">
                     <div class="vs-form__group">
                         <label class="vs-form__label" for="complaintType">Tipo</label>
                         <select id="complaintType" name="complaintType" class="vs-select" required>
                             <option value="">Seleccionar...</option>
-                            <option th:each="t : ${complaintTypes}" th:value="${t[0]}" th:text="${t[1]}" th:selected="${complaint.complaintType == t[0]}"></option>
+                            <option th:each="t : ${complaintTypes}"
+                                    th:value="${t[0]}"
+                                    th:text="${t[1]}"
+                                    th:selected="${complaint.complaintType == t[0]}"></option>
                         </select>
                     </div>
+
                     <div class="vs-form__group">
                         <label class="vs-form__label" for="priority">Prioridad</label>
                         <select id="priority" name="priority" class="vs-select" required>
-                            <option th:each="p : ${priorities}" th:value="${p[0]}" th:text="${p[1]}" th:selected="${complaint.priority == p[0]}"></option>
+                            <option th:each="p : ${priorities}"
+                                    th:value="${p[0]}"
+                                    th:text="${p[1]}"
+                                    th:selected="${complaint.priority == p[0]}"></option>
                         </select>
                     </div>
-                    <div class="vs-form__group"><label class="vs-form__label">&nbsp;</label><button type="submit" class="vs-button vs-button--secondary">Guardar</button></div>
+
+                    <div class="vs-form__group">
+                        <label class="vs-form__label">&nbsp;</label>
+                        <button type="submit" class="vs-button vs-button--secondary">Guardar</button>
+                    </div>
                 </div>
+
                 <div class="vs-form__group vs-mt-4">
                     <label class="vs-form__label" for="analystNotes">Notas internas</label>
-                    <textarea id="analystNotes" name="analystNotes" class="vs-textarea" rows="2"></textarea>
+                    <textarea id="analystNotes"
+                              name="analystNotes"
+                              class="vs-textarea"
+                              rows="2"
+                              th:text="${complaint.analystNotes}"></textarea>
                 </div>
             </form>
         </div>
+
         <div class="vs-section vs-mb-6" th:unless="${complaint.status == 'DERIVED' or complaint.status == 'REJECTED'}">
             <h3 class="vs-section__title">Acciones</h3>
+
             <div class="vs-grid vs-grid--2cols">
-                <form th:action="@{/staff/casos/{id}/estado(id=${complaint.trackingId})}" method="post" class="vs-action-box">
+                <form th:action="@{/staff/casos/{id}/estado(id=${complaint.trackingId})}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
                     <div class="vs-form__group">
                         <label class="vs-form__label" for="newStatus">Cambiar estado</label>
                         <div class="vs-input-group">
                             <select id="newStatus" name="newStatus" class="vs-select">
-                                <option th:each="s : ${statuses}" th:value="${s[0]}" th:text="${s[1]}" th:selected="${complaint.status == s[0]}"></option>
+                                <option th:each="s : ${statuses}"
+                                        th:value="${s[0]}"
+                                        th:text="${s[1]}"
+                                        th:selected="${complaint.status == s[0]}"></option>
                             </select>
                             <button type="submit" class="vs-button vs-button--secondary">Actualizar</button>
                         </div>
                     </div>
                 </form>
-                <form th:action="@{/staff/casos/{id}/aprobar-derivar(id=${complaint.trackingId})}" method="post" class="vs-action-box">
+
+                <form th:action="@{/staff/casos/{id}/aprobar-derivar(id=${complaint.trackingId})}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
                     <div class="vs-form__group">
                         <label class="vs-form__label">Aprobar y enviar</label>
                         <p class="vs-form__help vs-mb-2">El sistema derivará según las reglas.</p>
-                        <button type="submit" class="vs-button vs-button--primary" th:disabled="${complaint.complaintType == null}">Aprobar y derivar</button>
+                        <button type="submit"
+                                class="vs-button vs-button--primary"
+                                th:disabled="${complaint.complaintType == null}">
+                            Aprobar y derivar
+                        </button>
                     </div>
                 </form>
             </div>
+
             <div class="vs-grid vs-grid--2cols vs-mt-4">
-                <form th:action="@{/staff/casos/{id}/solicitar-info(id=${complaint.trackingId})}" method="post" class="vs-action-box">
+                <form th:action="@{/staff/casos/{id}/solicitar-info(id=${complaint.trackingId})}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <div class="vs-form__group"><label class="vs-form__label" for="motivoInfo">Solicitar información</label><textarea id="motivoInfo" name="motivo" class="vs-textarea" rows="2"></textarea></div>
+
+                    <div class="vs-form__group">
+                        <label class="vs-form__label" for="motivoInfo">Solicitar información</label>
+                        <textarea id="motivoInfo" name="motivo" class="vs-textarea" rows="2"></textarea>
+                    </div>
                     <button type="submit" class="vs-button vs-button--secondary vs-mt-2">Solicitar</button>
                 </form>
-                <form th:action="@{/staff/casos/{id}/rechazar(id=${complaint.trackingId})}" method="post" class="vs-action-box">
+
+                <form th:action="@{/staff/casos/{id}/rechazar(id=${complaint.trackingId})}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <div class="vs-form__group"><label class="vs-form__label" for="motivoRechazo">Rechazar</label><textarea id="motivoRechazo" name="motivo" class="vs-textarea" rows="2" required></textarea></div>
+
+                    <div class="vs-form__group">
+                        <label class="vs-form__label" for="motivoRechazo">Rechazar</label>
+                        <textarea id="motivoRechazo" name="motivo" class="vs-textarea" rows="2" required></textarea>
+                    </div>
                     <button type="submit" class="vs-button vs-button--ghost vs-mt-2">Rechazar</button>
                 </form>
             </div>
         </div>
-        <div class="vs-button-group vs-mt-6"><a th:href="@{/staff/casos}" class="vs-button vs-button--secondary">Volver al listado</a></div>
+
+        <div class="vs-button-group vs-mt-6">
+            <a th:href="@{/staff/casos}" class="vs-button vs-button--secondary">Volver al listado</a>
+        </div>
+
     </section>
 </main>
+
 </body>
 </html>

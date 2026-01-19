@@ -7,7 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/main.css?v=6}" href="/css/main.css?v=6"/>
 </head>
 <body class="vs-app">
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
         <div class="vs-brand" aria-label="Voz Segura">
@@ -25,41 +25,54 @@
         </nav>
     </div>
 </header>
-<main id="contenido" class="vs-container vs-container-wide">
+
+<main class="vs-container vs-container-wide">
     <section class="vs-card" aria-labelledby="titulo-reglas">
         <div class="vs-card__header">
             <h1 id="titulo-reglas" class="vs-card__title">Reglas de derivación</h1>
-            <p class="vs-card__subtitle">Configure hacia qué entidad se derivan las denuncias según sus características
+            <p class="vs-card__subtitle">
+                Configure hacia qué entidad se derivan las denuncias según sus características
             </p>
         </div>
+
         <div th:if="${success}" class="vs-alert vs-alert--success" role="status" th:text="${success}"></div>
         <div th:if="${error}" class="vs-alert vs-alert--error" role="alert" th:text="${error}"></div>
 
         <!-- Formulario para crear regla -->
         <div class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Nueva regla</h3>
+
             <form th:action="@{/admin/reglas/crear}" method="post" class="vs-form">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
                 <div class="vs-grid vs-grid--2cols">
                     <div class="vs-form__group">
                         <label class="vs-form__label vs-form__label--required" for="name">Nombre</label>
-                        <input type="text" id="name" name="name" class="vs-input" required maxlength="64"
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               class="vs-input"
+                               required
+                               maxlength="64"
+                               autocomplete="off"
                                placeholder="Ej: Acoso laboral crítico"/>
                     </div>
+
                     <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="destination">Entidad de destino
-                        </label>
+                        <label class="vs-form__label vs-form__label--required" for="destination">Entidad de destino</label>
                         <select id="destination" name="destination" class="vs-select" required>
                             <option value="">Seleccionar entidad...</option>
                             <option th:each="e : ${entidades}" th:value="${e.code}" th:text="${e.name}"></option>
                         </select>
                     </div>
+
                     <div class="vs-form__group">
                         <label class="vs-form__label" for="complaintTypeMatch">Tipo de denuncia</label>
                         <select id="complaintTypeMatch" name="complaintTypeMatch" class="vs-select">
                             <option th:each="t : ${complaintTypes}" th:value="${t[0]}" th:text="${t[1]}"></option>
                         </select>
                     </div>
+
                     <div class="vs-form__group">
                         <label class="vs-form__label" for="priorityMatch">Prioridad</label>
                         <select id="priorityMatch" name="priorityMatch" class="vs-select">
@@ -67,6 +80,7 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="vs-button-group vs-mt-4">
                     <button type="submit" class="vs-button vs-button--primary">Crear regla</button>
                 </div>
@@ -76,40 +90,64 @@
         <!-- Listado de reglas -->
         <div class="vs-section">
             <h3 class="vs-section__title">Reglas configuradas</h3>
+
             <div th:if="${#lists.isEmpty(rules)}" class="vs-alert vs-alert--info">
                 No hay reglas configuradas. Cree una nueva regla arriba.
             </div>
+
             <div th:unless="${#lists.isEmpty(rules)}" class="vs-rules-grid">
-                <div th:each="rule : ${rules}" class="vs-rule-card" th:classappend="${!rule.active} ? ' vs-rule-card--inactive'">
+                <div th:each="rule : ${rules}"
+                     class="vs-rule-card"
+                     th:classappend="${!rule.active} ? ' vs-rule-card--inactive'">
+
                     <div class="vs-rule-card__header">
                         <span class="vs-rule-card__name" th:text="${rule.name}">Nombre de regla</span>
-                        <span class="vs-badge" th:classappend="${rule.active} ? ' vs-badge--success' : ' vs-badge--default'"
-                              th:text="${rule.active} ? 'Activa' : 'Inactiva'">Estado</span>
+                        <span class="vs-form__help" th:text="${rule.active} ? 'Activa' : 'Inactiva'">Estado</span>
                     </div>
+
                     <div class="vs-rule-card__body">
                         <div class="vs-rule-card__item">
                             <span class="vs-rule-card__label">Destino:</span>
                             <span class="vs-rule-card__value" th:text="${rule.destination}">Ministerio</span>
                         </div>
+
                         <div class="vs-rule-card__item">
                             <span class="vs-rule-card__label">Tipo:</span>
                             <span class="vs-rule-card__value" th:text="${rule.complaintTypeMatch ?: 'Cualquiera'}">-</span>
                         </div>
+
                         <div class="vs-rule-card__item">
                             <span class="vs-rule-card__label">Prioridad:</span>
                             <span class="vs-rule-card__value" th:text="${rule.priorityMatch ?: 'Cualquiera'}">-</span>
                         </div>
                     </div>
+
                     <div class="vs-rule-card__actions">
-                        <form th:if="${rule.active}" th:action="@{/admin/reglas/{id}/eliminar(id=${rule.id})}" method="post" class="vs-inline">
+                        <form th:if="${rule.active}"
+                              th:action="@{/admin/reglas/{id}/eliminar(id=${rule.id})}"
+                              method="post"
+                              class="vs-inline">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <button type="submit" class="vs-button vs-button--ghost vs-button--sm">Desactivar</button>
+                            <button type="submit"
+                                    class="vs-button vs-button--ghost vs-button--sm"
+                                    onclick="return confirm('¿Seguro que deseas desactivar esta regla?');">
+                                Desactivar
+                            </button>
                         </form>
-                        <form th:unless="${rule.active}" th:action="@{/admin/reglas/{id}/activar(id=${rule.id})}" method="post" class="vs-inline">
+
+                        <form th:unless="${rule.active}"
+                              th:action="@{/admin/reglas/{id}/activar(id=${rule.id})}"
+                              method="post"
+                              class="vs-inline">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <button type="submit" class="vs-button vs-button--secondary vs-button--sm">Activar</button>
+                            <button type="submit"
+                                    class="vs-button vs-button--secondary vs-button--sm"
+                                    onclick="return confirm('¿Seguro que deseas activar esta regla?');">
+                                Activar
+                            </button>
                         </form>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -119,5 +157,6 @@
         </div>
     </section>
 </main>
+
 </body>
 </html>

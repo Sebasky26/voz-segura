@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -10,14 +10,11 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -27,7 +24,7 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card vs-center" aria-labelledby="titulo-ok">
 
         <div class="vs-card__header">
@@ -35,7 +32,6 @@
             <p class="vs-card__subtitle">Tu caso fue registrado y se manejará con total confidencialidad.</p>
         </div>
 
-        <!-- Código -->
         <div th:if="${trackingId}" class="vs-alert vs-alert--success vs-mt-6" role="status" aria-live="polite">
             <div class="vs-track">
                 <div class="vs-track__title">Código de seguimiento</div>
@@ -56,8 +52,7 @@
             </div>
         </div>
 
-        <!-- Qué sigue -->
-        <div class="vs-alert vs-alert--info vs-mt-6 vs-text-left">
+        <div class="vs-alert vs-alert--info vs-mt-6">
             <h3 class="vs-h3">¿Qué sigue ahora?</h3>
             <ul class="vs-list">
                 <li>Tu denuncia será revisada por personal autorizado.</li>
@@ -70,10 +65,10 @@
         <div class="vs-divider"></div>
 
         <div class="vs-button-group vs-button-group--space-between">
-            <a th:href="@{/seguimiento}" href="/seguimiento" class="vs-button vs-button--secondary">
+            <a th:href="@{/seguimiento}" class="vs-button vs-button--secondary">
                 Consultar estado
             </a>
-            <a th:href="@{/denuncia/opciones}" href="/denuncia/opciones" class="vs-button vs-button--primary">
+            <a th:href="@{/denuncia/opciones}" class="vs-button vs-button--primary">
                 Volver a opciones
             </a>
         </div>
@@ -85,10 +80,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-

@@ -10,14 +10,11 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container">
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -27,7 +24,7 @@
     </div>
 </header>
 
-<main id="contenido" class="vs-container">
+<main class="vs-container">
     <section class="vs-card" aria-labelledby="titulo-terms">
 
         <div class="vs-card__header">
@@ -37,70 +34,57 @@
 
         <div class="vs-terms">
 
-            <div class="vs-terms-block">
-                <h3>Validación de identidad</h3>
-                <p>
-                    Los datos de verificación se usan únicamente para confirmar que el usuario es auténtico y evitar suplantaciones.
-                    Esta información no se muestra al personal que revisa denuncias.
-                </p>
-                <ul>
-                    <li>Se usa solo durante el acceso.</li>
-                    <li>No se publica ni se comparte con analistas.</li>
-                </ul>
-            </div>
+            <h3>Validación de identidad</h3>
+            <p>
+                Los datos de verificación se usan únicamente para confirmar que el usuario es auténtico y evitar suplantaciones.
+                Esta información no se muestra al personal que revisa denuncias.
+            </p>
+            <ul>
+                <li>Se usa solo durante el acceso.</li>
+                <li>No se publica ni se comparte con analistas.</li>
+            </ul>
 
-            <div class="vs-terms-block">
-                <h3>Privacidad del denunciante</h3>
-                <p>
-                    El sistema está diseñado para que la identidad del denunciante no sea visible para analistas, operadores
-                    ni revisores del caso.
-                </p>
-            </div>
+            <h3>Privacidad del denunciante</h3>
+            <p>
+                El sistema está diseñado para que la identidad del denunciante no sea visible para analistas, operadores
+                ni revisores del caso.
+            </p>
 
-            <div class="vs-terms-block">
-                <h3>Evidencias</h3>
-                <p>
-                    Los archivos se almacenan de forma protegida y se conservan solo el tiempo necesario para gestionar el caso.
-                </p>
-                <ul>
-                    <li>Evita incluir datos personales innecesarios.</li>
-                    <li>Sube solo archivos relacionados con el hecho.</li>
-                </ul>
-            </div>
+            <h3>Evidencias</h3>
+            <p>
+                Los archivos se almacenan de forma protegida y se conservan solo el tiempo necesario para gestionar el caso.
+            </p>
+            <ul>
+                <li>Evita incluir datos personales innecesarios.</li>
+                <li>Sube solo archivos relacionados con el hecho.</li>
+            </ul>
 
-            <div class="vs-terms-block">
-                <h3>Registros del sistema</h3>
-                <p>
-                    Los registros guardan acciones operativas para auditoría y trazabilidad, sin incluir datos personales del usuario.
-                </p>
-            </div>
+            <h3>Registros del sistema</h3>
+            <p>
+                Los registros guardan acciones operativas para auditoría y trazabilidad, sin incluir datos personales del usuario.
+            </p>
 
-            <div class="vs-terms-block">
-                <h3>Uso permitido</h3>
-                <p>
-                    No se permite enviar información falsa, malintencionada o contenido que no esté relacionado con la denuncia.
-                </p>
-            </div>
+            <h3>Uso permitido</h3>
+            <p>
+                No se permite enviar información falsa, malintencionada o contenido que no esté relacionado con la denuncia.
+            </p>
 
-            <div class="vs-terms-block">
-                <h3>Aceptación</h3>
-                <p>
-                    Para utilizar la plataforma, debes aceptar estos términos. Si no estás de acuerdo, puedes volver sin continuar.
-                </p>
-            </div>
+            <h3>Aceptación</h3>
+            <p>
+                Para utilizar la plataforma, debes aceptar estos términos. Si no estás de acuerdo, puedes volver sin continuar.
+            </p>
 
         </div>
 
         <div class="vs-divider"></div>
 
         <div class="vs-button-group vs-button-group--space-between">
-            <a th:href="@{/auth/login}" href="/auth/access" class="vs-button vs-button--secondary">
+            <a th:href="@{/auth/login}" class="vs-button vs-button--secondary">
                 Volver
             </a>
 
-            <!-- Si necesitas registrar aceptación real, esto debe ser POST en backend -->
-            <a th:href="@{/auth/login}" href="/auth/access" class="vs-button vs-button--primary">
-                Aceptar y volver
+            <a th:href="@{/auth/login}" class="vs-button vs-button--primary">
+                Volver al acceso
             </a>
         </div>
 
@@ -109,10 +93,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-

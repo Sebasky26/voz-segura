@@ -7,7 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
 </head>
 <body class="vs-app">
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
+
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
         <div class="vs-brand" aria-label="Voz Segura">
@@ -25,50 +25,105 @@
         </nav>
     </div>
 </header>
-<main id="contenido" class="vs-container vs-container-wide">
+
+<main class="vs-container vs-container-wide">
     <section class="vs-card" aria-labelledby="titulo-logs">
         <div class="vs-card__header">
             <h1 id="titulo-logs" class="vs-card__title">Logs del sistema</h1>
             <p class="vs-card__subtitle">Registro de actividad (sin datos personales)</p>
         </div>
-        <form th:action="@{/admin/logs}" method="get" class="vs-filters vs-mb-6">
+
+        <form th:action="@{/admin/logs}" method="get" class="vs-mb-6">
             <div class="vs-grid vs-grid--3cols">
                 <div class="vs-form__group">
                     <label class="vs-form__label" for="eventType">Tipo de evento</label>
                     <select id="eventType" name="eventType" class="vs-select">
-                        <option th:each="t : ${eventTypes}" th:value="${t[0]}" th:text="${t[1]}" th:selected="${selectedEventType == t[0]}"></option>
+                        <option th:each="t : ${eventTypes}"
+                                th:value="${t[0]}"
+                                th:text="${t[1]}"
+                                th:selected="${selectedEventType == t[0]}">
+                        </option>
                     </select>
                 </div>
-                <div class="vs-form__group vs-filters__actions">
-                    <button type="submit" class="vs-button vs-button--primary">Filtrar</button>
-                    <a th:href="@{/admin/logs}" class="vs-button vs-button--secondary">Limpiar</a>
+
+                <div class="vs-form__group">
+                    <div class="vs-button-group">
+                        <button type="submit" class="vs-button vs-button--primary">Filtrar</button>
+                        <a th:href="@{/admin/logs}" class="vs-button vs-button--secondary">Limpiar</a>
+                    </div>
                 </div>
             </div>
         </form>
+
         <div class="vs-table-wrapper">
             <table class="vs-table">
-                <thead><tr><th>Fecha/Hora</th><th>Tipo</th><th>Rol</th><th>Referencia</th><th>Detalle</th></tr></thead>
+                <thead>
+                <tr>
+                    <th>Fecha/Hora</th>
+                    <th>Tipo</th>
+                    <th>Rol</th>
+                    <th>Usuario</th>
+                    <th>Referencia</th>
+                    <th>Detalle</th>
+                </tr>
+                </thead>
                 <tbody>
-                    <tr th:if="${events.isEmpty()}"><td colspan="5" class="vs-table-empty">No hay eventos.</td></tr>
-                    <tr th:each="event : ${events}">
-                        <td th:text="${#temporals.format(event.eventTime, 'dd MMM yyyy HH:mm:ss')}">01 ene 2026</td>
-                        <td><span class="vs-badge" th:text="${event.eventType}">EVENTO</span></td>
-                        <td th:text="${event.actorRole ?: 'SYSTEM'}">ANALYST</td>
-                        <td><code class="vs-code-pill" th:if="${event.trackingIdRef}" th:text="${#strings.abbreviate(event.trackingIdRef, 15)}">ABC</code><span th:unless="${event.trackingIdRef}">-</span></td>
-                        <td th:text="${event.details ?: '-'}">Detalle</td>
-                    </tr>
+                <tr th:if="${events.isEmpty()}">
+                    <td colspan="6" class="vs-table-empty">No hay eventos.</td>
+                </tr>
+
+                <tr th:each="event : ${events}">
+                    <td th:text="${#temporals.format(event.eventTime, 'dd MMM yyyy HH:mm:ss')}">01 ene 2026</td>
+
+                    <td>
+                        <span class="vs-badge"
+                              th:classappend="${event.eventType.contains('SUCCESS')} ? 'vs-badge--success' :
+                                              (${event.eventType.contains('FAILED') or event.eventType.contains('ERROR')} ? 'vs-badge--danger' :
+                                              (${event.eventType.contains('CREATED') or event.eventType.contains('SUBMITTED')} ? 'vs-badge--info' : 'vs-badge--warning'))"
+                              th:text="${event.eventType}">EVENTO</span>
+                    </td>
+
+                    <td th:text="${event.actorRole ?: 'SYSTEM'}">ANALYST</td>
+
+                    <td>
+                        <code th:if="${event.actorUsername}"
+                              th:text="${event.actorUsername}">USR-XXXXX</code>
+                        <span th:unless="${event.actorUsername}">-</span>
+                    </td>
+
+                    <td>
+                        <code th:if="${event.trackingId}"
+                              th:text="${#strings.abbreviate(event.trackingId, 15)}">ABC</code>
+                        <span th:unless="${event.trackingId}">-</span>
+                    </td>
+
+                    <td th:text="${event.details ?: '-'}">Detalle</td>
+                </tr>
                 </tbody>
             </table>
         </div>
-        <div class="vs-list-footer vs-mt-4" th:if="${totalPages > 1}">
+
+        <div class="vs-mt-4" th:if="${totalPages > 1}">
             <div class="vs-button-group">
-                <a th:if="${currentPage > 0}" th:href="@{/admin/logs(page=${currentPage - 1}, eventType=${selectedEventType})}" class="vs-button vs-button--secondary vs-button--sm">Anterior</a>
-                <span class="vs-form__help">Página <span th:text="${currentPage + 1}">1</span> de <span th:text="${totalPages}">10</span></span>
-                <a th:if="${currentPage < totalPages - 1}" th:href="@{/admin/logs(page=${currentPage + 1}, eventType=${selectedEventType})}" class="vs-button vs-button--secondary vs-button--sm">Siguiente</a>
+                <a th:if="${currentPage > 0}"
+                   th:href="@{/admin/logs(page=${currentPage - 1}, eventType=${selectedEventType})}"
+                   class="vs-button vs-button--secondary vs-button--sm">Anterior</a>
+
+                <span class="vs-form__help">
+                    Página <span th:text="${currentPage + 1}">1</span> de <span th:text="${totalPages}">10</span>
+                </span>
+
+                <a th:if="${currentPage < totalPages - 1}"
+                   th:href="@{/admin/logs(page=${currentPage + 1}, eventType=${selectedEventType})}"
+                   class="vs-button vs-button--secondary vs-button--sm">Siguiente</a>
             </div>
         </div>
-        <div class="vs-button-group vs-mt-6"><a th:href="@{/admin/panel}" class="vs-button vs-button--secondary">Volver al panel</a></div>
+
+        <div class="vs-button-group vs-mt-6">
+            <a th:href="@{/admin/panel}" class="vs-button vs-button--secondary">Volver al panel</a>
+        </div>
     </section>
 </main>
+
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -10,15 +10,12 @@
 
 <body class="vs-app">
 
-<a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
-
 <header class="vs-header">
     <div class="vs-container vs-container-wide">
 
         <div class="vs-brand" aria-label="Voz Segura">
             <img class="vs-brand__logo"
                  th:src="@{/img/logo-voz-segura.svg?v=4}"
-                 src="/img/logo-voz-segura.svg?v=4"
                  alt="Logo de Voz Segura">
             <div class="vs-brand__text">
                 <div class="vs-brand__title">Voz Segura</div>
@@ -27,16 +24,16 @@
         </div>
 
         <nav class="vs-nav" aria-label="Navegación">
-            <a class="vs-nav__link" th:href="@{/admin}" href="/admin">Panel</a>
-            <a class="vs-nav__link" th:href="@{/admin/reglas}" href="/admin/reglas">Reglas</a>
-            <a class="vs-nav__link" th:href="@{/admin/logs}" href="/admin/logs">Logs</a>
-            <a class="vs-nav__link" th:href="@{/logout}" href="/logout">Salir</a>
+            <a class="vs-nav__link" th:href="@{/admin}">Panel</a>
+            <a class="vs-nav__link" th:href="@{/admin/reglas}">Reglas</a>
+            <a class="vs-nav__link" th:href="@{/admin/logs}">Logs</a>
+            <a class="vs-nav__link" th:href="@{/logout}">Salir</a>
         </nav>
 
     </div>
 </header>
 
-<main id="contenido" class="vs-container vs-container-wide">
+<main class="vs-container vs-container-wide">
 
     <section class="vs-card" aria-labelledby="titulo-revelacion">
 
@@ -47,10 +44,9 @@
             </p>
         </div>
 
-        <!-- Información / criterios (UX: prevención de errores + claridad) -->
         <div class="vs-section vs-mb-6" aria-label="Criterios de uso">
             <div class="vs-section__title">Antes de continuar</div>
-            <p class="vs-text-muted">
+            <p class="vs-form__help">
                 Este módulo sirve para gestionar solicitudes formales que justifican una revelación excepcional.
                 Si no existe un respaldo válido, no se debe iniciar el proceso.
             </p>
@@ -61,16 +57,13 @@
             </ul>
         </div>
 
-        <!-- Estado actual -->
         <div class="vs-alert vs-alert--info vs-mb-6" role="status">
             Módulo en preparación: por ahora se muestra la interfaz. Cuando se active, verás las solicitudes aquí.
         </div>
 
-        <!-- Tabla -->
         <div class="vs-table-wrapper" role="region" aria-label="Tabla de solicitudes" tabindex="0">
             <table class="vs-table">
                 <caption class="vs-sr-only">Listado de solicitudes de revelación excepcional</caption>
-
                 <thead>
                 <tr>
                     <th scope="col">Solicitud</th>
@@ -98,11 +91,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
-
