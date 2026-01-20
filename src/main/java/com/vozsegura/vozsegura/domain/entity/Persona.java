@@ -4,8 +4,22 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 /**
- * Entidad para la tabla registro_civil.personas
- * Tabla central de identidades en el sistema
+ * Identidad verificada del Registro Civil (schema registro_civil.personas)
+ * 
+ * Núcleo de confianza del sistema. Solo contiene datos de personas que:
+ * 1. Pasaron verificación biométrica Didit
+ * 2. Son staff autorizados del sistema
+ * 3. Son denunciantes verificados
+ * 
+ * Campos clave:
+ * - cedula: Número de identificación (plain text)
+ * - cedulaHash: SHA-256 hash para búsqueda segura sin revelar número real
+ * - primerNombre/Apellido: Datos demográficos
+ * 
+ * NOTA: cedulaHash permite búsquedas sin exponer el número de cédula en queries
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Entity
 @Table(name = "personas", schema = "registro_civil")

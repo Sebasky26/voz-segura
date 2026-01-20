@@ -3,12 +3,22 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 
 /**
- * Entidad para almacenar configuraciones del sistema en base de datos.
- * Permite eliminar valores hardcodeados y gestionar configuraciones dinámicamente.
+ * Configuración dinámica del sistema (schema reglas_derivacion.configuracion)
+ * 
+ * Almacena valores en base de datos en lugar de hardcodearlos:
+ * - Tipos de denuncia
+ * - Niveles de severidad
+ * - Prioridades
+ * - Cualquier configuración que deba ser editable en runtime
+ * 
+ * Estructura:
+ * - configGroup: Categoría (COMPLAINT_TYPES, SEVERITIES, PRIORITIES)
+ * - configKey: Clave única dentro del grupo
+ * - configValue: Valor almacenado
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
-@Entity
-@Table(name = "configuracion", schema = "reglas_derivacion")
-public class SystemConfig {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

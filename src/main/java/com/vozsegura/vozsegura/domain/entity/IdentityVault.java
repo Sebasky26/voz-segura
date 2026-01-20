@@ -2,9 +2,22 @@ package com.vozsegura.vozsegura.domain.entity;
 
 import jakarta.persistence.*;
 
-@Entity
-@Table(name = "personas", schema = "registro_civil")
-public class IdentityVault {
+/**
+ * Bóveda de identidad (schema secure_identities.identity_vault)
+ * 
+ * SEGURIDAD CRÍTICA: Solo almacena hashes SHA-256 de cédulas
+ * - NUNCA almacena números de cédula en plain text
+ * - NUNCA almacena datos personales
+ * - One-way hash: imposible recuperar cédula original
+ * 
+ * Permite:
+ * - Verificar que una denuncia proviene de una persona conocida
+ * - Auditar sin revelar identidad
+ * - Enlazar denuncias al mismo denunciante de forma segura
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

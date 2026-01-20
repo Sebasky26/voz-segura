@@ -4,10 +4,16 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 /**
- * Entidad para almacenar datos de verificación biométrica con Didit.
- * Estructura simplificada: id, id_registro, didit_session_id, document_number,
- * verification_status, verified_at, created_at, updated_at.
- * El document_number debe coincidir con cedula de la persona referenciada.
+ * Registro de verificación biométrica con Didit (schema registro_civil.didit_verification)
+ * 
+ * Almacena resultado de cada verificación Didit:
+ * - Cédula extraída del documento
+ * - Estado de verificación (VERIFIED, FAILED, PENDING)
+ * - Referencia a persona en registro_civil.personas
+ * 
+ * V21 SIMPLIFICADA: Solo 8 columnas esenciales para auditoría y trazabilidad
+ * 
+ * El document_number DEBE coincidir con cedula en personas referenciada por id_registro
  */
 @Entity
 @Table(name = "didit_verification", schema = "registro_civil")

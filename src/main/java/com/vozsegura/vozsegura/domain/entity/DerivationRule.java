@@ -3,9 +3,20 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
-@Entity
-@Table(name = "regla_derivacion", schema = "reglas_derivacion")
-public class DerivationRule {
+/**
+ * Regla de derivación automática (schema reglas_derivacion.regla_derivacion)
+ * 
+ * Define cómo se distribuyen las denuncias entre entidades:
+ * - Coincide por severidad (null = cualquiera)
+ * - Coincide por prioridad (null = cualquiera)
+ * - Especifica entidad_destino a la que se derive
+ * 
+ * Cambios V23: Removido complaintTypeMatch, destination ahora es ID (FK)
+ * Algoritmo: Busca regla más específica (mayor score de coincidencias)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

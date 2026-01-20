@@ -3,9 +3,20 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
-@Entity
-@Table(name = "aceptacion_terminos", schema = "denuncias")
-public class TermsAcceptance {
+/**
+ * Registro de aceptación de términos y condiciones (schema denuncias.aceptacion_terminos)
+ * 
+ * Evidencia de que el denunciante aceptó los términos:
+ * - Vinculado a persona (id_registro)
+ * - Token de sesión único
+ * - Timestamp de aceptación
+ * - IP desde la que aceptó (para auditoría)
+ * 
+ * Esencial para compliance y defensa legal
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

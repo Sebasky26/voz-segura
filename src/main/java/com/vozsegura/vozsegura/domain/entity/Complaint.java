@@ -3,6 +3,21 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
+/**
+ * Denuncia anónima cifrada almacenada en schema denuncias.denuncia
+ * 
+ * Cada denuncia es completamente anónima:
+ * - Identificación únicamente por trackingId (UUID público)
+ * - Contenido cifrado con AES-256-GCM
+ * - Vinculada a bóveda de identidad (IdentityVault) sin datos personales
+ * 
+ * Ciclo de vida:
+ * PENDING → IN_REVIEW → (RESOLVED|DERIVED|REJECTED|NEEDS_INFO) → ARCHIVED
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
+
 @Entity
 @Table(name = "denuncia", schema = "denuncias")
 public class Complaint {

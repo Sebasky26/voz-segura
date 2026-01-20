@@ -3,9 +3,18 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
-@Entity
-@Table(name = "entidad_destino", schema = "reglas_derivacion")
-public class DestinationEntity {
+/**
+ * Entidad receptora de denuncias derivadas (schema reglas_derivacion.entidad_destino)
+ * 
+ * Instituciones públicas o privadas que reciben denuncias clasificadas:
+ * - Ministerio del Trabajo
+ * - Defensoría del Pueblo
+ * - Organismos de control
+ * - etc.
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

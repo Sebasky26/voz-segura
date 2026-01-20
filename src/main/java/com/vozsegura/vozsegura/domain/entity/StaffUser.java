@@ -7,6 +7,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * Usuario del sistema (staff) almacenado en schema staff.staff_user
+ * 
+ * Soporta dos roles:
+ * - ADMIN: Acceso total al panel, gestión de reglas
+ * - ANALYST: Revisión y clasificación de denuncias
+ * 
+ * Autenticación: cédula + contraseña (hash PBKDF2) + OTP vía email
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
+
 @Entity
 @Table(name = "staff_user", schema = "staff")
 public class StaffUser {

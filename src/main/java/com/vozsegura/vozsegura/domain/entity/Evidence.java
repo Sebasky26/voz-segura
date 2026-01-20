@@ -2,9 +2,16 @@ package com.vozsegura.vozsegura.domain.entity;
 
 import jakarta.persistence.*;
 
-@Entity
-@Table(name = "evidencia", schema = "evidencias")
-public class Evidence {
+/**
+ * Evidencia cifrada asociada a denuncia (schema evidencias.evidencia)
+ * 
+ * Archivos cargados por denunciantes como prueba:
+ * - Fotos, videos, documentos
+ * - Todo cifrado con AES-256-GCM
+ * - Asociado a denuncia vía id_denuncia
+ * 
+ * NÚNCEA se almacena en plain text
+ */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
