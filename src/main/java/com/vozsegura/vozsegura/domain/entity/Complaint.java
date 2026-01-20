@@ -34,7 +34,10 @@ public class Complaint {
     @Column(nullable = false, unique = true, length = 40)
     /** Tracking ID único (UUID hexadecimal) para seguimiento anónimo público */
     private String trackingId;
-/** Referencia al bóveda de identidad (hash anónimo del denunciante) */
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_registro", referencedColumnName = "id", insertable = false, updatable = false)
+    /** Referencia al bóveda de identidad (hash anónimo del denunciante) */
     private IdentityVault identityVault;
 
     @Column(nullable = false, length = 32)

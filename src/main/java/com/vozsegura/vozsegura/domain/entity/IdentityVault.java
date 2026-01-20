@@ -24,11 +24,10 @@ public class IdentityVault {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_registro")
     /** ID único de la bóveda de identidad (clave primaria) */
     private Long id;
 
-    @Column(name = "cedula_hash", nullable = false, unique = true, length = 128)
+    @Column(name = "citizen_hash", nullable = false, unique = true, length = 128)
     /** SHA-256 hash de la cédula (hex string, 64 caracteres) - NUNCA en plain text */
     private String citizenHash;
 
