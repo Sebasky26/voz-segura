@@ -313,16 +313,18 @@ public class PublicComplaintController {
             return "public/denuncia-form";
         }
         
-        // Obtener citizenHash de la sesión HTTP
+        // Obtener datos de la sesión
         String citizenHash = (String) session.getAttribute("citizenHash");
+        Long idRegistro = (Long) session.getAttribute("idRegistro");
+        
         if (citizenHash == null) {
             model.addAttribute("error", "Sesión expirada. Por favor inicie sesión nuevamente.");
             return "public/denuncia-form";
         }
         
         try {
-            // Guardar denuncia en la base de datos
-            String trackingId = complaintService.createComplaint(form, citizenHash);
+            // Guardar denuncia en la base de datos con idRegistro
+            String trackingId = complaintService.createComplaint(form, citizenHash, idRegistro);
             
             // Limpiar sesión
             sessionStatus.setComplete();

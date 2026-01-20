@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
  * Cada denuncia es completamente anónima:
  * - Identificación únicamente por trackingId (UUID público)
  * - Contenido cifrado con AES-256-GCM
- * - Vinculada a bóveda de identidad (IdentityVault) sin datos personales
+ * - Vinculada a Persona (registro_civil.personas) sin datos personales
  * 
  * Ciclo de vida:
  * PENDING → IN_REVIEW → (RESOLVED|DERIVED|REJECTED|NEEDS_INFO) → ARCHIVED
@@ -28,7 +28,7 @@ public class Complaint {
     private Long id;
 
     @Column(name = "id_registro")
-    /** ID de registro en IdentityVault (referencia anónima) */
+    /** ID de registro en Persona (referencia anónima) */
     private Long idRegistro;
 
     @Column(nullable = false, unique = true, length = 40)
@@ -36,9 +36,9 @@ public class Complaint {
     private String trackingId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_registro", referencedColumnName = "id", insertable = false, updatable = false)
-    /** Referencia al bóveda de identidad (hash anónimo del denunciante) */
-    private IdentityVault identityVault;
+    @JoinColumn(name = "id_registro", referencedColumnName = "id_registro", insertable = false, updatable = false)
+    /** Referencia a Persona (hash anónimo del denunciante) */
+    private Persona persona;
 
     @Column(nullable = false, length = 32)
     /** Estado actual: PENDING, ASSIGNED, IN_PROGRESS, RESOLVED, REJECTED, INFO_REQUESTED */
@@ -106,8 +106,8 @@ public class Complaint {
     public String getTrackingId() { return trackingId; }
     public void setTrackingId(String trackingId) { this.trackingId = trackingId; }
 
-    public IdentityVault getIdentityVault() { return identityVault; }
-    public void setIdentityVault(IdentityVault identityVault) { this.identityVault = identityVault; }
+    public Persona getPersona() { return persona; }
+    public void setPersona(Persona persona) { this.persona = persona; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

@@ -2,11 +2,11 @@ package com.vozsegura.vozsegura.service;
 
 import com.vozsegura.vozsegura.domain.entity.Complaint;
 import com.vozsegura.vozsegura.domain.entity.Evidence;
-import com.vozsegura.vozsegura.domain.entity.IdentityVault;
+import com.vozsegura.vozsegura.domain.entity.Persona;
 import com.vozsegura.vozsegura.dto.forms.ComplaintForm;
 import com.vozsegura.vozsegura.repo.ComplaintRepository;
 import com.vozsegura.vozsegura.repo.EvidenceRepository;
-import com.vozsegura.vozsegura.repo.IdentityVaultRepository;
+import com.vozsegura.vozsegura.repo.PersonaRepository;
 import com.vozsegura.vozsegura.security.EncryptionService;
 
 import org.springframework.stereotype.Service;
@@ -66,18 +66,18 @@ public class ComplaintService {
 
     private final ComplaintRepository complaintRepository;
     private final EvidenceRepository evidenceRepository;
-    private final IdentityVaultRepository identityVaultRepository;
+    private final PersonaRepository personaRepository;
     private final EncryptionService encryptionService;
     private final AuditService auditService;
 
     public ComplaintService(ComplaintRepository complaintRepository,
                             EvidenceRepository evidenceRepository,
-                            IdentityVaultRepository identityVaultRepository,
+                            PersonaRepository personaRepository,
                             EncryptionService encryptionService,
                             AuditService auditService) {
         this.complaintRepository = complaintRepository;
         this.evidenceRepository = evidenceRepository;
-        this.identityVaultRepository = identityVaultRepository;
+        this.personaRepository = personaRepository;
         this.encryptionService = encryptionService;
         this.auditService = auditService;
     }
@@ -104,15 +104,7 @@ public class ComplaintService {
      * @throws RuntimeException si el cifrado falla
      */
     @Transactional
-    public String createComplaint(ComplaintForm form, String citizenHash) {
-        // Buscar o crear identity vault
-        IdentityVault vault = identityVaultRepository.findByCitizenHash(citizenHash)
-                .orElseGet(() -> {
-                    IdentityVault v = new IdentityVault();
-                    v.setCitizenHash(citizenHash);
-                    return identityVaultRepository.save(v);
-                });
-
+    public String createComplaint(ComplaintForm form, String citizenHash, Long idRegistro) {
         // Generar trackingId no predecible
         String trackingId = UUID.randomUUID().toString();
 
@@ -122,7 +114,7 @@ public class ComplaintService {
         // Crear complaint
         Complaint complaint = new Complaint();
         complaint.setTrackingId(trackingId);
-        complaint.setIdentityVault(vault);
+        complaint.setIdRegistro(idRegistro); // ID del denunciante verificado con Didit
         complaint.setStatus("PENDING");
         complaint.setSeverity("MEDIUM");
         complaint.setEncryptedText(encryptedText);
@@ -133,9 +125,10 @@ public class ComplaintService {
         complaint.setUpdatedAt(OffsetDateTime.now());
 
         complaint = complaintRepository.save(complaint);
+        complaintRepository.flush(); // Asegurar que se asigne el ID
 
         // Procesar evidencias
-        if (form.getEvidences() != null) {
+        if (form.getEvidences() != null && form.getEvidences().length > 0) {
             processEvidences(complaint, form.getEvidences());
         }
 
@@ -150,13 +143,17 @@ public class ComplaintService {
             if (file == null || file.isEmpty()) continue;
             if (count >= MAX_EVIDENCES) break;
             if (file.getSize() > MAX_FILE_SIZE) continue;
-            if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) continue;
+            
+            // Validar content type (permitir variaciones con charset)
+            String contentType = file.getContentType();
+            if (contentType == null || !isAllowedContentType(contentType)) continue;
 
             try {
                 Evidence evidence = new Evidence();
                 evidence.setComplaint(complaint);
+                evidence.setIdDenuncia(complaint.getId()); // FK explícita
                 evidence.setFileName(sanitizeFileName(file.getOriginalFilename()));
-                evidence.setContentType(file.getContentType());
+                evidence.setContentType(contentType);
                 evidence.setSizeBytes(file.getSize());
                 // Cifrar contenido binario
                 evidence.setEncryptedContent(encryptBytes(file.getBytes()));
@@ -166,6 +163,27 @@ public class ComplaintService {
                 // Log interno sin exponer detalles
             }
         }
+    }
+
+    private boolean isAllowedContentType(String contentType) {
+        if (contentType == null) return false;
+        
+        // Remover charset y espacios
+        String baseType = contentType.split(";")[0].trim();
+        
+        // Coincidencias exactas
+        if (ALLOWED_CONTENT_TYPES.contains(baseType)) {
+            return true;
+        }
+        
+        // Permitir variantes comunes
+        return baseType.equals("image/jpg") || // jpg también como image/jpg
+               baseType.equals("application/vnd.ms-word") || // Word antiguo
+               baseType.startsWith("image/") || // Cualquier imagen
+               baseType.startsWith("video/") || // Cualquier video
+               baseType.equals("application/pdf") ||
+               baseType.equals("application/msword") ||
+               baseType.startsWith("application/vnd");
     }
 
     private byte[] encryptBytes(byte[] plainBytes) {

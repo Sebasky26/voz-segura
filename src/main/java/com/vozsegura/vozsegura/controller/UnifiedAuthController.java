@@ -22,6 +22,7 @@ import com.vozsegura.vozsegura.dto.forms.UnifiedLoginForm;
 import com.vozsegura.vozsegura.domain.entity.DiditVerification;
 import com.vozsegura.vozsegura.domain.entity.Persona;
 import com.vozsegura.vozsegura.domain.entity.StaffUser;
+import com.vozsegura.vozsegura.repo.DiditVerificationRepository;
 import com.vozsegura.vozsegura.repo.PersonaRepository;
 import com.vozsegura.vozsegura.repo.StaffUserRepository;
 import com.vozsegura.vozsegura.service.CloudflareTurnstileService;
@@ -94,14 +95,16 @@ public class UnifiedAuthController {
     private final CloudflareTurnstileService turnstileService;
     private final JwtTokenProvider jwtTokenProvider;
     private final DiditService diditService;
+    private final DiditVerificationRepository diditVerificationRepository;
     private final StaffUserRepository staffUserRepository;
     private final PersonaRepository personaRepository;
 
-    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService, JwtTokenProvider jwtTokenProvider, DiditService diditService, StaffUserRepository staffUserRepository, PersonaRepository personaRepository) {
+    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService, JwtTokenProvider jwtTokenProvider, DiditService diditService, DiditVerificationRepository diditVerificationRepository, StaffUserRepository staffUserRepository, PersonaRepository personaRepository) {
         this.unifiedAuthService = unifiedAuthService;
         this.turnstileService = turnstileService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.diditService = diditService;
+        this.diditVerificationRepository = diditVerificationRepository;
         this.staffUserRepository = staffUserRepository;
         this.personaRepository = personaRepository;
     }
@@ -477,10 +480,16 @@ public class UnifiedAuthController {
             // Generar hash anónimo de la cédula para la denuncia
             String citizenHash = hashCedula(documentNumber);
             
+            // Buscar el id_registro de la verificación Didit
+            Long idRegistro = diditVerificationRepository.findByDocumentNumber(documentNumber)
+                    .map(DiditVerification::getIdRegistro)
+                    .orElse(null);
+            
             // Establecer atributos de sesión para denuncias
             session.setAttribute("authenticated", true);
             session.setAttribute("verificationMethod", "DIDIT");
             session.setAttribute("citizenHash", citizenHash);
+            session.setAttribute("idRegistro", idRegistro);
             session.setAttribute("documentNumber", documentNumber);
             session.setAttribute("userRole", staffRole);
             
