@@ -5,6 +5,30 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * DTO para el formulario de creación de denuncias públicas.
+ * 
+ * Recopila información de la denuncia:
+ * - Detalle (texto cifrado después con AES-256-GCM)
+ * - Evidencias (archivos, máximo 5 por denuncia, 25MB cada uno)
+ * - Información de la empresa afectada
+ * 
+ * Validaciones:
+ * - detail: 50-4000 caracteres (obligatorio)
+ * - evidences: máximo 5 archivos, cada uno máximo 25MB
+ *   Formatos permitidos: PDF, DOCX, JPG, PNG, MP4 (dentro de whitelist)
+ * - companyName, companyAddress, companyContact: obligatorios
+ * - companyEmail: formato válido (opcional pero si se proporciona, debe ser válido)
+ * - companyPhone: máximo 20 caracteres (opcional)
+ * 
+ * Seguridad:
+ * - Todos los campos de texto se cifran con AES-256-GCM antes de almacenar
+ * - Evidencias se almacenan en S3/blob storage (no en base de datos)
+ * - Contenido se valida contra whitelist de tipos MIME
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 public class ComplaintForm {
 
     @NotBlank(message = "El detalle de la denuncia es requerido")

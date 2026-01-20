@@ -5,11 +5,30 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * DTO para el formulario de login unificado (denunciantes, staff, admin).
- * Todos los usuarios se autentican primero contra el Registro Civil + Cloudflare Turnstile.
+ * DTO para formulario de login unificado (entry point para todos los usuarios).
  * 
- * Nota: La validación de Turnstile se realiza en el controlador,
- * no en este DTO, ya que es un token de cliente no incluido en el formulario HTML tradicional.
+ * Flujo de Autenticación:
+ * 1. Usuario ingresa cédula + código dactilar (biométrico)
+ * 2. Validación en cliente (este DTO)
+ * 3. Validación Cloudflare Turnstile (en controlador)
+ * 4. Verificación contra Registro Civil (en UnifiedAuthService)
+ * 5. Enrutamiento según tipo de usuario:
+ *    - DENUNCIANTE → crear denuncia anónima
+ *    - ANALYST/ADMIN → MFA (clave secreta + OTP)
+ * 
+ * Campos:
+ * - cedula: Número de cédula (10 dígitos exactos)
+ * - codigoDactilar: Código biométrico formato: A1234B5678 (letra-4dígitos-letra-4dígitos)
+ * 
+ * Seguridad:
+ * - Solo validaciones de formato en este DTO
+ * - Credenciales se transmiten como formulario HTTP POST (HTTPS obligatorio)
+ * - Nunca se almacena cédula en plain text
+ * - Inmediatamente se convierte a hash SHA-256 después de verificar
+ * - Turnstile reCAPTCHA valida en controlador (previene fuerza bruta)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 public class UnifiedLoginForm {
 

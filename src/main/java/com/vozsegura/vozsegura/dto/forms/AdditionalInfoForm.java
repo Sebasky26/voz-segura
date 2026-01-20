@@ -6,8 +6,23 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Formulario para agregar información adicional a una denuncia
- * cuando el analista solicita más información.
+ * DTO para formulario de información adicional solicitada por analista.
+ * 
+ * Flujo:
+ * 1. Analista revisa denuncia y requiere más información
+ * 2. Sistema marca denuncia como "INFO_REQUESTED"
+ * 3. Ciudadano recibe notificación (email/SMS)
+ * 4. Ciudadano accede a /denuncia/adicional-info
+ * 5. Carga información adicional (texto + evidencias)
+ * 6. Se cifra y agrega a la denuncia
+ * 
+ * Validaciones:
+ * - additionalInfo: 20-5000 caracteres (texto que se cifrará)
+ * - evidences: máximo 5 archivos nuevos (cada uno máx 25MB)
+ * - Total evidencias por denuncia: máximo 5 (incluyendo originales)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 public class AdditionalInfoForm {
 

@@ -23,34 +23,44 @@ public class DerivationRule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    /** ID único de la regla */
     private Long id;
 
     @Column(nullable = false, length = 64, unique = true)
+    /** Nombre único descriptivo de la regla (ej: "HighSeverityUrgent") */
     private String name;
 
     @Column(name = "severity_match", length = 32)
+    /** Severidad a coincidir: HIGH, MEDIUM, LOW (NULL = cualquier severidad) */
     private String severityMatch;
 
     @Column(name = "priority_match", length = 16)
+    /** Prioridad a coincidir: URGENT, NORMAL, LOW (NULL = cualquier prioridad) */
     private String priorityMatch;
 
     @Column(name = "destination_id")
+    /** ID de la institución destino (DestinationEntity) */
     private Long destinationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_id", insertable = false, updatable = false)
+    /** Referencia a la institución destino (relación lazy) */
     private DestinationEntity destinationEntity;
 
     @Column(name = "description", length = 512)
+    /** Descripción legible de la regla (para administración) */
     private String description;
 
     @Column(name = "active", nullable = false)
+    /** Flag: regla activa (true) o inactiva/soft-deleted (false) */
     private boolean active = true;
 
     @Column(name = "created_at")
+    /** Timestamp de creación (UTC) */
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at")
+    /** Timestamp de última modificación (UTC) */
     private OffsetDateTime updatedAt;
 
     @PrePersist

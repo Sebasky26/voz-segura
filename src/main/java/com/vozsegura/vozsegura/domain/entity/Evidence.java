@@ -18,25 +18,32 @@ public class Evidence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    /** ID único de la evidencia */
     private Long id;
 
     @Column(name = "id_denuncia", nullable = false)
+    /** ID de la denuncia a la que pertenece */
     private Long idDenuncia;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "id_denuncia", insertable = false, updatable = false)
+    /** Referencia a Complaint (lazy loading para performance) */
     private Complaint complaint;
 
     @Column(name = "file_name", nullable = false, length = 255)
+    /** Nombre del archivo (ej: "documento.pdf") */
     private String fileName;
 
     @Column(name = "content_type", nullable = false, length = 100)
+    /** Tipo MIME (ej: "application/pdf", "image/jpeg") - validado contra whitelist */
     private String contentType;
 
     @Column(name = "size_bytes", nullable = false)
+    /** Tamaño en bytes (máximo 25MB = 26214400 bytes) */
     private long sizeBytes;
 
     @Column(name = "encrypted_content", nullable = false, columnDefinition = "bytea")
+    /** Contenido del archivo cifrado con AES-256-GCM (guardado como binario) */
     private byte[] encryptedContent;
 
     public Long getId() { return id; }

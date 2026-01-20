@@ -3,6 +3,29 @@ package com.vozsegura.vozsegura.dto.forms;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * DTO para formulario de acceso inicial a denuncias (entrada pública).
+ * 
+ * Propósito:
+ * - Primer paso para ciudadano que desea crear denuncia
+ * - Verifica identidad + acepta términos
+ * - Luego continúa con flujo biométrico
+ * 
+ * Validaciones:
+ * - cedula: 10 dígitos (igual a UnifiedLoginForm)
+ * - codigoDactilar: 10 caracteres formato biométrico
+ * - captcha: Token de Cloudflare Turnstile (prevent bots)
+ * - termsAccepted: Debe ser true (checkbox de términos)
+ * 
+ * Seguridad:
+ * - HTTPS obligatorio
+ * - Turnstile reCAPTCHA para prevenir fuerza bruta
+ * - Rate limiting por IP
+ * - No se almacenan datos hasta verificación completa
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 public class DenunciaAccessForm {
 
     @NotBlank

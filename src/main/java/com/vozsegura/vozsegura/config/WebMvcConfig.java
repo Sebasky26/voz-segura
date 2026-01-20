@@ -8,30 +8,58 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Configuración de recursos estáticos.
- * Asegura que los archivos CSS, JS e imágenes se sirvan correctamente.
+ * Configuración de recursos estáticos (CSS, JS, imágenes).
+ * 
+ * Responsabilidad:
+ * - Servir archivos estáticos desde el classpath (/static)
+ * - Configurar cache-control headers para optimizar browser caching
+ * - Mapear rutas públicas a ubicaciones de recursos
+ * 
+ * Mapeos:
+ * - /css/** → classpath:/static/css/
+ * - /js/** → classpath:/static/js/
+ * - /img/** → classpath:/static/img/
+ * - /images/** → classpath:/static/img/ (alias)
+ * 
+ * Caching:
+ * - Cache-Control: max-age=1 hour
+ * - Permite que navegadores cacheen por 1 hora
+ * - Después de 1 hora, verifica nuevamente con servidor
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
+    /**
+     * Registra handlers para recursos estáticos con cache control.
+     * 
+     * Cada recurso (CSS, JS, img) se configura con:
+     * 1. Resource handler: patrón URL a interceptar (/css/**, /js/**, etc)
+     * 2. Resource location: ubicación en classpath (static/)
+     * 3. Cache control: max-age=1 hour
+     * 
+     * @param registry ResourceHandlerRegistry inyectado por Spring
+     */
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // CSS
+        // CSS files: static/css/**
         registry.addResourceHandler("/css/**")
                 .addResourceLocations("classpath:/static/css/")
                 .setCacheControl(CacheControl.maxAge(1, TimeUnit.HOURS));
 
-        // JavaScript
+        // JavaScript files: static/js/**
         registry.addResourceHandler("/js/**")
                 .addResourceLocations("classpath:/static/js/")
                 .setCacheControl(CacheControl.maxAge(1, TimeUnit.HOURS));
 
-        // Imágenes
+        // Images: static/img/**
         registry.addResourceHandler("/img/**")
                 .addResourceLocations("classpath:/static/img/")
                 .setCacheControl(CacheControl.maxAge(1, TimeUnit.HOURS));
 
-        // Fallback para /images también
+        // Fallback para /images (algunos templates usan /images)
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("classpath:/static/img/")
                 .setCacheControl(CacheControl.maxAge(1, TimeUnit.HOURS));
