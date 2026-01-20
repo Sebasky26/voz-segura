@@ -3,15 +3,18 @@ package com.vozsegura.vozsegura.domain.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "evidence", schema = "evidence_vault")
+@Table(name = "evidencia", schema = "evidencias")
 public class Evidence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "id_denuncia", nullable = false)
+    private Long idDenuncia;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "complaint_id")
+    @JoinColumn(name = "id_denuncia", insertable = false, updatable = false)
     private Complaint complaint;
 
     @Column(name = "file_name", nullable = false, length = 255)
@@ -28,6 +31,9 @@ public class Evidence {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getIdDenuncia() { return idDenuncia; }
+    public void setIdDenuncia(Long idDenuncia) { this.idDenuncia = idDenuncia; }
 
     public Complaint getComplaint() { return complaint; }
     public void setComplaint(Complaint complaint) { this.complaint = complaint; }

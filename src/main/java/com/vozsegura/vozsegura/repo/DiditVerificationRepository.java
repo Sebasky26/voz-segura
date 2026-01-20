@@ -9,6 +9,7 @@ public interface DiditVerificationRepository extends JpaRepository<DiditVerifica
     Optional<DiditVerification> findByDiditSessionId(String diditSessionId);
 
     Optional<DiditVerification> findByDocumentNumber(String documentNumber);
-
-    Optional<DiditVerification> findByCitizenHash(String citizenHash);
+    
+    Optional<DiditVerification> findByIdRegistro(Long idRegistro);
 }
+

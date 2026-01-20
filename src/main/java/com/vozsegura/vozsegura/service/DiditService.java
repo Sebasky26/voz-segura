@@ -2,8 +2,10 @@ package com.vozsegura.vozsegura.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vozsegura.vozsegura.domain.entity.DiditVerification;
+import com.vozsegura.vozsegura.domain.entity.Persona;
 import com.vozsegura.vozsegura.dto.webhook.DiditWebhookPayload;
 import com.vozsegura.vozsegura.repo.DiditVerificationRepository;
+import com.vozsegura.vozsegura.repo.PersonaRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,14 +57,17 @@ public class DiditService {
     private String webhookUrl;
 
     private final DiditVerificationRepository diditVerificationRepository;
+    private final PersonaRepository personaRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     public DiditService(
             DiditVerificationRepository diditVerificationRepository,
+            PersonaRepository personaRepository,
             RestTemplate restTemplate,
             ObjectMapper objectMapper) {
         this.diditVerificationRepository = diditVerificationRepository;
+        this.personaRepository = personaRepository;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
     }
@@ -184,19 +189,24 @@ public class DiditService {
                     webhookData.getSessionId(), webhookData.getWebhookType());
 
             // Obtener el status - puede estar en el nivel raíz o en decision
-            String status = webhookData.getStatus();
-            if (status == null && webhookData.getDecision() != null) {
-                status = webhookData.getDecision().getStatus();
-                log.info("📍 Status extracted from decision: {}", status);
+            String webhookStatus = webhookData.getStatus();
+            if (webhookStatus == null && webhookData.getDecision() != null) {
+                webhookStatus = webhookData.getDecision().getStatus();
+                log.info("📍 Status extracted from decision: {}", webhookStatus);
             } else {
-                log.info("📍 Status from root level: {}", status);
+                log.info("📍 Status from root level: {}", webhookStatus);
             }
 
             // Solo procesar si el status es "Approved"
-            if (status == null || !status.equals("Approved")) {
-                log.info("ℹ️ Ignoring webhook with status: {}. Only processing 'Approved' verifications.", status);
+            if (webhookStatus == null || !webhookStatus.equals("Approved")) {
+                log.info("ℹ️ Ignoring webhook with status: {}. Only processing 'Approved' verifications.", webhookStatus);
                 return null;
             }
+
+            // Mapear el status de Didit al enum de la base de datos
+            // Didit envía "Approved" pero la BD espera "VERIFIED", "FAILED", o "PENDING"
+            String status = "VERIFIED";  // Mapping: Approved → VERIFIED
+            log.info("📍 Mapped webhook status 'Approved' to database value '{}'", status);
 
             // Intentar obtener document_data del nivel raíz
             DiditWebhookPayload.DocumentData docData = webhookData.getDocumentData();
@@ -238,29 +248,37 @@ public class DiditService {
                 log.info("📍 User already exists in database. Updating verification. Old sessionId: {}, New sessionId: {}", 
                         verification.getDiditSessionId(), webhookData.getSessionId());
                 
-                // Actualizar solo campos necesarios - NO guardamos nombres por privacidad
+                // Actualizar solo campos necesarios
                 verification.setDiditSessionId(webhookData.getSessionId());
                 verification.setVerificationStatus(status);
-                verification.setWebhookIp(ipAddress);
                 verification.setVerifiedAt(OffsetDateTime.now());
-                // No guardamos el payload completo por privacidad
+                verification.setUpdatedAt(OffsetDateTime.now());
                 
-                log.info("🔄 Updated record: document={} (nombres no almacenados por privacidad)", docData.getPersonalNumber());
+                log.info("🔄 Updated record: document={}", docData.getPersonalNumber());
             } else {
-                // Crear nuevo registro - Solo guardamos cédula, no nombres
+                // Crear nuevo registro - Obtener id_registro de registro_civil.personas
                 verification = new DiditVerification();
                 verification.setDiditSessionId(webhookData.getSessionId());
                 verification.setDocumentNumber(docData.getPersonalNumber());
-                // No guardamos firstName, lastName, fullName por privacidad
-                verification.setFirstName(null);
-                verification.setLastName(null);
-                verification.setFullName("Usuario verificado"); // Placeholder para campo requerido
                 verification.setVerificationStatus(status);
-                verification.setWebhookIp(ipAddress);
                 verification.setVerifiedAt(OffsetDateTime.now());
-                // No guardamos el payload completo por privacidad
+                verification.setCreatedAt(OffsetDateTime.now());
+                verification.setUpdatedAt(OffsetDateTime.now());
                 
-                log.info("🆕 Creating new verification record: document={} (nombres no almacenados por privacidad)", docData.getPersonalNumber());
+                // Generar hash SHA-256 de la cedula para buscar en personas
+                String cedulaHash = generateSHA256Hash(docData.getPersonalNumber());
+                
+                // Buscar id_registro en registro_civil.personas basado en cedula_hash
+                Optional<Persona> persona = personaRepository.findByCedulaHash(cedulaHash);
+                if (persona.isPresent()) {
+                    verification.setIdRegistro(persona.get().getIdRegistro());
+                    log.info("🆕 Creating new verification record: document={}, id_registro={}, status={}", 
+                            docData.getPersonalNumber(), persona.get().getIdRegistro(), status);
+                } else {
+                    log.error("❌ Persona not found for document_number: {} (cedula_hash: {}). Cannot create verification without id_registro.", 
+                            docData.getPersonalNumber(), cedulaHash);
+                    throw new IllegalArgumentException("No existe persona registrada con la cédula proporcionada por Didit");
+                }
             }
 
             DiditVerification saved = diditVerificationRepository.save(verification);
@@ -297,14 +315,13 @@ public class DiditService {
      */
     @Transactional
     public void linkVerificationToCitizen(String sessionId, String citizenHash) {
+        // Método mantenido por compatibilidad, pero ya no necesario
+        // El document_number ahora se vincula directamente con personas.cedula
         DiditVerification verification = diditVerificationRepository
                 .findByDiditSessionId(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Verificación no encontrada: " + sessionId));
-
-        verification.setCitizenHash(citizenHash);
-        diditVerificationRepository.save(verification);
         
-        log.info("Didit verification linked to citizen hash: {}", citizenHash);
+        log.info("Didit verification already linked via document_number constraint");
     }
 
     /**
@@ -405,9 +422,7 @@ public class DiditService {
             verification.setDiditSessionId(sessionId);
             verification.setDocumentNumber(personalNumber);
             // No guardamos firstName, lastName, fullName por privacidad
-            verification.setFirstName(null);
-            verification.setLastName(null);
-            verification.setFullName("Usuario verificado"); // Placeholder para campo requerido
+            // Campos firstName, lastName, fullName removidos - solo guardamos cedula
             verification.setVerificationStatus("VERIFIED");
             verification.setVerifiedAt(OffsetDateTime.now());
             // No guardamos el payload por privacidad
@@ -466,6 +481,27 @@ public class DiditService {
         }
         
         return null;
+    }
+
+    /**
+     * Genera hash SHA-256 de una cadena de texto
+     * Usado para buscar personas por cedula_hash
+     */
+    private String generateSHA256Hash(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            log.error("Error generating SHA-256 hash for: {}", input, e);
+            throw new RuntimeException("Error generando hash SHA-256", e);
+        }
     }
 }
 

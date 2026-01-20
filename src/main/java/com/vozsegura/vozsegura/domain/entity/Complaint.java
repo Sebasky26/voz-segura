@@ -4,12 +4,15 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "complaint")
+@Table(name = "denuncia", schema = "denuncias")
 public class Complaint {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "id_registro")
+    private Long idRegistro;
 
     @Column(nullable = false, unique = true, length = 40)
     private String trackingId;
@@ -63,6 +66,9 @@ public class Complaint {
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getIdRegistro() { return idRegistro; }
+    public void setIdRegistro(Long idRegistro) { this.idRegistro = idRegistro; }
 
     public String getTrackingId() { return trackingId; }
     public void setTrackingId(String trackingId) { this.trackingId = trackingId; }

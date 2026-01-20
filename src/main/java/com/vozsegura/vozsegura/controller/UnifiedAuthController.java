@@ -20,7 +20,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.vozsegura.vozsegura.dto.forms.SecretKeyForm;
 import com.vozsegura.vozsegura.dto.forms.UnifiedLoginForm;
 import com.vozsegura.vozsegura.domain.entity.DiditVerification;
+import com.vozsegura.vozsegura.domain.entity.Persona;
 import com.vozsegura.vozsegura.domain.entity.StaffUser;
+import com.vozsegura.vozsegura.repo.PersonaRepository;
 import com.vozsegura.vozsegura.repo.StaffUserRepository;
 import com.vozsegura.vozsegura.service.CloudflareTurnstileService;
 import com.vozsegura.vozsegura.service.UnifiedAuthService;
@@ -55,13 +57,15 @@ public class UnifiedAuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final DiditService diditService;
     private final StaffUserRepository staffUserRepository;
+    private final PersonaRepository personaRepository;
 
-    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService, JwtTokenProvider jwtTokenProvider, DiditService diditService, StaffUserRepository staffUserRepository) {
+    public UnifiedAuthController(UnifiedAuthService unifiedAuthService, CloudflareTurnstileService turnstileService, JwtTokenProvider jwtTokenProvider, DiditService diditService, StaffUserRepository staffUserRepository, PersonaRepository personaRepository) {
         this.unifiedAuthService = unifiedAuthService;
         this.turnstileService = turnstileService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.diditService = diditService;
         this.staffUserRepository = staffUserRepository;
+        this.personaRepository = personaRepository;
     }
 
     /**
@@ -284,47 +288,63 @@ public class UnifiedAuthController {
             }
             
             DiditVerification verification = verificationOpt.get();
+            String documentNumber = verification.getDocumentNumber();
             
-            log.info("Verification successful for document: {}", verification.getDocumentNumber());
+            log.info("Verification successful for document: {}", documentNumber);
             
-            // IMPORTANTE: Verificar si la cédula está en la tabla staff_user
-            // Solo usuarios registrados pueden acceder al sistema
-            Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(verification.getDocumentNumber());
+            // PASO 1: Verificar si la cédula está en la tabla staff_user (ADMIN o ANALISTA)
+            Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(documentNumber);
             
-            if (staffUser.isEmpty()) {
-                log.warn("❌ Usuario NO encontrado en staff_user: document={}", verification.getDocumentNumber());
-                redirectAttributes.addFlashAttribute("error", "Usuario no encontrado. Solo personal autorizado puede acceder al sistema.");
-                return "redirect:/auth/login";
-            }
-            
-            StaffUser user = staffUser.get();
-            String staffRole = user.getRole();
-            log.info("👤 Usuario encontrado en staff_user: document={}, role={}", verification.getDocumentNumber(), staffRole);
-            
-            // Guardar datos en la sesión para POST /auth/verify-complete
-            // Solo guardamos la cédula - NO nombres por privacidad
-            session.setAttribute("verifiedDocumentNumber", verification.getDocumentNumber());
-            session.setAttribute("verifiedStaffRole", staffRole);
-            session.setAttribute("diditSessionId", diditSessionId);
-            
-            // Determinar redirección según rol
+            String staffRole = null;
             String staffRedirectButton = null;
             String staffRedirectUrl = null;
             
-            if ("ADMIN".equals(staffRole)) {
-                staffRedirectButton = "Ver Panel";
-                staffRedirectUrl = "/admin/panel";
-                log.info("✅ User is ADMIN - redirect to panel");
-            } else if ("ANALYST".equals(staffRole)) {
-                staffRedirectButton = "Ver Denuncias";
-                staffRedirectUrl = "/staff/casos";
-                log.info("✅ User is ANALYST - redirect to complaints");
+            if (staffUser.isPresent()) {
+                // Es un usuario staff (ADMIN o ANALISTA)
+                StaffUser user = staffUser.get();
+                staffRole = user.getRole();
+                log.info("👤 Usuario STAFF encontrado: document={}, role={}", documentNumber, staffRole);
+                
+                if ("ADMIN".equals(staffRole)) {
+                    staffRedirectButton = "Ver Panel";
+                    staffRedirectUrl = "/admin/panel";
+                    log.info("✅ User is ADMIN - redirect to panel");
+                } else if ("ANALISTA".equals(staffRole)) {
+                    staffRedirectButton = "Ver Denuncias";
+                    staffRedirectUrl = "/staff/casos";
+                    log.info("✅ User is ANALISTA - redirect to complaints");
+                } else {
+                    log.warn("⚠️  Unknown staff role: {}", staffRole);
+                    staffRedirectButton = "Hacer Denuncia";
+                    staffRedirectUrl = "/denuncia/form";
+                }
             } else {
-                // Otros roles pueden hacer denuncias
-                staffRedirectButton = "Hacer Denuncia";
-                staffRedirectUrl = "/denuncia/form";
-                log.info("ℹ️  User has role '{}' - redirect to denuncia form", staffRole);
+                // PASO 2: No es staff - verificar si es una persona válida en registro_civil.personas
+                // (es decir, es un denunciante)
+                log.info("👤 No es usuario STAFF. Verificando si es persona válida para denuncias: document={}", documentNumber);
+                
+                // Buscar persona por cédula
+                Optional<Persona> persona = personaRepository.findByCedula(documentNumber);
+                
+                if (persona.isPresent()) {
+                    // Es un denunciante válido
+                    staffRole = "DENUNCIANTE";
+                    staffRedirectButton = "Hacer Denuncia";
+                    staffRedirectUrl = "/denuncia/form";
+                    log.info("✅ Usuario es DENUNCIANTE válido - redirect to denuncia form");
+                } else {
+                    // Cédula no encontrada en ninguna tabla
+                    log.warn("❌ Cédula no encontrada en sistema: document={}", documentNumber);
+                    redirectAttributes.addFlashAttribute("error", "Cédula no registrada en el sistema. Por favor intente nuevamente.");
+                    return "redirect:/auth/login";
+                }
             }
+            
+            // Guardar datos en la sesión para POST /auth/verify-complete
+            // Solo guardamos la cédula - NO nombres por privacidad
+            session.setAttribute("verifiedDocumentNumber", documentNumber);
+            session.setAttribute("verifiedStaffRole", staffRole);
+            session.setAttribute("diditSessionId", diditSessionId);
             
             // Pasar datos al modelo - NO mostramos cédula ni nombre
             // Solo mostramos "Usuario verificado"
@@ -387,8 +407,8 @@ public class UnifiedAuthController {
             
             log.info("completeVerification - documentNumber={}, staffRole={}", documentNumber, staffRole);
             
-            // Todos los usuarios verificados pasan por el flujo de clave secreta (excepto USER rol básico)
-            if ("ADMIN".equals(staffRole) || "ANALYST".equals(staffRole)) {
+            // Todos los usuarios verificados pasan por el flujo de clave secreta (solo ADMIN y ANALISTA)
+            if ("ADMIN".equals(staffRole) || "ANALISTA".equals(staffRole)) {
                 log.info("👤 Redirecting staff/admin user to secret-key verification");
                 session.setAttribute("staffCedula", documentNumber);
                 session.setAttribute("staffRole", staffRole);
@@ -401,8 +421,8 @@ public class UnifiedAuthController {
                 return "redirect:/auth/secret-key";
             }
             
-            // Si es usuario con otro rol (USER), proceder con flujo de denuncia
-            log.info("👤 Redirecting user with role {} to denuncia form", staffRole);
+            // Si es denunciante, proceder directamente al formulario de denuncia
+            log.info("👤 Redirecting denunciante user to denuncia form");
             
             // Generar hash anónimo de la cédula para la denuncia
             String citizenHash = hashCedula(documentNumber);
@@ -636,7 +656,9 @@ public class UnifiedAuthController {
                 return "redirect:/auth/login";
             }
             
-            String userType = staffUser.get().getRole(); // ADMIN o ANALYST
+            String dbRole = staffUser.get().getRole(); // ADMIN o ANALISTA
+            // Convertir ANALISTA a ANALYST para compatibilidad con ApiGatewayFilter
+            String userType = "ANALISTA".equals(dbRole) ? "ANALYST" : dbRole;
             String apiKey = ""; // o obtenerlo de la configuración
             
             // Generar JWT

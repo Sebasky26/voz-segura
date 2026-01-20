@@ -4,12 +4,15 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "audit_event", schema = "audit_logs")
+@Table(name = "evento_auditoria", schema = "logs")
 public class AuditEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "id_registro")
+    private Long idRegistro;
 
     @Column(name = "event_time", nullable = false)
     private OffsetDateTime eventTime;
@@ -31,6 +34,9 @@ public class AuditEvent {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getIdRegistro() { return idRegistro; }
+    public void setIdRegistro(Long idRegistro) { this.idRegistro = idRegistro; }
 
     public OffsetDateTime getEventTime() { return eventTime; }
     public void setEventTime(OffsetDateTime eventTime) { this.eventTime = eventTime; }

@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "derivation_rule")
+@Table(name = "regla_derivacion", schema = "reglas_derivacion")
 public class DerivationRule {
 
     @Id

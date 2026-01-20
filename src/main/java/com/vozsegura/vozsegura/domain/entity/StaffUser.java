@@ -8,12 +8,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "staff_user")
+@Table(name = "staff_user", schema = "staff")
 public class StaffUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "id_registro", nullable = false, unique = true)
+    private Long idRegistro;
 
     @Column(nullable = false, unique = true, length = 64)
     private String username;
@@ -35,6 +38,9 @@ public class StaffUser {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getIdRegistro() { return idRegistro; }
+    public void setIdRegistro(Long idRegistro) { this.idRegistro = idRegistro; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }

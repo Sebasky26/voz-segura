@@ -5,10 +5,12 @@ import java.time.OffsetDateTime;
 
 /**
  * Entidad para almacenar datos de verificación biométrica con Didit.
- * Guarda: nombre completo, cédula, y datos de la sesión de verificación.
+ * Estructura simplificada: id, id_registro, didit_session_id, document_number,
+ * verification_status, verified_at, created_at, updated_at.
+ * El document_number debe coincidir con cedula de la persona referenciada.
  */
 @Entity
-@Table(name = "didit_verification", schema = "secure_identities")
+@Table(name = "didit_verification", schema = "registro_civil")
 public class DiditVerification {
 
     @Id
@@ -16,66 +18,64 @@ public class DiditVerification {
     private Long id;
 
     /**
-     * Session ID de Didit - identifica la sesión de verificación
-     * Nota: Puede haber múltiples sesiones por usuario (permite reintentos)
+     * Referencia a registro_civil.personas
      */
-    @Column(name = "didit_session_id", nullable = false, length = 255)
+    @Column(name = "id_registro", nullable = false)
+    private Long idRegistro;
+
+    /**
+     * Session ID de Didit - identifica la sesión de verificación
+     * Permite trazabilidad y auditoría de cada verificación
+     */
+    @Column(name = "didit_session_id", nullable = false, length = 255, unique = true)
     private String diditSessionId;
 
     /**
-     * Número de cédula del documento escaneado
-     * Nota: Se actualiza si el usuario se verifica de nuevo (permite múltiples verificaciones)
+     * Número de cédula del documento escaneado.
+     * Debe coincidir con el cedula de registro_civil.personas del id_registro
+     * Cifrado a nivel aplicación (AES-256)
      */
     @Column(name = "document_number", nullable = false, length = 20)
     private String documentNumber;
 
     /**
-     * Nombre completo del documento escaneado (first_name + last_name)
-     */
-    @Column(name = "full_name", nullable = false, length = 255)
-    private String fullName;
-
-    /**
-     * Primer nombre del documento
-     */
-    @Column(name = "first_name", length = 255)
-    private String firstName;
-
-    /**
-     * Apellido del documento
-     */
-    @Column(name = "last_name", length = 255)
-    private String lastName;
-
-    /**
-     * Resultado de la verificación (VERIFIED, FAILED, PENDING, etc.)
+     * Resultado de la verificación (VERIFIED, FAILED, PENDING)
      */
     @Column(name = "verification_status", nullable = false, length = 50)
     private String verificationStatus;
 
     /**
-     * Hash SHA-256 del ciudadano para vincular con denuncia
-     */
-    @Column(name = "citizen_hash", length = 128)
-    private String citizenHash;
-
-    /**
-     * Timestamp de creación del webhook
+     * Timestamp cuando se completó la verificación biométrica
      */
     @Column(name = "verified_at", nullable = false)
     private OffsetDateTime verifiedAt;
 
     /**
-     * IP desde la que se realizó la verificación (del webhook)
+     * Timestamp de creación del registro
      */
-    @Column(name = "webhook_ip", length = 45)
-    private String webhookIp;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
     /**
-     * Raw payload del webhook de Didit (para auditoría)
+     * Timestamp de última actualización del registro
      */
-    @Column(name = "webhook_payload", columnDefinition = "TEXT")
-    private String webhookPayload;
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    // Constructores
+    public DiditVerification() {
+    }
+
+    public DiditVerification(Long idRegistro, String diditSessionId, String documentNumber,
+                           String verificationStatus, OffsetDateTime verifiedAt) {
+        this.idRegistro = idRegistro;
+        this.diditSessionId = diditSessionId;
+        this.documentNumber = documentNumber;
+        this.verificationStatus = verificationStatus;
+        this.verifiedAt = verifiedAt;
+        this.createdAt = OffsetDateTime.now();
+        this.updatedAt = OffsetDateTime.now();
+    }
 
     // Getters y Setters
 
@@ -85,6 +85,14 @@ public class DiditVerification {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getIdRegistro() {
+        return idRegistro;
+    }
+
+    public void setIdRegistro(Long idRegistro) {
+        this.idRegistro = idRegistro;
     }
 
     public String getDiditSessionId() {
@@ -103,44 +111,12 @@ public class DiditVerification {
         this.documentNumber = documentNumber;
     }
 
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
     public String getVerificationStatus() {
         return verificationStatus;
     }
 
     public void setVerificationStatus(String verificationStatus) {
         this.verificationStatus = verificationStatus;
-    }
-
-    public String getCitizenHash() {
-        return citizenHash;
-    }
-
-    public void setCitizenHash(String citizenHash) {
-        this.citizenHash = citizenHash;
     }
 
     public OffsetDateTime getVerifiedAt() {
@@ -151,19 +127,19 @@ public class DiditVerification {
         this.verifiedAt = verifiedAt;
     }
 
-    public String getWebhookIp() {
-        return webhookIp;
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setWebhookIp(String webhookIp) {
-        this.webhookIp = webhookIp;
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
-    public String getWebhookPayload() {
-        return webhookPayload;
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setWebhookPayload(String webhookPayload) {
-        this.webhookPayload = webhookPayload;
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

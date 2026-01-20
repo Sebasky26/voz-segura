@@ -70,7 +70,7 @@ public class DiditWebhookController {
     @PostMapping("/didit")
     public ResponseEntity<?> handleDiditWebhookPost(HttpServletRequest request) {
         try {
-            log.info("📨 Didit webhook POST received");
+            log.info("📨 Didit webhook POST received at /webhooks/didit");
             
             // Leer el body del request
             StringBuilder bodyBuilder = new StringBuilder();
@@ -80,18 +80,25 @@ public class DiditWebhookController {
                     bodyBuilder.append(line);
                 }
             } catch (IOException e) {
-                log.error("Error reading webhook body: {}", e.getMessage());
+                log.error("❌ Error reading webhook body: {}", e.getMessage());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error reading request body");
             }
             
             String webhookBody = bodyBuilder.toString();
-            log.debug("Webhook body: {}", webhookBody);
+            log.info("✅ Webhook body received (length: {} chars): {}", webhookBody.length(), webhookBody);
             
             // Obtener la dirección IP del cliente
             String clientIpAddress = getClientIpAddress(request);
+            log.info("📍 Webhook from IP: {}", clientIpAddress);
             
             // Procesar el webhook payload
-            diditService.processWebhookPayload(webhookBody, clientIpAddress);
+            DiditVerification saved = diditService.processWebhookPayload(webhookBody, clientIpAddress);
+            if (saved != null) {
+                log.info("✅ Webhook processed successfully. Saved verification with id_registro: {}, sessionId: {}", 
+                        saved.getIdRegistro(), saved.getDiditSessionId());
+            } else {
+                log.warn("⚠️ Webhook processed but no verification saved (possibly status != 'Approved')");
+            }
             
             // Retornar 200 OK para confirmar recepción
             Map<String, String> response = new HashMap<>();
@@ -101,7 +108,7 @@ public class DiditWebhookController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            log.error("Error processing Didit webhook: {}", e.getMessage(), e);
+            log.error("❌ Error processing Didit webhook: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error processing webhook: " + e.getMessage());
         }

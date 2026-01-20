@@ -7,7 +7,7 @@ import jakarta.persistence.*;
  * Permite eliminar valores hardcodeados y gestionar configuraciones dinámicamente.
  */
 @Entity
-@Table(name = "system_config")
+@Table(name = "configuracion", schema = "reglas_derivacion")
 public class SystemConfig {
 
     @Id
