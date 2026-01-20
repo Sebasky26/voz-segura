@@ -21,15 +21,12 @@ public interface DerivationRuleRepository extends JpaRepository<DerivationRule, 
      * Busca la regla de derivación más específica que coincida con los criterios.
      */
     @Query("SELECT r FROM DerivationRule r WHERE r.active = true " +
-           "AND (r.complaintTypeMatch = :complaintType OR r.complaintTypeMatch IS NULL) " +
            "AND (r.severityMatch = :severity OR r.severityMatch IS NULL) " +
            "AND (r.priorityMatch = :priority OR r.priorityMatch IS NULL) " +
            "ORDER BY " +
-           "CASE WHEN r.complaintTypeMatch IS NOT NULL THEN 1 ELSE 0 END + " +
            "CASE WHEN r.severityMatch IS NOT NULL THEN 1 ELSE 0 END + " +
            "CASE WHEN r.priorityMatch IS NOT NULL THEN 1 ELSE 0 END DESC")
     List<DerivationRule> findMatchingRules(
-            @Param("complaintType") String complaintType,
             @Param("severity") String severity,
             @Param("priority") String priority);
 

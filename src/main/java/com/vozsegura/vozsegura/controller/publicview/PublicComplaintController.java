@@ -170,9 +170,10 @@ public class PublicComplaintController {
      */
     @GetMapping("/denuncia/form")
     public String showComplaintForm(HttpSession session, Model model) {
-        // Verificar que el usuario esté verificado
-        Boolean verified = (Boolean) session.getAttribute("verified");
-        if (verified == null || !verified) {
+        // Verificar que el usuario esté autenticado (atributo establecido por UnifiedAuthController)
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            log.warn("❌ Usuario no autenticado - redirigiendo a verificación");
             return "redirect:/verification/inicio?required";
         }
 

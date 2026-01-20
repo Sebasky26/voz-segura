@@ -11,11 +11,8 @@ public class DerivationRule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 64)
+    @Column(nullable = false, length = 64, unique = true)
     private String name;
-
-    @Column(name = "complaint_type_match", length = 64)
-    private String complaintTypeMatch;
 
     @Column(name = "severity_match", length = 32)
     private String severityMatch;
@@ -23,8 +20,12 @@ public class DerivationRule {
     @Column(name = "priority_match", length = 16)
     private String priorityMatch;
 
-    @Column(name = "destination", nullable = false, length = 255)
-    private String destination;
+    @Column(name = "destination_id")
+    private Long destinationId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destination_id", insertable = false, updatable = false)
+    private DestinationEntity destinationEntity;
 
     @Column(name = "description", length = 512)
     private String description;
@@ -56,17 +57,17 @@ public class DerivationRule {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getComplaintTypeMatch() { return complaintTypeMatch; }
-    public void setComplaintTypeMatch(String complaintTypeMatch) { this.complaintTypeMatch = complaintTypeMatch; }
-
     public String getSeverityMatch() { return severityMatch; }
     public void setSeverityMatch(String severityMatch) { this.severityMatch = severityMatch; }
 
     public String getPriorityMatch() { return priorityMatch; }
     public void setPriorityMatch(String priorityMatch) { this.priorityMatch = priorityMatch; }
 
-    public String getDestination() { return destination; }
-    public void setDestination(String destination) { this.destination = destination; }
+    public Long getDestinationId() { return destinationId; }
+    public void setDestinationId(Long destinationId) { this.destinationId = destinationId; }
+
+    public DestinationEntity getDestinationEntity() { return destinationEntity; }
+    public void setDestinationEntity(DestinationEntity destinationEntity) { this.destinationEntity = destinationEntity; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

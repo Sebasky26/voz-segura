@@ -2,6 +2,8 @@ package com.vozsegura.vozsegura.controller.admin;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -29,6 +31,8 @@ import jakarta.servlet.http.HttpSession;
 @RequestMapping("/admin")
 public class AdminController {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+
     private final DerivationService derivationService;
     private final AuditEventRepository auditEventRepository;
     private final DestinationEntityRepository destinationEntityRepository;
@@ -53,13 +57,22 @@ public class AdminController {
             return gatewayConfig.redirectToSessionExpired();
         }
 
-        long totalRules = derivationService.findAllRules().size();
-        long activeRules = derivationService.findActiveRules().size();
+        try {
+            log.info("📊 Loading admin panel for session: {}", session.getId());
+            
+            long totalRules = derivationService.findAllRules().size();
+            long activeRules = derivationService.findActiveRules().size();
 
-        model.addAttribute("totalRules", totalRules);
-        model.addAttribute("activeRules", activeRules);
+            model.addAttribute("totalRules", totalRules);
+            model.addAttribute("activeRules", activeRules);
 
-        return "admin/panel";
+            log.info("✅ Admin panel loaded successfully - Total rules: {}, Active rules: {}", totalRules, activeRules);
+            return "admin/panel";
+        } catch (Exception e) {
+            log.error("❌ Error loading admin panel for session: {}", session.getId(), e);
+            model.addAttribute("errorMessage", "Error al cargar el panel. Por favor intenta nuevamente.");
+            return "error/generic-error";
+        }
     }
 
     @GetMapping("/reglas")
@@ -82,10 +95,9 @@ public class AdminController {
     @PostMapping("/reglas/crear")
     public String crearRegla(
             @RequestParam("name") String name,
-            @RequestParam(value = "complaintTypeMatch", required = false) String complaintTypeMatch,
             @RequestParam(value = "severityMatch", required = false) String severityMatch,
             @RequestParam(value = "priorityMatch", required = false) String priorityMatch,
-            @RequestParam("destination") String destination,
+            @RequestParam("destinationId") Long destinationId,
             @RequestParam(value = "description", required = false) String description,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
@@ -98,10 +110,9 @@ public class AdminController {
 
         DerivationRule rule = new DerivationRule();
         rule.setName(name);
-        rule.setComplaintTypeMatch(emptyToNull(complaintTypeMatch));
         rule.setSeverityMatch(emptyToNull(severityMatch));
         rule.setPriorityMatch(emptyToNull(priorityMatch));
-        rule.setDestination(destination);
+        rule.setDestinationId(destinationId);
         rule.setDescription(description);
         rule.setActive(true);
 
@@ -114,10 +125,9 @@ public class AdminController {
     public String editarRegla(
             @PathVariable("id") Long id,
             @RequestParam("name") String name,
-            @RequestParam(value = "complaintTypeMatch", required = false) String complaintTypeMatch,
             @RequestParam(value = "severityMatch", required = false) String severityMatch,
             @RequestParam(value = "priorityMatch", required = false) String priorityMatch,
-            @RequestParam("destination") String destination,
+            @RequestParam("destinationId") Long destinationId,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "active", defaultValue = "false") boolean active,
             HttpSession session,
@@ -132,10 +142,9 @@ public class AdminController {
 
             DerivationRule updated = new DerivationRule();
             updated.setName(name);
-            updated.setComplaintTypeMatch(emptyToNull(complaintTypeMatch));
             updated.setSeverityMatch(emptyToNull(severityMatch));
             updated.setPriorityMatch(emptyToNull(priorityMatch));
-            updated.setDestination(destination);
+            updated.setDestinationId(destinationId);
             updated.setDescription(description);
             updated.setActive(active);
 

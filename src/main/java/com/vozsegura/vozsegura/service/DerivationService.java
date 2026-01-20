@@ -9,8 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.vozsegura.vozsegura.domain.entity.Complaint;
 import com.vozsegura.vozsegura.domain.entity.DerivationRule;
+import com.vozsegura.vozsegura.domain.entity.DestinationEntity;
 import com.vozsegura.vozsegura.repo.ComplaintRepository;
 import com.vozsegura.vozsegura.repo.DerivationRuleRepository;
+import com.vozsegura.vozsegura.repo.DestinationEntityRepository;
 
 /**
  * Servicio para gestionar reglas de derivación y derivar denuncias automáticamente.
@@ -20,13 +22,16 @@ public class DerivationService {
 
     private final DerivationRuleRepository ruleRepository;
     private final ComplaintRepository complaintRepository;
+    private final DestinationEntityRepository destinationEntityRepository;
     private final AuditService auditService;
 
     public DerivationService(DerivationRuleRepository ruleRepository,
                              ComplaintRepository complaintRepository,
+                             DestinationEntityRepository destinationEntityRepository,
                              AuditService auditService) {
         this.ruleRepository = ruleRepository;
         this.complaintRepository = complaintRepository;
+        this.destinationEntityRepository = destinationEntityRepository;
         this.auditService = auditService;
     }
 
@@ -56,10 +61,9 @@ public class DerivationService {
     public DerivationRule updateRule(Long id, DerivationRule updated, String adminUsername) {
         return ruleRepository.findById(id).map(rule -> {
             rule.setName(updated.getName());
-            rule.setComplaintTypeMatch(updated.getComplaintTypeMatch());
             rule.setSeverityMatch(updated.getSeverityMatch());
             rule.setPriorityMatch(updated.getPriorityMatch());
-            rule.setDestination(updated.getDestination());
+            rule.setDestinationId(updated.getDestinationId());
             rule.setDescription(updated.getDescription());
             rule.setActive(updated.isActive());
             rule.setUpdatedAt(OffsetDateTime.now());
@@ -93,20 +97,21 @@ public class DerivationService {
     }
 
     /**
-     * Encuentra la entidad de destino para una denuncia basándose en las reglas activas.
+     * Encuentra el ID de la entidad de destino para una denuncia basándose en las reglas activas.
      */
-    public String findDestinationForComplaint(Complaint complaint) {
+    public Long findDestinationIdForComplaint(Complaint complaint) {
         List<DerivationRule> matchingRules = ruleRepository.findMatchingRules(
-                complaint.getComplaintType(),
                 complaint.getSeverity(),
                 complaint.getPriority()
         );
 
-        if (matchingRules.isEmpty()) {
-            return "Ministerio del Trabajo del Ecuador";
+        if (matchingRules.isEmpty() || matchingRules.get(0).getDestinationId() == null) {
+            // Retornar ID por defecto si no hay regla que coincida
+            // TODO: Configurar ID de destino por defecto en base de datos
+            return 1L;
         }
 
-        return matchingRules.get(0).getDestination();
+        return matchingRules.get(0).getDestinationId();
     }
 
     /**
@@ -121,18 +126,22 @@ public class DerivationService {
         }
 
         Complaint complaint = complaintOpt.get();
-        String destination = findDestinationForComplaint(complaint);
+        Long destinationId = findDestinationIdForComplaint(complaint);
+        
+        // Obtener el nombre de la entidad de destino para audit
+        Optional<DestinationEntity> destEntity = destinationEntityRepository.findById(destinationId);
+        String destinationName = destEntity.map(DestinationEntity::getName).orElse("Destino desconocido");
 
         complaint.setStatus("DERIVED");
-        complaint.setDerivedTo(destination);
+        complaint.setDerivedTo(destinationName);
         complaint.setDerivedAt(OffsetDateTime.now());
         complaint.setUpdatedAt(OffsetDateTime.now());
         complaintRepository.save(complaint);
 
         auditService.logEvent("ANALYST", analystUsername, "COMPLAINT_DERIVED", trackingId,
-                "Derivado a: " + destination);
+                "Derivado a: " + destinationName);
 
-        return destination;
+        return destinationName;
     }
 }
 
