@@ -1,4 +1,4 @@
-﻿package com.vozsegura.vozsegura.domain.entity;
+package com.vozsegura.vozsegura.domain.entity;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
