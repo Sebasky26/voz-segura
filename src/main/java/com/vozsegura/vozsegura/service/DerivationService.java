@@ -15,7 +15,43 @@ import com.vozsegura.vozsegura.repo.DerivationRuleRepository;
 import com.vozsegura.vozsegura.repo.DestinationEntityRepository;
 
 /**
- * Servicio para gestionar reglas de derivación y derivar denuncias automáticamente.
+ * Servicio para gestionar reglas de derivación automática y derivar denuncias.
+ * 
+ * Responsabilidades:
+ * - Mantener reglas de derivación configuradas por admin
+ * - Buscar regla coincidente para cada denuncia basada en severidad+prioridad
+ * - Derivar denuncias automáticamente a entidades externas (OIJ, CONAMUSIDA, etc.)
+ * - Registrar todas las derivaciones en auditoría
+ * - Permitir activación/desactivación de reglas sin eliminar histórico
+ * 
+ * Algoritmo de Matching (findDestinationIdForComplaint):
+ * 1. Recibir denuncia con severidad (LOW/MEDIUM/HIGH/CRITICAL) y prioridad (1-5)
+ * 2. Buscar DerivationRule activa donde:
+ *    - severityMatch coincida (o sea wildcard "*")
+ *    - priorityMatch coincida (o sea rango)
+ * 3. Retornar ID de destino (DestinationEntity)
+ * 4. Si no hay coincidencia → retornar destino por defecto (ID 1)
+ * 
+ * Entidades Relacionadas:
+ * - DerivationRule: Pareja (severidad+prioridad) → entidad destino
+ * - DestinationEntity: Entidades externas (OIJ, CONAMUSIDA, etc.)
+ * - Complaint: Denuncia a derivar
+ * 
+ * Estados de Derivación:
+ * - PENDING: Denuncia creada, sin derivar aún
+ * - DERIVED: Derivada a entidad externa (cambio de estado + timestamp)
+ * 
+ * Auditoría:
+ * - RULE_CREATED: Admin crea nueva regla
+ * - RULE_UPDATED: Admin modifica regla existente
+ * - RULE_DELETED: Admin desactiva regla (soft delete)
+ * - COMPLAINT_DERIVED: Analyst o sistema derivan denuncia
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ * @see DerivationRule
+ * @see DestinationEntity
+ * @see Complaint
  */
 @Service
 public class DerivationService {
@@ -35,18 +71,30 @@ public class DerivationService {
         this.auditService = auditService;
     }
 
+    /**
+     * Obtiene todas las reglas de derivación (activas e inactivas).
+     */
     public List<DerivationRule> findAllRules() {
         return ruleRepository.findAllByOrderByNameAsc();
     }
 
+    /**
+     * Obtiene solo las reglas de derivación activas.
+     */
     public List<DerivationRule> findActiveRules() {
         return ruleRepository.findByActiveTrue();
     }
 
+    /**
+     * Obtiene una regla de derivación por su ID.
+     */
     public Optional<DerivationRule> findById(Long id) {
         return ruleRepository.findById(id);
     }
 
+    /**
+     * Crea una nueva regla de derivación.
+     */
     @Transactional
     public DerivationRule createRule(DerivationRule rule, String adminUsername) {
         rule.setCreatedAt(OffsetDateTime.now());
@@ -57,6 +105,9 @@ public class DerivationService {
         return saved;
     }
 
+    /**
+     * Modifica una regla de derivación existente.
+     */
     @Transactional
     public DerivationRule updateRule(Long id, DerivationRule updated, String adminUsername) {
         return ruleRepository.findById(id).map(rule -> {
@@ -74,6 +125,9 @@ public class DerivationService {
         }).orElseThrow(() -> new IllegalArgumentException("Regla no encontrada"));
     }
 
+    /**
+     * Desactiva una regla de derivación (soft delete).
+     */
     @Transactional
     public void deleteRule(Long id, String adminUsername) {
         ruleRepository.findById(id).ifPresent(rule -> {
@@ -85,6 +139,9 @@ public class DerivationService {
         });
     }
 
+    /**
+     * Reactiva una regla de derivación previamente desactivada.
+     */
     @Transactional
     public void activateRule(Long id, String adminUsername) {
         ruleRepository.findById(id).ifPresent(rule -> {

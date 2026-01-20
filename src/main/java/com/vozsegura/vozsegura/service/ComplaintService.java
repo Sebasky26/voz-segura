@@ -21,7 +21,35 @@ import java.util.UUID;
 
 /**
  * Servicio principal para la gestión de denuncias.
- * Maneja cifrado, persistencia y reglas de negocio.
+ * 
+ * Responsabilidades:
+ * - Crear y cifrar denuncias anónimas
+ * - Gestionar evidencias (archivos) asociadas
+ * - Cambiar estado de denuncias (PENDING → ASSIGNED → RESOLVED, etc)
+ * - Clasificar denuncias por tipo y prioridad
+ * - Solicitar información adicional
+ * - Rechazar denuncias
+ * - Derivar a entidades externas
+ * - Descifrar para visualización por staff autorizado
+ * - Registrar auditoría de cambios
+ * 
+ * Cifrado:
+ * - Todo texto de denuncia se cifra con AES-256-GCM antes de BD
+ * - Evidencias se cifran individualmente
+ * - Descifrado solo disponible para staff autorizado
+ * 
+ * Anonimato:
+ * - Ciudadano identificado por hash SHA-256, nunca plain text
+ * - IdentityVault vincula hash con denuncias
+ * - Tracking ID es el identificador público
+ * 
+ * Validaciones:
+ * - Máx 5 evidencias por denuncia
+ * - Tamaño máx 25MB por archivo
+ * - Solo formatos permitidos (PDF, DOCX, JPG, PNG, MP4)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Service
 public class ComplaintService {
@@ -56,12 +84,24 @@ public class ComplaintService {
 
     /**
      * Crea una nueva denuncia con sus evidencias.
-     * El texto se cifra antes de almacenarse.
-     * Las evidencias también se cifran.
-     *
-     * @param form datos del formulario
-     * @param citizenHash hash del ciudadano (no reversible)
-     * @return trackingId generado
+     * 
+     * Proceso:
+     * 1. Busca o crea IdentityVault con hash del ciudadano
+     * 2. Genera UUID único como tracking ID
+     * 3. Cifra texto de denuncia con AES-256-GCM
+     * 4. Almacena en BD con estado PENDING
+     * 5. Procesa evidencias (archivos) si existen
+     * 6. Registra evento de auditoría
+     * 
+     * Cifrado:
+     * - El texto completo de la denuncia se cifra
+     * - Ciudadano se identifica por hash SHA-256, no por cédula
+     * - Solo staff autorizado puede descifrar
+     * 
+     * @param form datos del formulario con campos de denuncia
+     * @param citizenHash hash SHA-256 del ciudadano (anonimidad)
+     * @return tracking ID (identificador público de la denuncia)
+     * @throws RuntimeException si el cifrado falla
      */
     @Transactional
     public String createComplaint(ComplaintForm form, String citizenHash) {
@@ -144,6 +184,15 @@ public class ComplaintService {
     /**
      * Busca una denuncia por trackingId.
      */
+    /**
+     * Busca una denuncia por su tracking ID.
+     * 
+     * El tracking ID es el identificador público que recibe el denunciante.
+     * Permite rastrear la denuncia sin revelar identidad.
+     * 
+     * @param trackingId identificador único de denuncia (UUID)
+     * @return Optional con la denuncia si existe, vacío si no
+     */
     public Optional<Complaint> findByTrackingId(String trackingId) {
         return complaintRepository.findByTrackingId(trackingId);
     }
@@ -152,6 +201,14 @@ public class ComplaintService {
      * Lista todas las denuncias (para staff).
      * No expone identidad del denunciante.
      */
+    /**
+     * Lista todas las denuncias del sistema.
+     * 
+     * NOTA: Solo debe usarse en contexto administrador.
+     * No incluye descifrado automático.
+     * 
+     * @return lista de denuncias (sin descifrar)
+     */
     public List<Complaint> findAll() {
         return complaintRepository.findAll();
     }
@@ -159,12 +216,33 @@ public class ComplaintService {
     /**
      * Lista todas las denuncias ordenadas por fecha de creación (más recientes primero).
      */
+    /**
+     * Lista todas las denuncias ordenadas por fecha (más recientes primero).
+     * 
+     * Útil para dashboards de administrador que muestren actividad reciente.
+     * 
+     * @return lista de denuncias ordenada por createdAt DESC
+     */
     public List<Complaint> findAllOrderByCreatedAtDesc() {
         return complaintRepository.findAllByOrderByCreatedAtDesc();
     }
 
     /**
      * Busca denuncias por estado.
+     */
+    /**
+     * Filtra denuncias por estado.
+     * 
+     * Estados posibles:
+     * - PENDING: Nueva, no asignada
+     * - ASSIGNED: Asignada a un analista
+     * - IN_PROGRESS: En investigación
+     * - RESOLVED: Resuelta
+     * - REJECTED: Rechazada
+     * - INFO_REQUESTED: Pendiente de más información
+     * 
+     * @param status estado a filtrar
+     * @return lista de denuncias con ese estado
      */
     public List<Complaint> findByStatus(String status) {
         return complaintRepository.findByStatus(status);
@@ -175,6 +253,17 @@ public class ComplaintService {
      *
      * @param encryptedText texto cifrado en Base64
      * @return texto descifrado
+     */
+    /**
+     * Descifra el texto de una denuncia.
+     * 
+     * CRITICO: Solo llamar para staff autorizado.
+     * El texto almacenado está en AES-256-GCM Base64.
+     * Este método lo descifra a plain text para visualización.
+     * 
+     * @param encryptedText texto cifrado en Base64
+     * @return texto descifrado (plain text)
+     * @throws RuntimeException si descifrado falla (texto corrupto)
      */
     public String decryptComplaintText(String encryptedText) {
         if (encryptedText == null || encryptedText.isBlank()) {
@@ -192,6 +281,21 @@ public class ComplaintService {
      * Actualiza el estado de una denuncia.
      */
     @Transactional
+    /**
+     * Cambia el estado de una denuncia.
+     * 
+     * Transiciones permitidas:
+     * - PENDING → ASSIGNED (cuando analista se asigna)
+     * - ASSIGNED → IN_PROGRESS (cuando inicia investigación)
+     * - IN_PROGRESS → RESOLVED (cuando se resuelve)
+     * - Cualquier estado → INFO_REQUESTED (para pedir más datos)
+     * - Cualquier estado → REJECTED (para rechazar)
+     * 
+     * @param trackingId ID de la denuncia a actualizar
+     * @param newStatus nuevo estado
+     * @param actorUsername quien hace el cambio (para auditoría)
+     * @param actorRole rol del actor (ADMIN, ANALYST, etc)
+     */
     public void updateStatus(String trackingId, String newStatus, String actorUsername, String actorRole) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setStatus(newStatus);
@@ -211,6 +315,23 @@ public class ComplaintService {
      * Clasifica una denuncia con tipo, prioridad y notas del analista.
      */
     @Transactional
+    /**
+     * Clasifica una denuncia por tipo y prioridad.
+     * 
+     * Tipos de denuncia:
+     * - LABOR_RIGHTS, HARASSMENT, DISCRIMINATION, SAFETY, FRAUD, OTHER
+     * 
+     * Prioridad:
+     * - LOW, MEDIUM, HIGH, CRITICAL
+     * 
+     * La clasificación determina la derivación automática
+     * (se aplican reglas de DerivationRule en BD).
+     * 
+     * @param trackingId ID de denuncia
+     * @param complaintType tipo de denuncia
+     * @param priority prioridad asignada
+     * @param analystUsername analista que clasifica (para auditoría)
+     */
     public void classifyComplaint(String trackingId, String complaintType, String priority,
                                    String analystNotes, String analystUsername) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
@@ -230,6 +351,17 @@ public class ComplaintService {
      * Solicita más información al denunciante.
      */
     @Transactional
+    /**
+     * Solicita información adicional al denunciante.
+     * 
+     * Cambia estado a INFO_REQUESTED.
+     * El denunciante puede rastrear la denuncia por tracking ID
+     * y ver que se pidió más información.
+     * 
+     * @param trackingId ID de denuncia
+     * @param motivo razón de la solicitud (para el denunciante)
+     * @param analystUsername quien solicita información
+     */
     public void requestMoreInfo(String trackingId, String motivo, String analystUsername) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setStatus("NEEDS_INFO");
@@ -248,6 +380,22 @@ public class ComplaintService {
      * Rechaza una denuncia.
      */
     @Transactional
+    /**
+     * Rechaza una denuncia.
+     * 
+     * Razones posibles:
+     * - Fuera de jurisdicción
+     * - Información insuficiente
+     * - Denuncia frívola
+     * - Otros motivos
+     * 
+     * El denunciante verá el estado REJECTED al rastrear
+     * pero NO verá el motivo (por privacidad).
+     * 
+     * @param trackingId ID de denuncia
+     * @param motivo razón del rechazo (interno)
+     * @param analystUsername quien rechaza
+     */
     public void rejectComplaint(String trackingId, String motivo, String analystUsername) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setStatus("REJECTED");
@@ -265,6 +413,26 @@ public class ComplaintService {
      * Marca una denuncia como derivada.
      */
     @Transactional
+    /**
+     * Deriva una denuncia a otra entidad.
+     * 
+     * Flujo:
+     * 1. Obtiene denuncia por tracking ID
+     * 2. Cambia estado a DERIVED
+     * 3. Almacena entidad destino
+     * 4. Registra auditoría del cambio
+     * 5. Puede llamar a ExternalDerivationClient para notificar
+     * 
+     * Derivaciones:
+     * - A fiscalesía para casos penales
+     * - A ministerio de trabajo para derechos laborales
+     * - A instituciones de protección social
+     * 
+     * @param trackingId ID de denuncia
+     * @param destination nombre entidad destino
+     * @param actorUsername quien autoriza derivación
+     * @param actorRole rol del actor
+     */
     public void derive(String trackingId, String destination, String actorUsername, String actorRole) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setStatus("DERIVED");
@@ -280,6 +448,23 @@ public class ComplaintService {
      * Agrega información adicional a una denuncia que requiere más información.
      */
     @Transactional
+    /**
+     * Añade información adicional a una denuncia existente.
+     * 
+     * Casos de uso:
+     * - Denunciante proporciona nuevas evidencias
+     * - Se agrega más contexto a investigación
+     * - Respuesta a solicitud de más información
+     * 
+     * Validaciones:
+     * - Máximo 5 evidencias totales por denuncia
+     * - Cada archivo máximo 25MB
+     * - Solo formatos permitidos
+     * 
+     * @param trackingId ID de denuncia
+     * @param additionalInfo texto adicional (se cifra)
+     * @param newEvidences nuevas evidencias (archivos)
+     */
     public void addAdditionalInfo(String trackingId, String additionalInfo, MultipartFile[] newEvidences) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             // Agregar la información adicional al texto cifrado existente

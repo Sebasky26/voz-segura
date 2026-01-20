@@ -29,6 +29,33 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Controlador para el flujo público de denuncias anónimas.
+ * 
+ * Responsabilidades:
+ * - Gestionar verificación biométrica con Didit
+ * - Recopilar información de denuncias del público
+ * - Generar tracking ID para seguimiento anónimo
+ * - Mantener anonimato usando hash SHA-256 de cédula
+ * 
+ * Flujo de usuario:
+ * 1. Usuario inicia verificación con Didit (/verification/start)
+ * 2. Didit procesa verificación biométrica
+ * 3. Webhook callback almacena resultado (/verification/callback)
+ * 4. Sistema genera hash anónimo de identidad
+ * 5. Usuario accede a formulario de denuncia (/denuncia/form)
+ * 6. Denuncia se cifra y almacena con tracking ID
+ * 7. Usuario recibe tracking ID para seguimiento anónimo
+ * 
+ * Seguridad:
+ * - Rate limiting en todos los endpoints
+ * - Validación de sesión en endpoints sensibles
+ * - Identidad almacenada como hash SHA-256, nunca en plain text
+ * - Cifrado AES-256-GCM para contenido de denuncia
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ */
 @Slf4j
 @Controller
 @SessionAttributes({"denunciaAccessToken", "citizenHash", "diditSessionId"})
@@ -46,11 +73,23 @@ public class PublicComplaintController {
         this.staffUserRepository = staffUserRepository;
     }
 
+    /**
+     * Proporciona formulario de acceso a denuncia como atributo del modelo.
+     * Se inyecta automáticamente en las vistas que lo requieren.
+     * 
+     * @return formulario vacío de acceso a denuncia
+     */
     @ModelAttribute("denunciaAccessForm")
     public DenunciaAccessForm accessForm() {
         return new DenunciaAccessForm();
     }
 
+    /**
+     * Punto de entrada para denuncias públicas.
+     * Redirige directamente al flujo de verificación biométrica.
+     * 
+     * @return redirección a /verification/inicio
+     */
     @GetMapping("/denuncia")
     public String showAccessForm() {
         // Redirigir directamente a verificación
@@ -58,7 +97,12 @@ public class PublicComplaintController {
     }
 
     /**
-     * Página inicial de verificación - Solo muestra botón para iniciar
+     * Página inicial de verificación - Solo muestra botón para iniciar.
+     * 
+     * Esta es la primera página que ve el usuario. Solo muestra una descripción
+     * del proceso y un botón para iniciar la verificación biométrica.
+     * 
+     * @return vista: public/verification-inicio
      */
     @GetMapping("/verification/inicio")
     public String verificationInicio() {
@@ -66,7 +110,21 @@ public class PublicComplaintController {
     }
 
     /**
-     * Inicia sesión de verificación con Didit
+     * Inicia sesión de verificación con Didit.
+     * 
+     * Crea una nueva sesión de verificación biométrica en Didit (v3 endpoint).
+     * Genera un UUID único para rastrear la sesión y almacena el ID de sesión
+     * de Didit en la sesión HTTP para procesamiento posterior del webhook.
+     * 
+     * Flujo:
+     * 1. Genera UUID único para esta instancia de verificación
+     * 2. Llama a Didit v3/session para crear sesión interactiva con QR
+     * 3. Almacena diditSessionId en sesión HTTP
+     * 4. Redirige al usuario a URL de Didit para verificación
+     * 
+     * @param session sesión HTTP para almacenar state
+     * @param model modelo para añadir errores
+     * @return redirección a URL de Didit o vista de error
      */
     @GetMapping("/verification/start")
     public String startVerification(HttpSession session, Model model) {
@@ -98,8 +156,24 @@ public class PublicComplaintController {
     }
 
     /**
-     * Callback después de que Didit procesa la verificación
-     * El webhook habrá guardado los datos
+     * Callback después de que Didit procesa la verificación.
+     * El webhook habrá guardado los datos de verificación en BD.
+     * 
+     * Verifica que:
+     * 1. La sesión HTTP contiene diditSessionId válido
+     * 2. El webhook guardó datos de verificación
+     * 3. La cédula existe en staff_user (solo personal autorizado)
+     * 4. Genera hash SHA-256 del ciudadano para anonimato
+     * 
+     * Detalles de seguridad:
+     * - Nunca almacena cédula en plain text
+     * - Genera hash SHA-256 con encoding Base64
+     * - Registra log sin revelar datos personales
+     * - Verifica autorización contra staff_user
+     * 
+     * @param session sesión HTTP con atributos de verificación
+     * @param model modelo para pasar datos a vista
+     * @return redirección a vista de éxito o error
      */
     @GetMapping("/verification/callback")
     public String verificationCallback(HttpSession session, Model model) {
@@ -151,7 +225,18 @@ public class PublicComplaintController {
     }
 
     /**
-     * Muestra las opciones después de verificación: crear denuncia o consultar seguimiento.
+     * Muestra las opciones después de verificación.
+     * 
+     * Permite al usuario elegir entre:
+     * - Crear nueva denuncia
+     * - Consultar seguimiento de denuncia anterior
+     * 
+     * Requiere que el usuario esté autenticado (authenticated=true en sesión).
+     * Si no está autenticado, redirige al login.
+     * 
+     * @param session sesión HTTP con atributo 'authenticated'
+     * @param model modelo para pasar datos a vista
+     * @return vista con opciones o redirección a login
      */
     @GetMapping("/denuncia/opciones")
     public String showOptions(HttpSession session, Model model) {
@@ -165,8 +250,20 @@ public class PublicComplaintController {
     }
 
     /**
-     * Muestra el formulario de denuncia.
-     * Requiere que el usuario esté verificado con Didit
+     * Muestra el formulario de denuncia (GET).
+     * Requiere que el usuario esté verificado con Didit y autenticado.
+     * 
+     * Valida:
+     * - Sesión HTTP válida con atributo 'authenticated'
+     * - Si no está autenticado, redirige a verificación
+     * 
+     * Datos en sesión requeridos:
+     * - authenticated: boolean (establecido por UnifiedAuthController)
+     * - citizenHash: String (hash SHA-256 de la cédula)
+     * 
+     * @param session sesión HTTP con atributos de autenticación
+     * @param model modelo para inyectar formulario vacío
+     * @return vista del formulario de denuncia
      */
     @GetMapping("/denuncia/form")
     public String showComplaintForm(HttpSession session, Model model) {
@@ -181,6 +278,30 @@ public class PublicComplaintController {
         return "public/denuncia-form";
     }
 
+    /**
+     * Procesa envío de denuncia (POST).
+     * 
+     * Flujo:
+     * 1. Valida datos del formulario
+     * 2. Obtiene citizenHash de sesión (identificación anónima)
+     * 3. Llama a ComplaintService para crear y cifrar denuncia
+     * 4. Genera tracking ID único para seguimiento anónimo
+     * 5. Limpia sesión (sign out automático después de envío)
+     * 6. Redirige a confirmación con tracking ID
+     * 
+     * Cifrado:
+     * - Contenido de denuncia cifrado con AES-256-GCM
+     * - Ciudadano identificado por hash SHA-256, no por cédula
+     * - Tracking ID es el único identificador público
+     * 
+     * @param form formulario validado con datos de denuncia
+     * @param bindingResult resultado de validación
+     * @param session sesión HTTP con citizenHash
+     * @param sessionStatus para limpiar sesión tras envío
+     * @param redirectAttributes para pasar tracking ID a confirmación
+     * @param model modelo para errores
+     * @return redirección a /denuncia/confirmacion o formulario con error
+     */
     @PostMapping("/denuncia/submit")
     public String submitComplaint(@Valid @ModelAttribute("complaintForm") ComplaintForm form,
                                   BindingResult bindingResult,
@@ -217,6 +338,19 @@ public class PublicComplaintController {
         }
     }
     
+    /**
+     * Muestra página de confirmación después de envío de denuncia.
+     * 
+     * Datos mostrados:
+     * - Tracking ID (único identificador público de la denuncia)
+     * - Mensaje de éxito
+     * 
+     * Los atributos flash (trackingId, success) se inyectan automáticamente
+     * en el model desde el RedirectAttributes del envío anterior.
+     * 
+     * @param model modelo con atributos flash (trackingId, success)
+     * @return vista de confirmación con tracking ID
+     */
     @GetMapping("/denuncia/confirmacion")
     public String showConfirmation(Model model) {
         // Los atributos flash (trackingId, success) se agregan automáticamente al model

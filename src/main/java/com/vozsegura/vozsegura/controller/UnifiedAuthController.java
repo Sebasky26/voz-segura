@@ -37,15 +37,53 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Controlador de Autenticación Unificada (ZTA - Zero Trust Architecture).
+ * Controlador de Autenticación Unificada (Zero Trust Architecture).
  *
- * Flujo de autenticación:
- * 1. Todos los usuarios (denunciantes, staff, admin) ingresan por /denuncia
- * 2. Se verifica contra Registro Civil + Cloudflare Turnstile
- * 3. Si es Staff/Admin -> Solicitar clave secreta AWS
- * 4. Si es Staff/Admin -> Enviar OTP por email (MFA)
- * 5. Si es Denunciante -> Continuar a verificación biométrica
- * 6. Enrutamiento según rol (API Gateway pattern)
+ * Responsabilidades Principales:
+ * - Punto de entrada único para todos los usuarios del sistema
+ * - Flujo de MFA para Staff/Admin (5 pasos)
+ * - Flujo simple para Denunciantes públicos (1-2 pasos)
+ * - Integración con Registro Civil (verificación biométrica)
+ * - Integración con Didit v3 (QR-based biometric verification)
+ * - Validación Cloudflare Turnstile (anti-bot)
+ * - Generación de JWT tokens para autenticación
+ * - Manejo de sesiones HTTP
+ * - Auditoría de todos los intentos de login
+ * 
+ * Flujo Denunciantes Públicos (Anonymous Complaint Filing):
+ * 1. GET /denuncia → showForm()
+ * 2. POST verificación inicial → startVerification()
+ * 3. Didit biometric verification (QR code)
+ * 4. POST callback → verificationCallback()
+ * 5. Sesión anónima con SHA-256 hash
+ * 6. Redirección a /denuncia/opciones
+ * 
+ * Flujo Staff/Admin (MFA de 5 pasos):
+ * 1. GET /login → loginForm()
+ * 2. POST cédula+dactilar → startDiditVerification()
+ * 3. Didit biometric verification (QR code)
+ * 4. POST callback → handleDiditCallback()
+ * 5. POST clave secreta → verifySecretKey()
+ * 6. POST código OTP → verifyOtp()
+ * 7. JWT token + sesión HTTP
+ * 8. Redirección a /staff/casos
+ * 
+ * Seguridad:
+ * - CSRF protection (sincronización de tokens)
+ * - Turnstile reCAPTCHA en formularios públicos
+ * - Rate limiting en endpoints de autenticación
+ * - JWT tokens con TTL (típicamente 1 hora)
+ * - Refresh tokens para renovación
+ * - Cookies HttpOnly + Secure
+ * - Auditoría de intentos fallidos
+ * 
+ * Enrutamiento por Rol (API Gateway Pattern):
+ * - DENUNCIANTE → /denuncia (crear denuncias)
+ * - ANALYST → /staff/casos (panel analistas)
+ * - ADMIN → /admin (panel administración)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Slf4j
 @Controller
@@ -73,6 +111,9 @@ public class UnifiedAuthController {
      * Nueva versión simplificada: solo botón para iniciar Didit.
      */
     @GetMapping("/login")
+    /**
+     * Muestra página de login para denunciantes públicos.
+     */
     public String showLoginPage(Model model, HttpSession session) {
         return "auth/login-simple";
     }
@@ -104,6 +145,9 @@ public class UnifiedAuthController {
      * Procesar login unificado (Paso 1: Verificación Registro Civil + Turnstile).
      */
     @PostMapping("/unified-login")
+    /**
+     * Procesa login unificado: verifica cédula+dactilar contra Registro Civil.
+     */
     public String processUnifiedLogin(
             @Valid @ModelAttribute UnifiedLoginForm form,
             BindingResult result,
@@ -202,6 +246,9 @@ public class UnifiedAuthController {
      * Crea una sesión interactiva y redirige al usuario a la URL de Didit.
      */
     @GetMapping("/verify-start")
+    /**
+     * Inicia verificación Didit v3 (QR-based biometric).
+     */
     public String startDiditVerification(HttpSession session, RedirectAttributes redirectAttributes) {
         try {
             // Crear sesión con identificador único de sesión HTTP como vendor_data
@@ -237,6 +284,9 @@ public class UnifiedAuthController {
      * Este endpoint se accede después de que el usuario completa la verificación en Didit.
      */
     @GetMapping("/verify-callback")
+    /**
+     * Webhook callback después de verificación Didit (webhook POST).
+     */
     public String handleDiditCallback(
             HttpSession session, 
             Model model, 
@@ -485,6 +535,9 @@ public class UnifiedAuthController {
      * 2. Flujo Didit (POST /verify-complete con isStaffUser=true) con staffCedula en sesión
      */
     @GetMapping("/secret-key")
+    /**
+     * Muestra página para ingreso de clave secreta (staff/admin step 3).
+     */
     public String showSecretKeyPage(Model model, HttpSession session) {
         // Verificar que sea staff (viene de Didit) O que ya pasó verificación unificada
         String staffCedula = (String) session.getAttribute("staffCedula");
@@ -510,6 +563,9 @@ public class UnifiedAuthController {
      * 2. Flujo Didit: usa staffCedula de session
      */
     @PostMapping("/verify-secret")
+    /**
+     * Verifica clave secreta contra BCrypt hash (staff/admin step 3).
+     */
     public String verifySecretKey(
             @Valid @ModelAttribute SecretKeyForm form,
             BindingResult result,
@@ -600,6 +656,9 @@ public class UnifiedAuthController {
      * Pantalla de verificación OTP (Paso 3 para Staff/Admin - MFA).
      */
     @GetMapping("/verify-otp")
+    /**
+     * Muestra página para ingreso de código OTP (staff/admin step 4).
+     */
     public String showOtpPage(Model model, HttpSession session) {
         String otpToken = (String) session.getAttribute("otpToken");
         if (otpToken == null) {
@@ -619,6 +678,9 @@ public class UnifiedAuthController {
      * 2. Flujo Didit: usa otpCedula de session
      */
     @PostMapping("/verify-otp")
+    /**
+     * Verifica código OTP y crea JWT token (staff/admin step 5, autenticación completa).
+     */
     public String verifyOtp(
             @ModelAttribute OtpForm form,
             HttpSession session,
@@ -707,6 +769,9 @@ public class UnifiedAuthController {
      * Reenviar código OTP.
      */
     @PostMapping("/resend-otp")
+    /**
+     * Reenvía OTP (si usuario no recibió código).
+     */
     public String resendOtp(HttpSession session, RedirectAttributes redirectAttributes) {
         String cedula = (String) session.getAttribute("cedula");
         if (cedula == null) {
@@ -756,6 +821,9 @@ public class UnifiedAuthController {
      * Logout unificado.
      */
     @GetMapping("/logout")
+    /**
+     * Logout: Invalida sesión y JWT token.
+     */
     public String logout(HttpSession session) {
         session.invalidate();
         return "redirect:/auth/login?logout";

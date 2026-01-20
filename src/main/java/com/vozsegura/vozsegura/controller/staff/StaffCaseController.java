@@ -29,15 +29,30 @@ import com.vozsegura.vozsegura.service.SystemConfigService;
 import jakarta.servlet.http.HttpSession;
 
 /**
- * Controlador para la gestión de casos por parte del Staff (Analistas).
- *
- * Funciones del Analista:
- * - Ver listado de denuncias
- * - Revisar contenido y evidencias
- * - Clasificar tipo de denuncia y prioridad
- * - Cambiar estado (pendiente, en revisión, requiere más info, aprobado, rechazado)
- * - Agregar notas internas
- * - Aprobar para derivación automática
+ * Controlador para la gestión de casos por parte del Staff (Analistas y Administradores).
+ * 
+ * Responsabilidades:
+ * - Listar denuncias según estado (filtrable, ordenable)
+ * - Mostrar detalles de denuncias con contenido descifrado
+ * - Clasificar denuncias (tipo, prioridad)
+ * - Cambiar estado en máquina de estados (PENDING→ASSIGNED→IN_PROGRESS→RESOLVED)
+ * - Derivar automáticamente según reglas a entidades externas
+ * - Solicitar información adicional al denunciante
+ * - Rechazar denuncias con motivos internos/externos
+ * - Descargar evidencias en formato protegido
+ * 
+ * Auditoría:
+ * - Todas las acciones son registradas (quién, cuándo, qué)
+ * - Acceso a casos individuales es auditado
+ * - Cambios de estado son trazables
+ * 
+ * Seguridad:
+ * - Requiere sesión autenticada (staff/admin)
+ * - Contenido descifrado dinámicamente (no en caché)
+ * - Evidencias descargadas con headers de seguridad
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Controller
 @RequestMapping("/staff")
@@ -67,6 +82,9 @@ public class StaffCaseController {
         this.gatewayConfig = gatewayConfig;
     }
 
+    /**
+     * Lista todas las denuncias accesibles al staff (filtrable por estado).
+     */
     @GetMapping({"/casos", "/casos-list", ""})
     public String listCases(
             @RequestParam(name = "status", required = false) String status,
@@ -89,6 +107,9 @@ public class StaffCaseController {
         return "staff/casos-list";
     }
 
+    /**
+     * Muestra detalles completos de una denuncia específica (con contenido descifrado).
+     */
     @GetMapping("/casos/{trackingId}")
     public String viewCase(@PathVariable("trackingId") String trackingId,
                            HttpSession session,
@@ -123,6 +144,9 @@ public class StaffCaseController {
         }
     }
 
+    /**
+     * Clasifica una denuncia asignando tipo y prioridad.
+     */
     @PostMapping("/casos/{trackingId}/clasificar")
     public String clasificarCaso(
             @PathVariable("trackingId") String trackingId,
@@ -146,6 +170,9 @@ public class StaffCaseController {
         return "redirect:/staff/casos/" + trackingId;
     }
 
+    /**
+     * Actualiza el estado de una denuncia (máquina de estados).
+     */
     @PostMapping("/casos/{trackingId}/estado")
     public String updateEstado(
             @PathVariable("trackingId") String trackingId,
@@ -171,6 +198,9 @@ public class StaffCaseController {
         return "redirect:/staff/casos/" + trackingId;
     }
 
+    /**
+     * Aprueba una denuncia y la deriva automáticamente según reglas.
+     */
     @PostMapping("/casos/{trackingId}/aprobar-derivar")
     public String aprobarYDerivar(
             @PathVariable("trackingId") String trackingId,
@@ -193,8 +223,9 @@ public class StaffCaseController {
 
         return "redirect:/staff/casos/" + trackingId;
     }
-
-    @PostMapping("/casos/{trackingId}/solicitar-info")
+    /**
+     * Solicita información adicional al denunciante.
+     */    @PostMapping("/casos/{trackingId}/solicitar-info")
     public String solicitarMasInfo(
             @PathVariable("trackingId") String trackingId,
             @RequestParam(value = "motivo", required = false) String motivo,
@@ -217,6 +248,9 @@ public class StaffCaseController {
         return "redirect:/staff/casos/" + trackingId;
     }
 
+    /**
+     * Rechaza una denuncia con motivos internos y externos.
+     */
     @PostMapping("/casos/{trackingId}/rechazar")
     public String rechazarCaso(
             @PathVariable("trackingId") String trackingId,
@@ -241,8 +275,9 @@ public class StaffCaseController {
 
     /**
      * Descarga una evidencia específica (descifrada).
-     */
-    @GetMapping("/evidencias/{id}")
+     */    /**
+     * Descarga una evidencia en formato seguro (descifrada).
+     */    @GetMapping("/evidencias/{id}")
     @ResponseBody
     public ResponseEntity<byte[]> downloadEvidence(@PathVariable("id") Long id,
                                                    HttpSession session) {
