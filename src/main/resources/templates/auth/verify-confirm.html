@@ -32,8 +32,8 @@
 
         <div class="vs-card__header">
             <h1 id="titulo-confirm" class="vs-card__title">✓ Identidad Verificada</h1>
-            <p class="vs-card__subtitle" th:if="${staffRedirectUrl == null}">Completa el formulario para continuar</p>
-            <p class="vs-card__subtitle" th:if="${staffRedirectUrl != null}">Procede con la verificación de seguridad para acceder</p>
+            <p class="vs-card__subtitle" th:if="${staffRole == 'ADMIN' or staffRole == 'ANALYST'}">Procede con la verificación de seguridad para acceder</p>
+            <p class="vs-card__subtitle" th:if="${staffRole != 'ADMIN' and staffRole != 'ANALYST'}">Completa el formulario para continuar</p>
         </div>
 
         <!-- Mensaje de error -->
@@ -41,31 +41,15 @@
             Error
         </div>
 
-        <!-- Datos verificados (Read-Only) -->
-        <div style="background-color: #f0f8ff; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #007bff;">
-            <h3 style="margin-top: 0; color: #007bff;">Datos Verificados con Didit</h3>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                <div>
-                    <label style="display: block; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
-                        Número de Cédula:
-                    </label>
-                    <input type="text" 
-                           th:value="${documentNumber}"
-                           readonly
-                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9; font-size: 1rem; color: #333;"/>
-                </div>
-
-                <div>
-                    <label style="display: block; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
-                        Nombre Completo:
-                    </label>
-                    <input type="text" 
-                           th:value="${fullName}"
-                           readonly
-                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9; font-size: 1rem; color: #333;"/>
-                </div>
+        <!-- Usuario verificado - NO mostramos cédula ni nombre por privacidad -->
+        <div style="background-color: #d4edda; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #28a745; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                <span style="font-size: 2rem;">✅</span>
+                <h3 style="margin: 0; color: #155724; font-size: 1.5rem;">Usuario Verificado</h3>
             </div>
+            <p style="margin: 1rem 0 0 0; color: #155724;">
+                Tu identidad ha sido verificada exitosamente mediante biometría.
+            </p>
         </div>
 
         <!-- Formulario de confirmación -->
@@ -116,38 +100,24 @@
                     ← Volver
                 </a>
                 
-                <!-- Si es ADMIN o ANALYST, mostrar botón especial (igual forma pero con isStaff=true) -->
-                <th:block th:if="${staffRedirectUrl != null}">
-                    <button type="submit"
-                            form="confirmForm"
-                            class="vs-button vs-button--primary"
-                            name="isStaffUser"
-                            value="true"
-                            style="flex: 1;">
-                        <span th:text="${staffRedirectButton}">Ver Panel</span> →
-                    </button>
-                </th:block>
-                
-                <!-- Si es usuario regular, mostrar botón de denuncia -->
-                <th:block th:if="${staffRedirectUrl == null}">
-                    <button type="submit"
-                            form="confirmForm"
-                            class="vs-button vs-button--primary"
-                            style="flex: 1;">
-                        Hacer Denuncia →
-                    </button>
-                </th:block>
+                <!-- Botón de acción según rol -->
+                <button type="submit"
+                        form="confirmForm"
+                        class="vs-button vs-button--primary"
+                        style="flex: 1;">
+                    <span th:text="${staffRedirectButton} ?: 'Continuar'">Continuar</span> →
+                </button>
             </div>
         </form>
 
         <!-- Nota de seguridad -->
         <div class="vs-alert vs-alert--info vs-mt-6" role="status" aria-live="polite" style="font-size: 0.9rem;">
             <strong>Nota:</strong>
-            <span th:if="${staffRedirectUrl == null}">
-                Después de aceptar, podrás proceder a crear tu denuncia. Todos tus datos se procesarán con máxima seguridad y privacidad.
-            </span>
-            <span th:if="${staffRedirectUrl != null}">
+            <span th:if="${staffRole == 'ADMIN' or staffRole == 'ANALYST'}">
                 Se requerirá tu clave secreta y código OTP por email para acceder al panel. Esto garantiza máxima seguridad.
+            </span>
+            <span th:if="${staffRole != 'ADMIN' and staffRole != 'ANALYST'}">
+                Después de aceptar, podrás proceder a crear tu denuncia. Todos tus datos se procesarán con máxima seguridad y privacidad.
             </span>
         </div>
 

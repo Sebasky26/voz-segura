@@ -238,37 +238,35 @@ public class DiditService {
                 log.info("📍 User already exists in database. Updating verification. Old sessionId: {}, New sessionId: {}", 
                         verification.getDiditSessionId(), webhookData.getSessionId());
                 
-                // Actualizar todos los campos
+                // Actualizar solo campos necesarios - NO guardamos nombres por privacidad
                 verification.setDiditSessionId(webhookData.getSessionId());
-                verification.setFirstName(docData.getFirstName());
-                verification.setLastName(docData.getLastName());
-                verification.setFullName(docData.getFullName());
                 verification.setVerificationStatus(status);
                 verification.setWebhookIp(ipAddress);
                 verification.setVerifiedAt(OffsetDateTime.now());
-                verification.setWebhookPayload(payload);
+                // No guardamos el payload completo por privacidad
                 
-                log.info("🔄 Updated record: document={}, fullName={}", docData.getPersonalNumber(), docData.getFullName());
+                log.info("🔄 Updated record: document={} (nombres no almacenados por privacidad)", docData.getPersonalNumber());
             } else {
-                // Crear nuevo registro
+                // Crear nuevo registro - Solo guardamos cédula, no nombres
                 verification = new DiditVerification();
                 verification.setDiditSessionId(webhookData.getSessionId());
                 verification.setDocumentNumber(docData.getPersonalNumber());
-                verification.setFirstName(docData.getFirstName());
-                verification.setLastName(docData.getLastName());
-                verification.setFullName(docData.getFullName());
+                // No guardamos firstName, lastName, fullName por privacidad
+                verification.setFirstName(null);
+                verification.setLastName(null);
+                verification.setFullName("Usuario verificado"); // Placeholder para campo requerido
                 verification.setVerificationStatus(status);
                 verification.setWebhookIp(ipAddress);
                 verification.setVerifiedAt(OffsetDateTime.now());
-                verification.setWebhookPayload(payload);
+                // No guardamos el payload completo por privacidad
                 
-                log.info("🆕 Creating new verification record: document={}, fullName={}", docData.getPersonalNumber(), docData.getFullName());
+                log.info("🆕 Creating new verification record: document={} (nombres no almacenados por privacidad)", docData.getPersonalNumber());
             }
 
             DiditVerification saved = diditVerificationRepository.save(verification);
             
-            log.info("✅ Didit verification saved to database: sessionId={}, document={}, fullName={}, status={}, operation={}", 
-                    saved.getDiditSessionId(), saved.getDocumentNumber(), saved.getFullName(), saved.getVerificationStatus(),
+            log.info("✅ Didit verification saved to database: sessionId={}, document={}, status={}, operation={}", 
+                    saved.getDiditSessionId(), saved.getDocumentNumber(), saved.getVerificationStatus(),
                     existingVerification.isPresent() ? "UPDATE" : "INSERT");
             
             return saved;
@@ -402,26 +400,22 @@ public class DiditService {
                 return Optional.empty();
             }
             
-            // Crear y guardar verificación
+            // Crear y guardar verificación - Solo guardamos cédula, no nombres por privacidad
             DiditVerification verification = new DiditVerification();
             verification.setDiditSessionId(sessionId);
             verification.setDocumentNumber(personalNumber);
-            verification.setFirstName(firstName);
-            verification.setLastName(lastName);
-            verification.setFullName(fullName != null ? fullName : (firstName + " " + lastName));
+            // No guardamos firstName, lastName, fullName por privacidad
+            verification.setFirstName(null);
+            verification.setLastName(null);
+            verification.setFullName("Usuario verificado"); // Placeholder para campo requerido
             verification.setVerificationStatus("VERIFIED");
             verification.setVerifiedAt(OffsetDateTime.now());
-            
-            try {
-                verification.setWebhookPayload(objectMapper.writeValueAsString(body));
-            } catch (Exception e) {
-                log.debug("Could not serialize payload: {}", e.getMessage());
-            }
+            // No guardamos el payload por privacidad
             
             DiditVerification saved = diditVerificationRepository.save(verification);
             
-            log.info("✅ Session decision retrieved from Didit API and saved: document={}, fullName={}", 
-                    personalNumber, verification.getFullName());
+            log.info("✅ Session decision retrieved from Didit API and saved: document={} (nombres no almacenados por privacidad)", 
+                    personalNumber);
             
             return Optional.of(saved);
             

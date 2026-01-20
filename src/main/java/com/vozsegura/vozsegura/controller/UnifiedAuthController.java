@@ -285,45 +285,49 @@ public class UnifiedAuthController {
             
             DiditVerification verification = verificationOpt.get();
             
-            log.info("Verification successful: {} - {}", verification.getDocumentNumber(), verification.getFullName());
+            log.info("Verification successful for document: {}", verification.getDocumentNumber());
+            
+            // IMPORTANTE: Verificar si la cédula está en la tabla staff_user
+            // Solo usuarios registrados pueden acceder al sistema
+            Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(verification.getDocumentNumber());
+            
+            if (staffUser.isEmpty()) {
+                log.warn("❌ Usuario NO encontrado en staff_user: document={}", verification.getDocumentNumber());
+                redirectAttributes.addFlashAttribute("error", "Usuario no encontrado. Solo personal autorizado puede acceder al sistema.");
+                return "redirect:/auth/login";
+            }
+            
+            StaffUser user = staffUser.get();
+            String staffRole = user.getRole();
+            log.info("👤 Usuario encontrado en staff_user: document={}, role={}", verification.getDocumentNumber(), staffRole);
             
             // Guardar datos en la sesión para POST /auth/verify-complete
+            // Solo guardamos la cédula - NO nombres por privacidad
             session.setAttribute("verifiedDocumentNumber", verification.getDocumentNumber());
-            session.setAttribute("verifiedFirstName", verification.getFirstName());
-            session.setAttribute("verifiedLastName", verification.getLastName());
-            session.setAttribute("verifiedFullName", verification.getFullName());
+            session.setAttribute("verifiedStaffRole", staffRole);
             session.setAttribute("diditSessionId", diditSessionId);
             
-            // NUEVO: Verificar si el usuario es ADMIN/ANALYST en staff_user
-            Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(verification.getDocumentNumber());
-            String staffRole = null;
+            // Determinar redirección según rol
             String staffRedirectButton = null;
             String staffRedirectUrl = null;
             
-            if (staffUser.isPresent()) {
-                staffRole = staffUser.get().getRole();
-                log.info("👤 User found in staff_user table: document={}, role={}", verification.getDocumentNumber(), staffRole);
-                
-                if ("ADMIN".equals(staffRole)) {
-                    staffRedirectButton = "Ver Panel";
-                    staffRedirectUrl = "/admin/panel";
-                    log.info("✅ User is ADMIN - redirect to panel");
-                } else if ("ANALYST".equals(staffRole)) {
-                    staffRedirectButton = "Ver Denuncias";
-                    staffRedirectUrl = "/staff/casos";
-                    log.info("✅ User is ANALYST - redirect to complaints");
-                } else {
-                    log.info("ℹ️  User has role '{}' (not ADMIN/ANALYST) - treat as regular user", staffRole);
-                }
+            if ("ADMIN".equals(staffRole)) {
+                staffRedirectButton = "Ver Panel";
+                staffRedirectUrl = "/admin/panel";
+                log.info("✅ User is ADMIN - redirect to panel");
+            } else if ("ANALYST".equals(staffRole)) {
+                staffRedirectButton = "Ver Denuncias";
+                staffRedirectUrl = "/staff/casos";
+                log.info("✅ User is ANALYST - redirect to complaints");
             } else {
-                log.info("ℹ️  User NOT found in staff_user table or not enabled - treat as regular user");
+                // Otros roles pueden hacer denuncias
+                staffRedirectButton = "Hacer Denuncia";
+                staffRedirectUrl = "/denuncia/form";
+                log.info("ℹ️  User has role '{}' - redirect to denuncia form", staffRole);
             }
             
-            // Pasar datos al modelo para mostrarlos en el formulario de confirmación
-            model.addAttribute("documentNumber", verification.getDocumentNumber());
-            model.addAttribute("firstName", verification.getFirstName());
-            model.addAttribute("lastName", verification.getLastName());
-            model.addAttribute("fullName", verification.getFullName());
+            // Pasar datos al modelo - NO mostramos cédula ni nombre
+            // Solo mostramos "Usuario verificado"
             model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
             model.addAttribute("staffRole", staffRole);
             model.addAttribute("staffRedirectButton", staffRedirectButton);
@@ -374,41 +378,31 @@ public class UnifiedAuthController {
             
             // Obtener datos verificados de la sesión
             String documentNumber = (String) session.getAttribute("verifiedDocumentNumber");
-            String firstName = (String) session.getAttribute("verifiedFirstName");
-            String lastName = (String) session.getAttribute("verifiedLastName");
-            String fullName = (String) session.getAttribute("verifiedFullName");
+            String staffRole = (String) session.getAttribute("verifiedStaffRole");
             
-            if (documentNumber == null) {
+            if (documentNumber == null || staffRole == null) {
                 model.addAttribute("error", "Datos de verificación no encontrados. Por favor intente nuevamente.");
                 return prepareVerifyConfirmModel(session, model, turnstileToken);
             }
             
-            // Verificar si es staff/admin
-            String isStaffUser = request.getParameter("isStaffUser");
-            boolean isStaff = "true".equals(isStaffUser);
+            log.info("completeVerification - documentNumber={}, staffRole={}", documentNumber, staffRole);
             
-            log.info("completeVerification - documentNumber={}, isStaff={}", documentNumber, isStaff);
-            
-            // Si es staff/admin, guardar en sesión y redirigir a clave de verificación
-            if (isStaff) {
+            // Todos los usuarios verificados pasan por el flujo de clave secreta (excepto USER rol básico)
+            if ("ADMIN".equals(staffRole) || "ANALYST".equals(staffRole)) {
                 log.info("👤 Redirecting staff/admin user to secret-key verification");
                 session.setAttribute("staffCedula", documentNumber);
-                session.setAttribute("staffFirstName", firstName);
-                session.setAttribute("staffLastName", lastName);
-                session.setAttribute("staffFullName", fullName);
+                session.setAttribute("staffRole", staffRole);
                 
                 // Limpiar datos temporales de Didit
                 session.removeAttribute("diditSessionId");
                 session.removeAttribute("verifiedDocumentNumber");
-                session.removeAttribute("verifiedFirstName");
-                session.removeAttribute("verifiedLastName");
-                session.removeAttribute("verifiedFullName");
+                session.removeAttribute("verifiedStaffRole");
                 
                 return "redirect:/auth/secret-key";
             }
             
-            // Si es usuario regular, proceder con flujo de denuncia
-            log.info("👤 Redirecting regular user to denuncia form");
+            // Si es usuario con otro rol (USER), proceder con flujo de denuncia
+            log.info("👤 Redirecting user with role {} to denuncia form", staffRole);
             
             // Generar hash anónimo de la cédula para la denuncia
             String citizenHash = hashCedula(documentNumber);
@@ -418,16 +412,12 @@ public class UnifiedAuthController {
             session.setAttribute("verificationMethod", "DIDIT");
             session.setAttribute("citizenHash", citizenHash);
             session.setAttribute("documentNumber", documentNumber);
-            session.setAttribute("firstName", firstName);
-            session.setAttribute("lastName", lastName);
-            session.setAttribute("fullName", fullName);
+            session.setAttribute("userRole", staffRole);
             
             // Limpiar datos temporales
             session.removeAttribute("diditSessionId");
             session.removeAttribute("verifiedDocumentNumber");
-            session.removeAttribute("verifiedFirstName");
-            session.removeAttribute("verifiedLastName");
-            session.removeAttribute("verifiedFullName");
+            session.removeAttribute("verifiedStaffRole");
             
             // Redirigir al formulario de denuncia
             return "redirect:/denuncia/form";
@@ -440,31 +430,28 @@ public class UnifiedAuthController {
 
     /**
      * Helper para preparar el modelo del formulario de confirmación.
+     * NO muestra cédula ni nombre - solo "Usuario verificado"
      */
     private String prepareVerifyConfirmModel(HttpSession session, Model model, String turnstileToken) {
         String documentNumber = (String) session.getAttribute("verifiedDocumentNumber");
-        String firstName = (String) session.getAttribute("verifiedFirstName");
-        String lastName = (String) session.getAttribute("verifiedLastName");
-        String fullName = (String) session.getAttribute("verifiedFullName");
+        String staffRole = (String) session.getAttribute("verifiedStaffRole");
         
-        model.addAttribute("documentNumber", documentNumber);
-        model.addAttribute("firstName", firstName);
-        model.addAttribute("lastName", lastName);
-        model.addAttribute("fullName", fullName);
         model.addAttribute("turnstileSiteKey", turnstileService.getSiteKey());
         
-        // Verificar si es staff/admin
-        if (documentNumber != null) {
-            Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(documentNumber);
-            if (staffUser.isPresent()) {
-                String staffRole = staffUser.get().getRole();
-                if ("ADMIN".equals(staffRole)) {
-                    model.addAttribute("staffRedirectButton", "Ver Panel");
-                    model.addAttribute("staffRedirectUrl", "/admin/panel");
-                } else if ("ANALYST".equals(staffRole)) {
-                    model.addAttribute("staffRedirectButton", "Ver Denuncias");
-                    model.addAttribute("staffRedirectUrl", "/staff/casos");
-                }
+        // Verificar rol y establecer redirección
+        if (documentNumber != null && staffRole != null) {
+            if ("ADMIN".equals(staffRole)) {
+                model.addAttribute("staffRole", staffRole);
+                model.addAttribute("staffRedirectButton", "Ver Panel");
+                model.addAttribute("staffRedirectUrl", "/admin/panel");
+            } else if ("ANALYST".equals(staffRole)) {
+                model.addAttribute("staffRole", staffRole);
+                model.addAttribute("staffRedirectButton", "Ver Denuncias");
+                model.addAttribute("staffRedirectUrl", "/staff/casos");
+            } else {
+                model.addAttribute("staffRole", staffRole);
+                model.addAttribute("staffRedirectButton", "Hacer Denuncia");
+                model.addAttribute("staffRedirectUrl", "/denuncia/form");
             }
         }
         
@@ -487,12 +474,9 @@ public class UnifiedAuthController {
             return "redirect:/auth/login";
         }
         
-        // Si viene del flujo Didit, mostrar datos del staff
+        // Si viene del flujo Didit, loggear acceso (NO mostramos datos personales en UI)
         if (staffCedula != null) {
-            String staffFullName = (String) session.getAttribute("staffFullName");
-            log.info("🔐 Staff/Admin accessing secret-key page: cedula={}, fullName={}", staffCedula, staffFullName);
-            model.addAttribute("staffCedula", staffCedula);
-            model.addAttribute("staffFullName", staffFullName);
+            log.info("🔐 Staff/Admin accessing secret-key page (cedula verificada)");
         }
 
         model.addAttribute("secretKeyForm", new SecretKeyForm());

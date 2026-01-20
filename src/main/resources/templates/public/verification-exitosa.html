@@ -36,56 +36,18 @@
 
         <!-- Alerta de éxito -->
         <div class="vs-alert vs-alert--success vs-mb-6" role="status">
-            Tu documento ha sido verificado exitosamente. Los datos extraídos se muestran abajo.
+            Tu identidad ha sido verificada exitosamente mediante biometría.
         </div>
 
-        <!-- Datos extraídos de Didit (Read-Only) -->
-        <div style="background-color: #f5f5f5; padding: 2rem; border-radius: 8px; margin-bottom: 2rem;">
-            
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
-                    Número de Cédula:
-                </label>
-                <input type="text" 
-                       th:value="${documentNumber}"
-                       readonly
-                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; font-size: 1rem;"
-                       aria-label="Número de cédula"/>
+        <!-- Usuario verificado - NO mostramos cédula ni nombre por privacidad -->
+        <div style="background-color: #d4edda; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1rem;">
+                <span style="font-size: 3rem;">✅</span>
             </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
-                    Nombre Completo:
-                </label>
-                <input type="text" 
-                       th:value="${fullName}"
-                       readonly
-                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; font-size: 1rem;"
-                       aria-label="Nombre completo"/>
-            </div>
-
-            <div>
-                <label style="display: block; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
-                    Primer Nombre:
-                </label>
-                <input type="text" 
-                       th:value="${firstName}"
-                       readonly
-                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; font-size: 1rem;"
-                       aria-label="Primer nombre"/>
-            </div>
-
-            <div style="margin-top: 1.5rem;">
-                <label style="display: block; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
-                    Apellido:
-                </label>
-                <input type="text" 
-                       th:value="${lastName}"
-                       readonly
-                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; font-size: 1rem;"
-                       aria-label="Apellido"/>
-            </div>
-
+            <h3 style="margin: 0; color: #155724; font-size: 1.5rem;">Usuario Verificado</h3>
+            <p style="margin: 1rem 0 0 0; color: #155724;">
+                Tu identidad ha sido confirmada. Puedes proceder con tu solicitud.
+            </p>
         </div>
 
         <!-- Botones de acción -->

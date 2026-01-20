@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,9 +16,11 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.vozsegura.vozsegura.domain.entity.StaffUser;
 import com.vozsegura.vozsegura.dto.forms.BiometricOtpForm;
 import com.vozsegura.vozsegura.dto.forms.ComplaintForm;
 import com.vozsegura.vozsegura.dto.forms.DenunciaAccessForm;
+import com.vozsegura.vozsegura.repo.StaffUserRepository;
 import com.vozsegura.vozsegura.security.RateLimiter;
 import com.vozsegura.vozsegura.service.ComplaintService;
 import com.vozsegura.vozsegura.service.DiditService;
@@ -34,11 +37,13 @@ public class PublicComplaintController {
     private final RateLimiter rateLimiter;
     private final ComplaintService complaintService;
     private final DiditService diditService;
+    private final StaffUserRepository staffUserRepository;
 
-    public PublicComplaintController(RateLimiter rateLimiter, ComplaintService complaintService, DiditService diditService) {
+    public PublicComplaintController(RateLimiter rateLimiter, ComplaintService complaintService, DiditService diditService, StaffUserRepository staffUserRepository) {
         this.rateLimiter = rateLimiter;
         this.complaintService = complaintService;
         this.diditService = diditService;
+        this.staffUserRepository = staffUserRepository;
     }
 
     @ModelAttribute("denunciaAccessForm")
@@ -115,23 +120,27 @@ public class PublicComplaintController {
 
             var verif = verification.get();
 
+            // IMPORTANTE: Verificar que la cédula esté en staff_user
+            Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(verif.getDocumentNumber());
+            
+            if (staffUser.isEmpty()) {
+                log.warn("❌ Usuario NO encontrado en staff_user: document={}", verif.getDocumentNumber());
+                model.addAttribute("error", "Usuario no encontrado. Solo personal autorizado puede acceder al sistema.");
+                return "public/verification-inicio";
+            }
+
             // Generar hash del ciudadano para próximas denuncias
             String citizenHash = hashCitizenIdentifier(verif.getDocumentNumber());
             session.setAttribute("citizenHash", citizenHash);
             session.setAttribute("verified", true);
             session.setAttribute("documentNumber", verif.getDocumentNumber());
-            session.setAttribute("fullName", verif.getFullName());
+            session.setAttribute("userRole", staffUser.get().getRole());
 
             // Vincular verificación con hash
             diditService.linkVerificationToCitizen(diditSessionId, citizenHash);
 
-            // Pasar datos a la vista
-            model.addAttribute("documentNumber", verif.getDocumentNumber());
-            model.addAttribute("fullName", verif.getFullName());
-            model.addAttribute("firstName", verif.getFirstName());
-            model.addAttribute("lastName", verif.getLastName());
-
-            log.info("Verification completed successfully for: {}", verif.getDocumentNumber());
+            // NO pasamos datos personales a la vista - solo mostramos "Usuario verificado"
+            log.info("Verification completed successfully for document (usuario verificado)");
             return "public/verification-exitosa";
 
         } catch (Exception e) {
