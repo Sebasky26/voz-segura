@@ -44,7 +44,7 @@ public class DiditWebhookController {
             @RequestParam(name = "verificationSessionId", required = false) String verificationSessionId,
             @RequestParam(name = "status", required = false) String status,
             HttpSession session) {
-        log.info("✅ Didit GET callback received. Session ID: {}, Status: {}", verificationSessionId, status);
+        log.info("Didit GET callback received. Session ID: {}, Status: {}", verificationSessionId, status);
         
         // Si viene el verificationSessionId en parámetro, guardarlo en la sesión
         if (verificationSessionId != null && !verificationSessionId.isEmpty()) {
@@ -80,12 +80,12 @@ public class DiditWebhookController {
                     bodyBuilder.append(line);
                 }
             } catch (IOException e) {
-                log.error("❌ Error reading webhook body: {}", e.getMessage());
+                log.error("Error reading webhook body: {}", e.getMessage());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error reading request body");
             }
             
             String webhookBody = bodyBuilder.toString();
-            log.info("✅ Webhook body received (length: {} chars): {}", webhookBody.length(), webhookBody);
+            log.info("Webhook body received (length: {} chars): {}", webhookBody.length(), webhookBody);
             
             // Obtener la dirección IP del cliente
             String clientIpAddress = getClientIpAddress(request);
@@ -94,7 +94,7 @@ public class DiditWebhookController {
             // Procesar el webhook payload
             DiditVerification saved = diditService.processWebhookPayload(webhookBody, clientIpAddress);
             if (saved != null) {
-                log.info("✅ Webhook processed successfully. Saved verification with id_registro: {}, sessionId: {}", 
+                log.info("Webhook processed successfully. Saved verification with id_registro: {}, sessionId: {}", 
                         saved.getIdRegistro(), saved.getDiditSessionId());
             } else {
                 log.warn("⚠️ Webhook processed but no verification saved (possibly status != 'Approved')");
@@ -108,7 +108,7 @@ public class DiditWebhookController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            log.error("❌ Error processing Didit webhook: {}", e.getMessage(), e);
+            log.error("Error processing Didit webhook: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error processing webhook: " + e.getMessage());
         }

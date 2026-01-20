@@ -124,7 +124,7 @@ public class PublicComplaintController {
             Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(verif.getDocumentNumber());
             
             if (staffUser.isEmpty()) {
-                log.warn("❌ Usuario NO encontrado en staff_user: document={}", verif.getDocumentNumber());
+                log.warn("Usuario NO encontrado en staff_user: document={}", verif.getDocumentNumber());
                 model.addAttribute("error", "Usuario no encontrado. Solo personal autorizado puede acceder al sistema.");
                 return "public/verification-inicio";
             }
@@ -173,7 +173,7 @@ public class PublicComplaintController {
         // Verificar que el usuario esté autenticado (atributo establecido por UnifiedAuthController)
         Boolean authenticated = (Boolean) session.getAttribute("authenticated");
         if (authenticated == null || !authenticated) {
-            log.warn("❌ Usuario no autenticado - redirigiendo a verificación");
+            log.warn("Usuario no autenticado - redirigiendo a verificación");
             return "redirect:/verification/inicio?required";
         }
 
