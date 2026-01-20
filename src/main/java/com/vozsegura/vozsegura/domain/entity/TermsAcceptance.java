@@ -21,16 +21,20 @@ import java.time.OffsetDateTime;
 @Table(name = "aceptacion_terminos", schema = "denuncias")
 public class TermsAcceptance {
 
+    /** ID único de registro de aceptación */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Referencia de registro (puede ser null, no vinculado a cédula) */
     @Column(name = "id_registro")
     private Long idRegistro;
 
+    /** Token único de sesión (UUID 36 caracteres) - vinculación anónima */
     @Column(name = "session_token", nullable = false, unique = true, length = 64)
     private String sessionToken;
 
+    /** Timestamp de aceptación (zona horaria offset UTC) */
     @Column(name = "accepted_at", nullable = false)
     private OffsetDateTime acceptedAt;
 

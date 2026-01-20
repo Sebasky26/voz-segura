@@ -16,14 +16,40 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Filtro de Validación de Headers del Gateway
- * 
- * Este filtro valida que las peticiones lleguen con los headers correctos
- * desde el API Gateway, y los agrega al request para que puedan ser
- * utilizados por los controladores.
- * 
+ * API Gateway Filter - Valida headers de autenticación del Gateway.
+ *
+ * Responsabilidades:
+ * - Validar que requests autenticadas tengan headers correctos del Gateway
+ * - Permitir rutas públicas sin autenticación (/auth/, /denuncia/, /css/, etc)
+ * - Extraer información de usuario de headers del Gateway (Zero Trust)
+ * - Validar identidad según múltiples métodos (headers, sesión, JWT)
+ * - Rechazar requests malformadas o no autenticadas
+ *
+ * Flujo de autenticación (en orden):
+ * 1. Si ruta pública: permitir directamente
+ * 2. Si headers del Gateway (X-User-Cedula + X-User-Type): validar
+ * 3. Si sesión HTTP activa: usar sesión como fuente de verdad
+ * 4. Si JWT token válido: validar JWT
+ * 5. Si nada de lo anterior: rechazar con 401 Unauthorized
+ *
+ * Headers esperados desde Gateway:
+ * - X-User-Cedula: Cédula del usuario (ej: "1712345678")
+ * - X-User-Type: Tipo de usuario (STAFF, ADMIN, CITIZEN, ANONYMOUS)
+ *
+ * Rutas públicas (sin autenticación requerida):
+ * - /auth/* : Autenticación
+ * - /webhooks/* : Webhooks de integraciones externas
+ * - /denuncia/* : Formulario de denuncia pública
+ * - /seguimiento : Seguimiento de denuncias
+ * - /css/, /js/, /img/ : Recursos estáticos
+ *
+ * Integración:
+ * - @Component: Bean de Spring
+ * - @Order(1): Ejecuta primero (antes de otros filtros)
+ * - implements Filter: Filtro estándar Jakarta Servlet
+ *
  * @author Voz Segura Team
- * @version 2.0 - 2026
+ * @version 2.0
  */
 @Component
 @Order(1)

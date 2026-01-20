@@ -23,25 +23,32 @@ import jakarta.persistence.*;
 @Table(name = "configuracion", schema = "reglas_derivacion")
 public class SystemConfig {
 
+    /** ID único de configuración (clave primaria) */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Grupo de configuración (ej: COMPLAINT_TYPE, PRIORITY, STATUS) */
     @Column(name = "config_group", nullable = false, length = 64)
     private String configGroup;
 
+    /** Clave técnica única dentro del grupo (ej: corruption, rights_violations) */
     @Column(name = "config_key", nullable = false, length = 64)
     private String configKey;
 
+    /** Valor técnico para uso en código (ej: CORRUPTION, RIGHTS_VIOLATIONS) */
     @Column(name = "config_value", nullable = false, length = 255)
     private String configValue;
 
+    /** Etiqueta para mostrar en UI (español, ej: Corrupción, Violación de Derechos) */
     @Column(name = "display_label", nullable = false, length = 255)
     private String displayLabel;
 
+    /** Orden de aparición en UI (menor = primero, ascendente) */
     @Column(name = "sort_order")
     private Integer sortOrder = 0;
 
+    /** Soft-delete: true = visible, false = oculto (para mantener historial) */
     @Column(nullable = false)
     private boolean active = true;
 

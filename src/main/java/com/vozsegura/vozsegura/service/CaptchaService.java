@@ -7,7 +7,31 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Servicio para generar y validar CAPTCHAs únicos por sesión.
+ * Servicio para generar y validar CAPTCHAs de texto.
+ * 
+ * Propósito:
+ * - Protección anti-bot en formularios públicos
+ * - De un solo uso (se borra tras validación exitosa)
+ * - Código de 6 caracteres alfanuméricos (sin ambigüedad: no I/1/L, no O/0)
+ * 
+ * IMPORTANTE:
+ * - Este es el CAPTCHA alternativo (fallback)
+ * - Primario es Cloudflare Turnstile (mucho más seguro)
+ * - Este se usa solo si Turnstile falla o no disponible
+ * 
+ * Almacenamiento:
+ * - En DEV: ConcurrentHashMap en memoria (no persistente)
+ * - En PROD: Usar Redis o Memcached (distribuido)
+ * - TTL: No implementado (los CAPTCHAs viejos nunca expiran)
+ * 
+ * Limitaciones:
+ * - NO está distribuido (si app tiene múltiples instancias, caos)
+ * - NO tiene límite de tiempo (usuario puede guardar código eternamente)
+ * - Mejor usar CloudflareTurnstileService en producción
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ * @see CloudflareTurnstileService - Alternativa más segura (Cloudflare)
  */
 @Service
 public class CaptchaService {

@@ -11,22 +11,43 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * Cliente HTTP para derivación de casos a entidades externas.
- * 
- * Cumple con el nodo "Derivar Caso" → "Entidad Receptora" del diagrama.
- * Implementa comunicación HTTPS segura con timeout y manejo de errores.
- * 
+ * HTTP External Derivation Client - Envía casos a entidades externas vía HTTP.
+ *
+ * Responsabilidades:
+ * - Derivar casos de denuncia a entidades receptoras externas
+ * - Implementar comunicación HTTPS con validaciones de seguridad
+ * - Manejar timeouts y fallos de red de forma resiliente
+ * - Adjuntar headers de auditoría (caseId, timestamp, authorization)
+ * - Encriptar payload antes de transmitir
+ *
  * Características:
- * - HTTP/2 para mejor rendimiento
- * - Timeouts configurables (conexión: 10s, request: 60s)
- * - Headers de seguridad (Authorization Bearer)
- * - Logs de auditoría de transmisión
- * 
- * En desarrollo: Simula respuesta exitosa si la URL contiene "mock"
- * En producción: Realiza petición HTTP real
- * 
+ * - HTTP/2 para mejor rendimiento y compresión
+ * - Timeouts configurables: conexión 10s, request 60s
+ * - Headers de seguridad: Authorization Bearer, timestamps, Case IDs
+ * - Payload JSON encriptado (cifrado AES-GCM previo)
+ * - Manejo de errores: timeout, conexión, HTTP errors
+ *
+ * En desarrollo:
+ * - URLs con "mock"/"localhost"/"example": retorna true inmediatamente
+ * - Simula respuesta exitosa sin hacer requests reales
+ *
+ * Flujo de derivación:
+ * 1. Complemento de denuncia se serializa a JSON encriptado
+ * 2. Se envía POST a entidad receptora con headers de auditoría
+ * 3. Entidad verifica signature + desencripta payload
+ * 4. Si status 200/201/202: derivación exitosa
+ * 5. Si error: log de auditoría + retry (manejado en nivel superior)
+ *
+ * Seguridad:
+ * - TLS obligatorio (HTTPS)
+ * - Payload encriptado (no transmite datos en claro)
+ * - Headers de auditoría: permite rastrear derivación por CaseId
+ * - Timeout previene cuelgues (max 1 minuto)
+ * - Token Bearer para autenticación (desde AWS Secrets Manager en prod)
+ *
  * @author Voz Segura Team
- * @version 1.0 - 2026
+ * @version 1.0
+ * @see ExternalDerivationClient
  */
 @Component
 @Profile({"dev", "default"})

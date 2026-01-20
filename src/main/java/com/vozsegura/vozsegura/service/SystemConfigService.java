@@ -8,8 +8,34 @@ import java.util.List;
 
 /**
  * Servicio para obtener configuraciones del sistema desde la base de datos.
- * TODAS las configuraciones se obtienen EXCLUSIVAMENTE de la base de datos.
- * No hay valores hardcodeados por seguridad - Zero Trust Architecture.
+ * 
+ * Propósito:
+ * - Centralizar lectura de configuraciones (enums, tipos, prioridades, etc.)
+ * - Permitir cambios dinámicos sin redeploy
+ * - Implementar Zero Trust: NUNCA valores hardcodeados
+ * 
+ * Configuraciones gestionadas:
+ * - COMPLAINT_TYPE: Tipos de denuncia (CORRUPCIÓN, DERECHOS HUMANOS, ABUSO, etc.)
+ * - PRIORITY: Prioridades (URGENTE, NORMAL, BAJA)
+ * - EVENT_TYPE: Tipos de evento (LOGIN, LOGOUT, CREATE, UPDATE, DELETE, etc.)
+ * - STATUS: Estados de denuncia (PENDING, ASSIGNED, IN_PROGRESS, RESOLVED, REJECTED)
+ * - SEVERITY: Severidad (CRÍTICA, ALTA, MEDIA, BAJA)
+ * 
+ * Estructura de tabla SystemConfig:
+ * - configGroup: Grupo de configuración (ej: COMPLAINT_TYPE)
+ * - configValue: Valor técnico para código (ej: "CORRUPTION")
+ * - displayLabel: Etiqueta para UI (ej: "Corrupción")
+ * - sortOrder: Orden de display
+ * - active: Booleano para soft-delete
+ * 
+ * Ventaja:
+ * - Admin puede cambiar tipos de denuncia sin tocar código
+ * - Cambios reflejados inmediatamente (sin cache)
+ * - Auditoría automática de cambios en tabla
+ * - Multi-idioma posible (traducir displayLabel)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Service
 public class SystemConfigService {

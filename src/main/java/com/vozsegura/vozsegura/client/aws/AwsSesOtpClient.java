@@ -28,22 +28,28 @@ import software.amazon.awssdk.services.ses.model.SendEmailResponse;
 import software.amazon.awssdk.services.ses.model.SesException;
 
 /**
- * Cliente OTP usando AWS Simple Email Service (SES).
+ * AWS SES OTP Client - Genera y valida códigos OTP vía AWS SES.
  * 
- * SEGURIDAD IMPLEMENTADA:
- * - Códigos generados con SecureRandom (criptográficamente seguros)
- * - Expiración de códigos (5 minutos)
- * - Máximo 3 intentos por código (anti-brute force)
- * - Tokens de un solo uso (anti-replay)
- * - Rate limiting por destino (anti-spam)
- * - Emails con TLS obligatorio (cifrado en tránsito)
+ * Responsabilidades:
+ * - Generar códigos OTP de 6 dígitos usando SecureRandom (criptográficamente seguro)
+ * - Enviar OTP por email a través de AWS SES
+ * - Validar OTP con mecanismos anti-brute force (3 intentos máximo)
+ * - Rate limiting: 3 solicitudes por minuto por destino
+ * - Expiración de tokens: 5 minutos TTL
+ * - Anti-replay: one-time tokens marcados como usado
+ * 
+ * Seguridad implementada:
+ * - SecureRandom para códigos impredecibles
+ * - Código NUNCA se loggea (nunca en logs de aplicación)
+ * - Email enmascarado en logs: usuario@gmail.com -> use***@gmail.com
+ * - Token bloqueado tras 3 intentos fallidos
+ * - Email enviado ANTES de guardar token (rollback seguro)
+ * - Anti-fuerza bruta: rate limiting por destino
+ * - TLS encryption mandatorio en AWS SES
  * - DKIM/SPF verificado por AWS (anti-spoofing)
  * 
- * Para hackers expertos: El código OTP NUNCA se almacena en logs,
- * solo se guarda el hash en memoria para verificación.
- * 
  * @author Voz Segura Team
- * @version 1.0 - 2026
+ * @version 1.0
  */
 @Component
 @Primary
@@ -102,7 +108,9 @@ public class AwsSesOtpClient implements OtpClient {
     }
 
     /**
-     * Control de rate limiting por destino.
+     * Gestión de rate limiting por destino (email/teléfono).
+     * Implementa ventana deslizante de 1 minuto con límite de 3 solicitudes.
+     * Thread-safe: utilizado con ConcurrentHashMap desde el padre.
      */
     private static class RateLimitData {
         int requestsEnVentana;
@@ -128,6 +136,11 @@ public class AwsSesOtpClient implements OtpClient {
         }
     }
 
+    /**
+     * Inicializa el cliente AWS SES con credenciales explícitas o IAM role.
+     * Loggea configuración inicial enmascarando valores sensibles.
+     * En caso de error: Continúa sin cliente (desarrollo/testing fallback).
+     */
     @PostConstruct
     public void init() {
         System.out.println("============================================");
@@ -163,6 +176,10 @@ public class AwsSesOtpClient implements OtpClient {
         }
     }
 
+    /**
+     * Cierra el cliente SES de forma segura en el shutdown de Spring.
+     * Libera recursos y conexiones a AWS.
+     */
     @PreDestroy
     public void cleanup() {
         if (sesClient != null) {
@@ -171,6 +188,14 @@ public class AwsSesOtpClient implements OtpClient {
         }
     }
 
+    /**
+     * Genera un código OTP de 6 dígitos y lo envía por AWS SES.
+     * Flujo: validar rate limit -> generar código -> enviar por SES -> guardar token.
+     * Si envío falla: NO guardar token (seguridad).
+     * 
+     * @param destination Email o teléfono destino
+     * @return otpId UUID para usar en verifyOtp(), null si rate limit o error envío
+     */
     @Override
     public String sendOtp(String destination) {
         // Rate limiting check
@@ -207,7 +232,13 @@ public class AwsSesOtpClient implements OtpClient {
     }
 
     /**
-     * Envía el código OTP por AWS SES.
+     * Envía email con código OTP mediante AWS SES.
+     * Email tiene cuerpo HTML (diseño responsive) y texto plano.
+     * Sin enlaces externos ni tracking (seguridad anti-phishing, privacidad).
+     * 
+     * @param destinatario Email del usuario
+     * @param codigo Código OTP de 6 dígitos
+     * @return true si email enviado exitosamente, false en caso de error
      */
     private boolean enviarEmailSES(String destinatario, String codigo) {
         if (sesClient == null) {
@@ -257,8 +288,12 @@ public class AwsSesOtpClient implements OtpClient {
     }
 
     /**
-     * Genera el HTML del email con el código OTP.
-     * Diseño profesional y seguro sin enlaces externos ni tracking.
+     * Genera HTML responsive del email OTP.
+     * Diseño profesional: header branding, contenido + código (32px monospace), 
+     * advertencia seguridad, footer. Sin CSS externos (mejor compatibilidad).
+     * 
+     * @param codigo Código OTP de 6 dígitos
+     * @return HTML completo formateado
      */
     private String generarHtmlEmail(String codigo) {
         return """
@@ -301,6 +336,15 @@ public class AwsSesOtpClient implements OtpClient {
             """.formatted(codigo, MINUTOS_EXPIRACION);
     }
 
+    /**
+     * Verifica un código OTP contra el token previamente generado.
+     * Validaciones: token existe, no usado (anti-replay), no expirado, no bloqueado (3 intentos),
+     * código coincide.
+     * 
+     * @param otpId UUID único generado por sendOtp()
+     * @param code Código OTP de 6 dígitos ingresado por usuario
+     * @return true si código es correcto y token válido, false en caso contrario
+     */
     @Override
     public boolean verifyOtp(String otpId, String code) {
         TokenData token = tokensActivos.get(otpId);
@@ -351,8 +395,11 @@ public class AwsSesOtpClient implements OtpClient {
     }
 
     /**
-     * Enmascara el email para logs (seguridad).
-     * ejemplo@gmail.com → eje***@gmail.com
+     * Enmascara email para proteger privacidad en logs.
+     * Ejemplo: usuario@gmail.com -> use***@gmail.com
+     * 
+     * @param email Email completo
+     * @return Email enmascarado o "***" si no válido
      */
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) {

@@ -29,13 +29,41 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Servicio para integración con Didit - Verificación biométrica y escaneo de documentos.
+ * Servicio para integración con Didit v3 - Plataforma de verificación de identidad.
  * 
- * Funcionalidades:
- * - Crear sesiones de verificación
- * - Validar firmas de webhooks
- * - Procesar resultados de verificación
- * - Guardar datos de documento en Supabase
+ * Responsabilidades:
+ * - Crear sesiones de verificación (escaneo de documento + biometría)
+ * - Generar URLs QR para que usuario escanee en su teléfono
+ * - Validar firmas de webhooks (HMAC-SHA256) para evitar falsificaciones
+ * - Procesar resultados de verificación completados
+ * - Guardar datos de verificación en base de datos
+ * - Manejar fallos y reintentos
+ * 
+ * Flujo de verificación Didit:
+ * 1. Core app: createVerificationSession(vendorData) → Retorna URL QR
+ * 2. Frontend: Mostrar QR para escanear
+ * 3. Usuario: Escanea QR en su teléfono
+ * 4. Didit app: Abre documento (pasaporte/cédula) + toma selfie
+ * 5. Didit: Procesa verificación (OCR + biometría)
+ * 6. Didit: Envía webhook a Core app (/webhooks/didit) con resultado
+ * 7. Core app: Valida firma webhook, procesa resultado
+ * 8. Si OK: Guarda DiditVerification, usuario pasa a siguiente paso
+ * 
+ * Validación de webhooks:
+ * - Didit firma cada webhook con HMAC-SHA256
+ * - Firma en header: X-Didit-Signature
+ * - Core app valida: HMAC(webhook-secret-key, payload) == firma
+ * - Protege contra: falsificaciones, ataques man-in-the-middle
+ * 
+ * Configuración en properties:
+ * - didit.api-key: Clave API de Didit
+ * - didit.webhook-secret-key: Clave para validar webhooks
+ * - didit.workflow-id: ID del workflow Didit (ej: Ecuador1 con documento + biometría)
+ * - didit.api-url: URL de API Didit (https://www.didit.me)
+ * - didit.webhook-url: URL de callback (ej: https://core.example.com/webhooks/didit)
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Slf4j
 @Service

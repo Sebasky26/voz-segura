@@ -11,25 +11,44 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Servicio para generar JWT (JSON Web Tokens)
+ * Servicio para generar y gestionar JWT (JSON Web Tokens).
  * 
  * Responsabilidades:
- * - Generar tokens JWT con información del usuario
- * - Incluir claims: cedula, userType, apiKey, scopes
- * - Aplicar firma con clave secreta compartida
- * - Configurar tiempo de expiración
+ * - Generar tokens JWT firmados con información del usuario
+ * - Incluir claims: cedula (subject), userType, apiKey, scopes
+ * - Aplicar firma HMAC-SHA256 con clave secreta compartida
+ * - Configurar tiempo de expiración (24 horas por defecto)
  * 
- * Este token será validado por el API Gateway (puerto 8080)
+ * Flujo de uso:
+ * 1. Core app autentica usuario (cédula + MFA)
+ * 2. Genera JWT con claims (cedula, userType, apiKey)
+ * 3. Retorna JWT al cliente en cookie/header
+ * 4. Cliente envía JWT en cada petición (Authorization header)
+ * 5. Gateway valida firma del JWT
+ * 6. Gateway inyecta headers X-User-Cedula, X-User-Type en peticiones internas
+ * 
+ * Seguridad:
+ * - HMAC-SHA256 con clave de 32+ bytes (configurada en jwt.secret)
+ * - Expiración: 24 horas por defecto (configurable)
+ * - Algorithm HS256 (simétrico, clave compartida Gateway-Core)
+ * - Claims incluyen userType (ADMIN, ANALYST) para RBAC en Gateway
+ * 
+ * Nota:
+ * - El JWT es el token de SESSION (válido 24h)
+ * - El OTP es transitorio (válido 5 min)
+ * - La cookie de login es httpOnly, secure, sameSite=Strict
  * 
  * @author Voz Segura Team
- * @version 2.0 - 2026
+ * @since 2026-01
  */
 @Service
 public class JwtTokenProvider {
 
+    /** Clave secreta para firmar JWT (mínimo 32 bytes para HS256) */
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    /** Tiempo de expiración del token en milisegundos (default: 24 horas = 86400000) */
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 

@@ -12,15 +12,46 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Servicio para validar tokens de Cloudflare Turnstile.
+ * Servicio para validar tokens de Cloudflare Turnstile (CAPTCHA moderno).
  * 
- * Seguridad implementada:
- * - Secret key solo en backend (nunca expuesto)
- * - Site key configurada en properties
- * - Validación de IP del cliente
- * - Rate limiting via headers
- * - Timeout de conexión
- * - Manejo seguro de errores sin revelar detalles
+ * Responsabilidades:
+ * - Validar tokens de Turnstile contra servidores Cloudflare
+ * - Proteger formularios públicos contra bots/ataques
+ * - Validar IP del cliente (si disponible)
+ * - Manejar fallos sin exponer detalles técnicos
+ * 
+ * Ventajas de Turnstile vs CAPTCHA tradicional:
+ * - Desafío adaptativo (puede ser invisible si confianza alta)
+ * - Mejor UX (usuario no hace click en cada imagen)
+ * - Protección contra bypass (machine learning)
+ * - Mejor accesibilidad (audio, etc.)
+ * - Rate limiting nativo
+ * 
+ * Flujo en frontend:
+ * 1. Inicializar: turnstile.render('#captcha-container', {sitekey: '...'})
+ * 2. Usuario resuelve desafío
+ * 3. Turnstile genera token
+ * 4. Formulario envía token en field: 'cf-turnstile-response'
+ * 
+ * Flujo en backend:
+ * 1. Recibir token del formulario
+ * 2. Llamar: verifyTurnstileToken(token, userIp)
+ * 3. Validar contra Cloudflare API
+ * 4. Si ok: proceder con formulario
+ * 5. Si fallo: rechazar y pedir reintentar
+ * 
+ * Configuración:
+ * - cloudflare.turnstile.site-key: Clave pública (exponerla en HTML es OK)
+ * - cloudflare.turnstile.secret-key: Clave privada (solo en backend, NUNCA frontend)
+ * 
+ * Endpoint de validación:
+ * - URL: https://challenges.cloudflare.com/turnstile/v0/siteverify
+ * - Método: POST
+ * - Timeout: 10 segundos
+ * - Rate limit: 50 requests/IP/segundo
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Service
 public class CloudflareTurnstileService {

@@ -3,15 +3,40 @@ package com.vozsegura.vozsegura.service;
 import org.springframework.stereotype.Service;
 
 /**
- * Servicio placeholder para revelación excepcional de identidad.
- *
- * REQUISITOS PARA IMPLEMENTACIÓN FUTURA:
- * - Doble control: requiere aprobación de dos administradores distintos
- * - Acceso temporal: la revelación expira tras X minutos
- * - Auditoría reforzada: se registra quién solicitó, quién aprobó, cuándo
- * - Solo para casos derivados a entidades externas con orden formal
- *
- * Actualmente es solo un placeholder estructural.
+ * Servicio para revelación excepcional y controlada de identidad de denunciante anónimo.
+ * 
+ * Contexto:
+ * - Denuncias normales: ANONIMIZADAS completamente (identidad en IdentityVault, hasheada)
+ * - Casos especiales: Corte Penal necesita identificar denunciante para investigación
+ * - Pero NUNCA debe ser fácil desanonimizar (protección contra abuso)
+ * 
+ * Requisitos de seguridad (implementar):
+ * 1. Doble control (dos administradores distintos): primer solicitante + segundo aprobador
+ * 2. Acceso temporal: Identidad revelada expira en X minutos (ej: 15 min)
+ * 3. Auditoría reforzada: logs detallados de quién, cuándo, por qué
+ * 4. Solo casos derivados a entidades externas con orden formal
+ * 5. Justificación obligatoria: ¿por qué se necesita desanonimizar?
+ * 
+ * Flujo proposado:
+ * 1. Admin1: Solicita revelación - recordar trackingId, justificación
+ * 2. Sistema: Registra solicitud, espera aprobación de Admin2
+ * 3. Admin2: Revisa solicitud, aprueba o rechaza
+ * 4. Si aprueba: Descifrar IdentityVault (AES-256-GCM)
+ * 5. Sistema: Guardar identidad revelada por 15 min
+ * 6. Admin2: Ver identidad en UI (solo Admin2, solo 15 min)
+ * 7. Expira: Identidad revelada se borra, registro de acceso queda en AuditLog
+ * 
+ * DTO para respuesta:
+ * - citizenRef: Referencia del ciudadano (ya desanonimizada)
+ * - expiresAt: Timestamp de expiración (15 min después)
+ * 
+ * Nota:
+ * - Esta es una clase PLACEHOLDER (métodos no implementados)
+ * - Debe completarse con lógica real en futuro
+ * - Usar transacciones (@Transactional) para garantizar consistencia
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Service
 public class IdentityRevealService {

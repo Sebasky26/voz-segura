@@ -17,24 +17,28 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
 /**
- * Implementación real de AWS Secrets Manager.
+ * AWS Secrets Manager Client - Recupera secretos de AWS Secrets Manager con caching.
  * 
- * Este componente cumple con el nodo "DB Secretos" del diagrama de arquitectura.
- * Solo se activa con el perfil "aws" o "prod".
+ * Responsabilidades:
+ * - Recuperar secretos desde AWS Secrets Manager (DB credentials, AES key)
+ * - Caching de 5 minutos para reducir llamadas a AWS
+ * - Validar TTL del cache y refrescar cuando sea necesario
+ * - Providenciar mecanismo de invalidación de cache
  * 
- * Configuración requerida:
- * 1. Variables de entorno AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY
- *    O credenciales en ~/.aws/credentials
- * 2. Propiedad aws.region en application.yml
+ * Caching:
+ * - TTL: 5 minutos (CACHE_TTL_MS = 300000 ms)
+ * - Almacenamiento: ConcurrentHashMap (thread-safe)
+ * - First call: ~100-200ms (llamada AWS)
+ * - Cached calls: < 1ms (lookup en mapa)
+ * - After 5 min: Llama AWS de nuevo automáticamente
  * 
- * Secreto en AWS Secrets Manager (us-east-1 Virginia):
- * - dev/VozSegura/Database: contiene DB_USERNAME, DB_PASSWORD, AES_MASTER_KEY
- * 
- * NOTA DE SEGURIDAD: En producción, separar credenciales DB de llaves de cifrado
- * en secretos diferentes para cumplir con el principio de mínimo privilegio.
+ * Secretos esperados en AWS Secrets Manager (dev/VozSegura/Database):
+ * - DB_USERNAME: Usuario PostgreSQL
+ * - DB_PASSWORD: Contraseña PostgreSQL
+ * - AES_MASTER_KEY: Clave maestra para encriptación AES-GCM
  * 
  * @author Voz Segura Team
- * @version 1.0 - 2026
+ * @version 1.0
  */
 @Component
 @Profile({"aws", "prod"})
@@ -57,6 +61,10 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     private static final long CACHE_TTL_MS = 5 * 60 * 1000;
     private final Map<String, Long> cacheTimes = new ConcurrentHashMap<>();
 
+    /**
+     * Inicializa cliente AWS Secrets Manager con región configurada.
+     * Credenciales desde credential chain (IAM role o ~/.aws/credentials).
+     */
     @PostConstruct
     public void init() {
         try {
@@ -68,6 +76,9 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
         }
     }
 
+    /**
+     * Cierra cliente SecretsManager de forma segura en el shutdown.
+     */
     @PreDestroy
     public void cleanup() {
         if (awsClient != null) {
@@ -75,6 +86,13 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
         }
     }
 
+    /**
+     * Recupera secreto con caching de 5 minutos.
+     * Flujo: validar cache (TTL) -> si válido retornar, si expirado llamar AWS -> cachear resultado.
+     * 
+     * @param secretName Nombre del secreto (ej: "DB_PASSWORD", "AES_MASTER_KEY")
+     * @return Valor del secreto, null si no se puede recuperar
+     */
     @Override
     public String getSecretString(String secretName) {
         // Verificar cache
@@ -107,20 +125,23 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     }
 
     /**
-     * Resuelve el nombre del secreto en AWS Secrets Manager.
+     * Resuelve nombre del secreto. Todos los secretos están en "dev/VozSegura/Database"
+     * (JSON con DB_USERNAME, DB_PASSWORD, AES_MASTER_KEY).
      * 
-     * Tu secreto dev/VozSegura/Database contiene:
-     * - DB_USERNAME
-     * - DB_PASSWORD  
-     * - AES_MASTER_KEY
-     * 
-     * Todos los secretos están en el mismo secreto de AWS.
+     * @param localName Nombre local (no usado actualmente, todos en un secreto)
+     * @return Nombre del secreto en AWS Secrets Manager
      */
     private String resolveSecretName(String localName) {
         // Todo está en el mismo secreto: dev/VozSegura/Database
         return databaseSecretName;
     }
 
+    /**
+     * Valida si secreto está cacheado y TTL es válido (< 5 minutos).
+     * 
+     * @param secretName Nombre del secreto
+     * @return true si está cacheado y fresco, false si expirado o no existe
+     */
     private boolean isCacheValid(String secretName) {
         if (!secretsCache.containsKey(secretName)) {
             return false;
@@ -133,7 +154,10 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     }
 
     /**
-     * Invalida el cache para un secreto específico.
+     * Invalida cache de un secreto específico (fuerza refresh en próxima llamada).
+     * Casos: contraseña cambiada, sospecha de compromiso, rotación credenciales.
+     * 
+     * @param secretName Nombre del secreto a invalidar
      */
     public void invalidateCache(String secretName) {
         secretsCache.remove(secretName);
@@ -141,7 +165,8 @@ public class AwsSecretsManagerClientImpl implements SecretsManagerClient {
     }
 
     /**
-     * Invalida todo el cache.
+     * Invalida TODO el cache de secretos (limpia ambos mapas).
+     * Casos: rotación completa credenciales, evento seguridad, testing.
      */
     public void invalidateAllCache() {
         secretsCache.clear();

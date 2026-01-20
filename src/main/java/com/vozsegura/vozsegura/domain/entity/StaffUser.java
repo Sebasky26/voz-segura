@@ -24,28 +24,36 @@ import jakarta.persistence.Table;
 @Table(name = "staff_user", schema = "staff")
 public class StaffUser {
 
+    /** ID único del usuario */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Referencia de registro (id_registro en base de datos) */
     @Column(name = "id_registro", nullable = false, unique = true)
     private Long idRegistro;
 
+    /** Username único (ej: juan.perez, min 4 chars, sin espacios) */
     @Column(nullable = false, unique = true, length = 64)
     private String username;
 
+    /** Cédula ecuatoriana única (10 dígitos) */
     @Column(nullable = false, unique = true, length = 20)
     private String cedula;
 
+    /** Hash BCrypt de contraseña (60 caracteres exactos) */
     @Column(nullable = false, length = 120)
     private String passwordHash;
 
+    /** Rol del usuario: ADMIN, ANALYST, SUPERVISOR */
     @Column(nullable = false, length = 32)
     private String role;
 
+    /** Soft-delete: true = activo (puede hacer login), false = desactivado */
     @Column(nullable = false)
     private boolean enabled = true;
 
+    /** Email para notificaciones y recuperación de contraseña */
     @Column(length = 255)
     private String email;
 

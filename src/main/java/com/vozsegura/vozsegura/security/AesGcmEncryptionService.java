@@ -13,6 +13,42 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * Implementación de EncryptionService usando AES-256-GCM (AEAD).
+ * 
+ * Algorit mo: AES-256-GCM (Advanced Encryption Standard, 256-bit key, Galois/Counter Mode).
+ * 
+ * Parámetros:
+ * - Algoritmo: AES/GCM/NoPadding (no padding porque GCM es stream cipher)
+ * - Clave: 256 bits (32 bytes) desde AWS Secrets Manager
+ * - IV: 12 bytes aleatorios por cada encriptación (secureRandom)
+ * - Tag de autenticación: 128 bits (detecta manipulación)
+ * - Encoding: Base64 para guardar en BD (ASCII-safe)
+ * 
+ * Ventajas de GCM:
+ * - AEAD: Authenticated Encryption with Associated Data
+ * - Detecta si ciphertext fue modificado (integrity check)
+ * - Hardware acceleration en CPUs modernas (rápido)
+ * - No requiere MAC separado (todo en uno)
+ * 
+ * Seguridad:
+ * - IV nunca se reutiliza (aleatorio cada vez)
+ * - Clave obtenida de AWS Secrets Manager (nunca hardcoded)
+ * - Tag verificado automáticamente en desencriptación
+ * - Si alguien modifica ciphertext, desencriptación falla
+ * 
+ * Formato del ciphertext:
+ * Base64(IV(12B) + ciphertext + authTag(16B))
+ * 
+ * Fallos:
+ * - Wrong key: RuntimeException en desencriptación
+ * - Corrupted ciphertext: RuntimeException
+ * - Missing key: IllegalStateException
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
+ * @see EncryptionService - Interface implementada
+ */
 @Service
 public class AesGcmEncryptionService implements EncryptionService {
 

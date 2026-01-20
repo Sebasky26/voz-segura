@@ -5,53 +5,41 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Implementación Mock del Registro Civil del Ecuador con validación real.
- * 
- * Propósito:
- * - Permitir desarrollo y testing sin depender de API del Registro Civil
- * - Simular comportamiento de servicio real con validaciones reales
- * - Validar formato de cédula ecuatoriana (algoritmo Módulo 10)
+ * Mock Civil Registry Client - Valida identidad ecuatoriana en memoria.
+ *
+ * Responsabilidades:
+ * - Validar cédulas ecuatorianas según algoritmo Módulo 10 real
+ * - Validar códigos dactilares (formato + estructura)
+ * - Simular verificación biométrica (siempre true en dev)
+ * - Generar emails mock basados en identidad
  * - Permitir cédulas de prueba específicas para diferentes roles
- * 
+ *
  * Diferencias con producción:
- * - NO consulta base de datos real del Registro Civil
- * - NO realiza verif icación facial/biométrica real
- * - Usa cédulas de prueba permitidas en desarrollo
- * 
+ * - NO consulta base de datos real del Registro Civil del Ecuador
+ * - NO realiza verificación facial/biométrica real
+ * - NO contacta API del Registro Civil
+ * - Usa validaciones matemáticas locales
+ *
  * Validaciones implementadas (reales):
- * - Algoritmo Módulo 10 para validación de cédula ecuatoriana
+ * - Algoritmo Módulo 10 para validación de cédula ecuatoriana (auténtico)
  * - Validación de código provincial (01-24)
  * - Validación de tipo de identificación (0-5 para personas)
- * - Validación de formato de código dactilar
- * 
- * Flujo de uso:
- * 
- * 1. Verificación de identidad:
- *    civicRef = mockRegistry.verifyCitizen("1712345678", "A1234B5678")
- *    → true si cédula + código dactilar válidos
- *    → Retorna "CITIZEN-1712345678"
- * 
- * 2. Verificación biométrica (mock):
- *    resultado = mockRegistry.verifyBiometric("CITIZEN-1712345678", sampleBytes)
- *    → Siempre retorna true en dev (sin validación real)
- * 
- * 3. Obtener email:
- *    email = mockRegistry.getEmailForCitizen("CITIZEN-1712345678")
- *    → Mock: genera email basado en cédula
- * 
- * Cédulas de prueba permitidas en desarrollo:
- * - "1234567890": Rol ADMIN
- * - "0987654321": Rol ANALYST  
- * - "1712345678": Ciudadano común Pichincha
- * - "0912345674": Ciudadano común Guayas
- * 
- * Configuración:
- * - Activo en profiles: "dev", "default" (solo desarrollo)
+ * - Validación de formato de código dactilar (LNNNNLNNNN)
+ *
+ * Cédulas de prueba permitidas:
+ * - "1712345670": Ciudadano Pichincha (provincia 17)
+ * - "0912345674": Ciudadano Guayas (provincia 09)
+ * - Otras: Validadas mediante Módulo 10 si son matemáticamente válidas
+ *
+ * Integración:
+ * - Implementa interfaz CivilRegistryClient
+ * - @Profile("dev", "default") - solo en desarrollo
  * - En producción: reemplazar por CivilRegistryClientImpl (API real)
- * - Spring inyecta esta clase si profile es dev
- * 
+ * - Spring selecciona automáticamente según profile
+ *
  * @author Voz Segura Team
- * @version 2.0 - 2026
+ * @version 2.0
+ * @see CivilRegistryClient
  */
 @Component
 @Profile({"dev", "default"})

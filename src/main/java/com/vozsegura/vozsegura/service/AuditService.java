@@ -13,9 +13,43 @@ import java.time.OffsetDateTime;
 import java.util.Base64;
 
 /**
- * Servicio de auditoría.
- * Registra eventos sin incluir datos personales (cédula, biometría, etc).
- * Utiliza IDs hasheados para identificar usuarios de forma segura.
+ * Servicio de auditoría para compliance y debugging.
+ * 
+ * Responsabilidades:
+ * - Registrar eventos (login, logout, create, update, delete, access)
+ * - Guardar sin incluir datos personales (cédula hasheada, no plain text)
+ * - Identificar usuarios por username/sessionId hasheado (SHA-256)
+ * - Manejar errores silenciosamente (no interrumpir flujo principal)
+ * - Truncar detalles para evitar desbordamiento de tabla
+ * 
+ * Eventos registrados:
+ * - Login/Logout: Acceso al sistema
+ * - Create/Update/Delete: Cambios a datos
+ * - Access: Acceso a recurso
+ * - Reveal: Solicitud de revelación de identidad
+ * - Error: Errores del sistema
+ * 
+ * Seguridad CERO Trust:
+ * - NUNCA guardar cédula en plain text
+ * - NUNCA guardar JWT/tokens
+ * - NUNCA guardar biometría
+ * - SÍ guardar: userHash, username, eventType, trackingId (sin PII), timestamp
+ * 
+ * Tabla AuditEvent:
+ * - eventTime: Timestamp del evento
+ * - actorRole: Rol del actor (ADMIN, ANALYST, CITIZEN, SYSTEM)
+ * - actorUsername: Username hasheado o sessionHash
+ * - eventType: Tipo de evento (LOGIN, LOGOUT, CREATE, etc.)
+ * - trackingId: Caso asociado (si aplica)
+ * - details: Detalles adicionales (max 500 chars)
+ * 
+ * Notas:
+ * - Errores en auditoría se ignoran (silent failure)
+ * - No deben afectar el flujo principal de la aplicación
+ * - En producción: exportar a syslog o AWS CloudWatch
+ * 
+ * @author Voz Segura Team
+ * @since 2026-01
  */
 @Service
 public class AuditService {

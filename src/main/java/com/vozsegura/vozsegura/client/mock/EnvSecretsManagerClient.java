@@ -15,17 +15,39 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
 /**
- * Implementación HÍBRIDA de SecretsManagerClient para desarrollo seguro.
- * 
- * ARQUITECTURA DE SEGURIDAD:
- * - Configuración no sensible (.env): URLs de DB, configuraciones
- * - Secretos sensibles (AWS): Claves del staff, credenciales críticas
- * 
- * Esto cumple con el principio de "Zero Trust" - nunca almacenar
- * credenciales de autenticación en archivos locales.
- * 
+ * Environment Secrets Manager Client - Híbrido seguro para desarrollo.
+ *
+ * Arquitectura de seguridad:
+ * - Configuración no sensible: URLs, puertos, niveles de log -> .env local
+ * - Secretos sensibles: Claves del staff, tokens de API -> AWS Secrets Manager
+ *
+ * Rationale:
+ * - NUNCA almacenar credenciales de autenticación en archivos locales
+ * - Cumple con principio "Zero Trust": verificar todo, confiar en nada
+ * - Desarrollo seguro: se accede a credenciales reales desde AWS (si disponible)
+ * - Fallback: si AWS no disponible, usar default seguro (solo dev)
+ *
+ * Responsabilidades:
+ * - Recuperar secretos de AWS Secrets Manager (si disponible)
+ * - Fallback a .env o Environment variables para config no-sensible
+ * - Priorizar AWS para credentials (STAFF_SECRET_KEY_*)
+ * - Mantener timeout y error handling seguro
+ *
+ * Estrategia de búsqueda (por prioridad):
+ * 1. Secretos sensibles (STAFF_SECRET_KEY_*): SOLO AWS, nunca fallback
+ * 2. System Environment variables (export VAR=value)
+ * 3. Spring Environment (application.yml, .env, properties)
+ * 4. Propiedades inyectadas (@Value)
+ * 5. Default (solo para VOZSEGURA_DATA_KEY_B64 en dev)
+ *
+ * Integración:
+ * - Implementa interfaz SecretsManagerClient
+ * - @Profile("dev", "default", "!aws", "!prod") - dev sin AWS configurado
+ * - En AWS/prod: reemplazar por AwsSecretsManagerClientImpl (AWS real)
+ * - Spring selecciona automáticamente según profile
+ *
  * @author Voz Segura Team
- * @version 3.0 - 2026 (Híbrido seguro: .env + AWS)
+ * @version 3.0
  */
 @Component
 @Profile({"dev", "default", "!aws", "!prod"})
@@ -47,6 +69,12 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
         this.environment = environment;
     }
 
+    /**
+     * Inicializa cliente AWS Secrets Manager (opcional, fail-safe).
+     * - Intenta conectar a AWS usando credential chain default
+     * - Si falla: continúa con fallback a .env (para development local)
+     * - Si éxito: awsAvailable = true (se usará para STAFF_SECRET_KEY_*)
+     */
     @PostConstruct
     public void init() {
         // Intentar inicializar cliente AWS para secretos sensibles
@@ -60,6 +88,9 @@ public class EnvSecretsManagerClient implements SecretsManagerClient {
         }
     }
 
+    /**
+     * Cierra cliente AWS de forma segura en shutdown.
+     */
     @PreDestroy
     public void cleanup() {
         if (awsClient != null) {

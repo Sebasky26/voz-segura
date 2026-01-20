@@ -12,49 +12,40 @@ import org.springframework.stereotype.Component;
 import com.vozsegura.vozsegura.client.OtpClient;
 
 /**
- * Implementación Mock de OTP con protecciones de seguridad reales.
- * 
- * Propósito:
- * - Permitir desarrollo y testing sin depender de Twilio/AWS SNS
- * - Simular comportamiento de servicio OTP real
- * - Incluir todas las protecciones de seguridad (anti-brute-force, expiración, anti-replay)
- * 
+ * Mock OTP Client - Genera y valida códigos OTP en memoria para desarrollo.
+ *
+ * Responsabilidades:
+ * - Generar códigos OTP de 6 dígitos usando SecureRandom (igual a producción)
+ * - Almacenar en ConcurrentHashMap (in-memory, no envía email/SMS real)
+ * - Validar OTP con protecciones reales: anti-brute-force, expiración, anti-replay
+ * - Limpiar tokens automáticamente tras verificación o expiración
+ *
  * Diferencias con producción:
- * - NO envía SMS/Email real (solo simula)
+ * - NO envía SMS/Email real (solo simula - desarrollo)
  * - NO integra con Twilio/AWS SNS
- * - Códigos de prueba accesibles en logs de test (seguro en dev)
- * 
- * Protecciones implementadas (reales):
- * - Generación criptográficamente segura de códigos (SecureRandom)
- * - Expiración de tokens (5 minutos)
- * - Protección anti-brute-force (máximo 3 intentos fallidos)
- * - Protección anti-replay (token de un solo uso)
- * - Limpieza automática de tokens expirados
- * 
- * Flujo de uso:
- * 
- * 1. Cliente solicit OTP:
- *    otpId = mockOtp.sendOtp("+593987654321")
- *    → Retorna ID único (ej: "uuid-xxxx-yyyy")
- *    → Código guardado en memoria (puede verse en debugger)
- * 
- * 2. Usuario verifica código:
- *    resultado = mockOtp.verifyOtp(otpId, "123456")
- *    → true si código correcto
- *    → false si código incorrecto, expirado, o bloqueado
- * 
- * Seguridad en desarrollo:
- * - Usar println/logger para mostrar código durante testing
- * - NUNCA hacer esto en producción (imprimir códigos)
- * - En producción, códigos van solo a Twilio/AWS SNS
- * 
- * Configuración:
- * - Activo en profiles: "dev", "default" (solo desarrollo)
- * - En producción: reemplazar por OtpClientImpl (Twilio/AWS SNS)
- * - Spring inyecta esta clase si profile es dev
- * 
+ * - Códigos de prueba accesibles en memory (via debugger en IDE)
+ *
+ * Protecciones (reales, idénticas a producción):
+ * - SecureRandom para generación criptográfica de códigos
+ * - Expiración de tokens (5 minutos TTL)
+ * - Anti-brute-force: máximo 3 intentos fallidos por token
+ * - Anti-replay: token se marca como consumido tras verificación exitosa
+ * - Thread-safe: ConcurrentHashMap para acceso concurrente
+ *
+ * Integración:
+ * - Implementa interfaz OtpClient
+ * - @Profile("dev", "default") - solo en desarrollo
+ * - En producción: reemplazar por AwsSesOtpClient (SES real)
+ * - Spring selecciona automáticamente según profile activo
+ *
+ * Ciclo de vida de token:
+ * - sendOtp(): Generar código UUID + guardar TokenData
+ * - verifyOtp(): Validar y consumir token o incrementar intentos
+ * - Auto-limpieza: Tokens expirados/consumidos se remueven del mapa
+ *
  * @author Voz Segura Team
- * @version 2.0 - 2026
+ * @version 2.0
+ * @see AwsSesOtpClient
  */
 @Component
 @Profile({"dev", "default"})
@@ -72,6 +63,8 @@ public class MockOtpClient implements OtpClient {
 
     /**
      * Datos internos del token OTP con metadatos de seguridad.
+     * Gestiona: código, destino, expiración, contador de intentos fallidos.
+     * Thread-safe: utilizado dentro de ConcurrentHashMap.
      */
     private static class TokenData {
         /** Código OTP de 6 dígitos (ej: "123456") */

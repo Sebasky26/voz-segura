@@ -17,27 +17,92 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controlador para recibir webhooks de Didit.
+ * Controlador para recibir webhooks de Didit (verificacion biometrica).
  * 
- * POST /webhooks/didit - Webhook desde Didit
- * GET /webhooks/didit - Redirección del usuario después de verificar
+ * Proposito:
+ * - Recibir resultado de verificacion biometrica desde Didit
+ * - Dos flujos: GET (callback usuario) y POST (webhook server-to-server)
+ * - Actualizar estado de verificacion en BD
+ * - Redirigir usuario a pagina apropiada
+ * 
+ * Rutas:
+ * 1. GET /webhooks/didit?verificationSessionId=...&status=...
+ *    - Didit redirige al usuario despues de verificacion
+ *    - Usuario ve resultado (aprobado/rechazado)
+ *    - Redirecciona a /auth/verify-callback
+ * 
+ * 2. POST /webhooks/didit (Content-Type: application/json)
+ *    - Didit envia resultado a nivel servidor (server-to-server)
+ *    - No es un callback de usuario, es un webhook del servidor
+ *    - Firma HMAC-SHA256 para validacion
+ * 
+ * Flujo Didit:
+ * 1. Usuario inicia verificacion (CitizenVerificationService)
+ * 2. Didit crea sesion y redirige a su app (selfie/liveness)
+ * 3. Usuario completa verificacion
+ * 4. Didit envia GET a /webhooks/didit?verificationSessionId=...&status=...
+ * 5. DiditWebhookController.handleDiditCallbackGet() es llamado
+ * 6. Tambien Didit envia POST a /webhooks/didit (server-to-server)
+ * 7. DiditWebhookController.handleDiditWebhookPost() es llamado
+ * 8. Resultado se almacena en BD (DiditVerification)
+ * 
+ * Seguridad:
+ * - Validar firma HMAC-SHA256 (Didit envia firma en headers)
+ * - Validar que IP sea de Didit (si es posible)
+ * - Almacenar resultado pero NUNCA fotos/videos
+ * - Registrar todo en AuditEvent
+ * 
+ * @see com.vozsegura.vozsegura.service.DiditService
  */
 @Slf4j
 @Controller
 @RequestMapping("/webhooks")
 public class DiditWebhookController {
 
+    /**
+     * Servicio de Didit para procesar webhooks.
+     * Maneja la logica de validacion y almacenamiento.
+     */
     private final DiditService diditService;
 
+    /**
+     * Inyecta DiditService para procesar resultados.
+     * @param diditService Servicio de Didit
+     */
     public DiditWebhookController(DiditService diditService) {
         this.diditService = diditService;
     }
 
     /**
-     * GET endpoint - Didit redirige al usuario aquí después de la verificación.
-     * Llamamos a Didit para obtener el resultado en tiempo real.
+     * GET endpoint - Callback cuando usuario completa verificacion en Didit.
      * 
-     * GET /webhooks/didit?verificationSessionId=...&status=Approved
+     * Proposito:
+     * - Recibir redireccion de usuario despues de verificacion biometrica
+     * - Almacenar sessionId en sesion HTTP
+     * - Redirigir a pagina de confirmacion
+     * 
+     * URL: GET /webhooks/didit?verificationSessionId=abc123&status=Approved
+     * 
+     * Parametros:
+     * - verificationSessionId: ID unico de sesion de Didit (ej: "sess_abc123xyz")
+     * - status: Resultado (Approved, Rejected, Incomplete, Expired, etc.)
+     * 
+     * Flujo:
+     * 1. Usuario completa verificacion en app de Didit
+     * 2. Didit redirige a GET /webhooks/didit?verificationSessionId=...&status=...
+     * 3. Navegador del usuario hace GET a esta ruta
+     * 4. Guardamos verificationSessionId en sesion HTTP
+     * 5. Redirigimos a /auth/verify-callback para confirmacion
+     * 
+     * @param verificationSessionId ID de sesion de Didit (opcional)
+     * @param status Resultado de verificacion (opcional)
+     * @param session Sesion HTTP para almacenar datos
+     * @return RedirectView a /auth/verify-callback
+     * 
+     * Notas:
+     * - Los parametros pueden ser nulos si Didit no los envia
+     * - Se guarda en sesion para que /auth/verify-callback pueda consultar
+     * - La validacion real se hace en DiditService (comparar con BD)
      */
     @GetMapping("/didit")
     public RedirectView handleDiditCallbackGet(
@@ -46,15 +111,15 @@ public class DiditWebhookController {
             HttpSession session) {
         log.info("Didit GET callback received. Session ID: {}, Status: {}", verificationSessionId, status);
         
-        // Si viene el verificationSessionId en parámetro, guardarlo en la sesión
+        // Si viene el verificationSessionId en parametro, guardarlo en la sesion
         if (verificationSessionId != null && !verificationSessionId.isEmpty()) {
             session.setAttribute("diditSessionId", verificationSessionId);
-            session.setAttribute("diditStatus", status); // También guardar el status recibido
+            session.setAttribute("diditStatus", status); // Tambien guardar el status recibido
             log.info("📱 Stored diditSessionId: {} and status: {} in session", verificationSessionId, status);
         }
         
-        // Redirigir a /auth/verify-callback pasando el sessionId como parámetro
-        // El callback consultará Didit o la BD para obtener los datos
+        // Redirigir a /auth/verify-callback pasando el sessionId como parametro
+        // El callback consultara Didit o la BD para obtener los datos
         RedirectView redirectView = new RedirectView("/auth/verify-callback?session_id=" + 
                 (verificationSessionId != null ? verificationSessionId : ""));
         redirectView.setExposeModelAttributes(false);
@@ -62,10 +127,51 @@ public class DiditWebhookController {
     }
 
     /**
-     * POST endpoint - Webhook desde Didit con los datos de verificación
-     * Didit enviará los datos de verificación en el cuerpo del POST
+     * POST endpoint - Webhook desde Didit con datos de verificacion (server-to-server).
      * 
-     * POST /webhooks/didit
+     * Proposito:
+     * - Recibir resultado de verificacion desde servidor de Didit
+     * - Procesar payload JSON del webhook
+     * - Almacenar resultado en BD (DiditVerification)
+     * - Registrar en auditoria
+     * 
+     * Ruta: POST /webhooks/didit
+     * Content-Type: application/json
+     * 
+     * Body (ejemplo):
+     * {
+     *   "verificationSessionId": "sess_abc123xyz",
+     *   "status": "Approved",
+     *   "decision": {
+     *     "idVerification": {
+     *       "documentNumber": "1234567890",
+     *       "firstName": "Juan",
+     *       "lastName": "Perez",
+     *       "fullName": "Juan Perez"
+     *     }
+     *   }
+     * }
+     * 
+     * Flujo:
+     * 1. Didit envia POST con resultado de verificacion
+     * 2. Leemos body del request (JSON)
+     * 3. Procesamos con DiditService.processWebhookPayload()
+     * 4. Se valida firma HMAC-SHA256
+     * 5. Se almacena en BD si es valido
+     * 6. Se retorna 200 OK
+     * 
+     * Seguridad:
+     * - Validar firma HMAC en DiditService
+     * - Validar que IP sea de Didit (si es posible)
+     * - No exponer detalles en respuesta
+     * 
+     * @param request Request HTTP (para leer body y headers)
+     * @return ResponseEntity con estado
+     * 
+     * Status de respuesta:
+     * - 200 OK: Webhook procesado correctamente
+     * - 400 BAD_REQUEST: Error leyendo body
+     * - 500 INTERNAL_SERVER_ERROR: Error procesando
      */
     @PostMapping("/didit")
     public ResponseEntity<?> handleDiditWebhookPost(HttpServletRequest request) {
@@ -87,7 +193,7 @@ public class DiditWebhookController {
             String webhookBody = bodyBuilder.toString();
             log.info("Webhook body received (length: {} chars): {}", webhookBody.length(), webhookBody);
             
-            // Obtener la dirección IP del cliente
+            // Obtener la direccion IP del cliente
             String clientIpAddress = getClientIpAddress(request);
             log.info("📍 Webhook from IP: {}", clientIpAddress);
             
@@ -100,7 +206,7 @@ public class DiditWebhookController {
                 log.warn("⚠️ Webhook processed but no verification saved (possibly status != 'Approved')");
             }
             
-            // Retornar 200 OK para confirmar recepción
+            // Retornar 200 OK para confirmar recepcion
             Map<String, String> response = new HashMap<>();
             response.put("status", "received");
             response.put("message", "Webhook processed successfully");
@@ -115,7 +221,29 @@ public class DiditWebhookController {
     }
 
     /**
-     * Obtiene la dirección IP del cliente desde el request
+     * Obtiene la direccion IP del cliente desde el request.
+     * 
+     * Proposito:
+     * - Extraer IP real del cliente (considerando proxies)
+     * - Registrar en auditoria para rastrabilidad
+     * - Validar que webhook venga de Didit (si tenemos IP whitelist)
+     * 
+     * Algoritmo (intenta en orden):
+     * 1. Header X-Forwarded-For (proxy, take first IP if comma-separated)
+     * 2. Header X-Real-IP (nginx proxy)
+     * 3. request.getRemoteAddr() (IP directa del cliente)
+     * 
+     * Por que multiples headers?
+     * - X-Forwarded-For: Si hay cadena de proxies (AWS ALB, Cloudflare, etc.)
+     * - X-Real-IP: Si hay un unico nginx proxy
+     * - RemoteAddr: Si es conexion directa (desarrollo local)
+     * 
+     * @param request Request HTTP
+     * @return String: IP del cliente (ej: "192.168.1.100")
+     * 
+     * Ejemplo:
+     * - Si X-Forwarded-For: "203.0.113.1, 203.0.113.2"
+     * - Retorna: "203.0.113.1" (primera IP, el cliente real)
      */
     private String getClientIpAddress(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
