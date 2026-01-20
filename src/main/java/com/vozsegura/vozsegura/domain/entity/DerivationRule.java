@@ -17,6 +17,9 @@ import java.time.OffsetDateTime;
  * @author Voz Segura Team
  * @since 2026-01
  */
+@Entity
+@Table(name = "regla_derivacion", schema = "reglas_derivacion")
+public class DerivationRule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

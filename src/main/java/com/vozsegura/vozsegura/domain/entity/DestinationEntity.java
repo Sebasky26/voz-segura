@@ -15,6 +15,9 @@ import java.time.OffsetDateTime;
  * @author Voz Segura Team
  * @since 2026-01
  */
+@Entity
+@Table(name = "entidad_destino", schema = "reglas_derivacion")
+public class DestinationEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

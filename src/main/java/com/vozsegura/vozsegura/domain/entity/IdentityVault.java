@@ -18,6 +18,9 @@ import jakarta.persistence.*;
  * @author Voz Segura Team
  * @since 2026-01
  */
+@Entity
+@Table(name = "identity_vault", schema = "secure_identities")
+public class IdentityVault {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

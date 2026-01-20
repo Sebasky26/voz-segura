@@ -19,6 +19,9 @@ import jakarta.persistence.*;
  * @author Voz Segura Team
  * @since 2026-01
  */
+@Entity
+@Table(name = "configuracion", schema = "reglas_derivacion")
+public class SystemConfig {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

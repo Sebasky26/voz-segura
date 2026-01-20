@@ -12,6 +12,9 @@ import jakarta.persistence.*;
  * 
  * NÚNCEA se almacena en plain text
  */
+@Entity
+@Table(name = "evidencia", schema = "evidencias")
+public class Evidence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
