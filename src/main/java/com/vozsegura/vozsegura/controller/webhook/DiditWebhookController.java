@@ -176,8 +176,6 @@ public class DiditWebhookController {
     @PostMapping("/didit")
     public ResponseEntity<?> handleDiditWebhookPost(HttpServletRequest request) {
         try {
-            log.info("📨 Didit webhook POST received at /webhooks/didit");
-            
             // Leer el body del request
             StringBuilder bodyBuilder = new StringBuilder();
             try (BufferedReader reader = request.getReader()) {
@@ -191,19 +189,14 @@ public class DiditWebhookController {
             }
             
             String webhookBody = bodyBuilder.toString();
-            log.info("Webhook body received (length: {} chars): {}", webhookBody.length(), webhookBody);
             
             // Obtener la direccion IP del cliente
             String clientIpAddress = getClientIpAddress(request);
-            log.info("📍 Webhook from IP: {}", clientIpAddress);
             
             // Procesar el webhook payload
             DiditVerification saved = diditService.processWebhookPayload(webhookBody, clientIpAddress);
-            if (saved != null) {
-                log.info("Webhook processed successfully. Saved verification with id_registro: {}, sessionId: {}", 
-                        saved.getIdRegistro(), saved.getDiditSessionId());
-            } else {
-                log.warn("⚠️ Webhook processed but no verification saved (possibly status != 'Approved')");
+            if (saved == null) {
+                log.warn("Webhook processed but no verification saved");
             }
             
             // Retornar 200 OK para confirmar recepcion

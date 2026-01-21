@@ -282,8 +282,6 @@ public class DiditService {
                 verification.setVerificationStatus(status);
                 verification.setVerifiedAt(OffsetDateTime.now());
                 verification.setUpdatedAt(OffsetDateTime.now());
-                
-                log.info("Updated record: document={}", docData.getPersonalNumber());
             } else {
                 // Crear nuevo registro - Obtener id_registro de registro_civil.personas
                 verification = new DiditVerification();
@@ -301,20 +299,15 @@ public class DiditService {
                 Optional<Persona> persona = personaRepository.findByCedulaHash(cedulaHash);
                 if (persona.isPresent()) {
                     verification.setIdRegistro(persona.get().getIdRegistro());
-                    log.info("Creating new verification record: document={}, id_registro={}, status={}", 
-                            docData.getPersonalNumber(), persona.get().getIdRegistro(), status);
                 } else {
-                    log.error("Persona not found for document_number: {} (cedula_hash: {}). Cannot create verification without id_registro.", 
-                            docData.getPersonalNumber(), cedulaHash);
+                    log.error("Persona not found for document in Didit webhook. Cannot create verification without id_registro.");
                     throw new IllegalArgumentException("No existe persona registrada con la cédula proporcionada por Didit");
                 }
             }
 
             DiditVerification saved = diditVerificationRepository.save(verification);
             
-            log.info("Didit verification saved to database: sessionId={}, document={}, status={}, operation={}", 
-                    saved.getDiditSessionId(), saved.getDocumentNumber(), saved.getVerificationStatus(),
-                    existingVerification.isPresent() ? "UPDATE" : "INSERT");
+            log.info("Didit verification saved to database. Status: {}", saved.getVerificationStatus());
             
             return saved;
 

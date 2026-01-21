@@ -11,12 +11,15 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.vozsegura.vozsegura.domain.entity.StaffUser;
+import com.vozsegura.vozsegura.domain.entity.Complaint;
+import com.vozsegura.vozsegura.dto.forms.AdditionalInfoForm;
 import com.vozsegura.vozsegura.dto.forms.BiometricOtpForm;
 import com.vozsegura.vozsegura.dto.forms.ComplaintForm;
 import com.vozsegura.vozsegura.dto.forms.DenunciaAccessForm;
@@ -366,6 +369,135 @@ public class PublicComplaintController {
         // Estos datos NO requieren sesión válida (son flash attributes)
         // La sesión ya fue invalidada en submitComplaint()
         return "public/denuncia-confirmacion";
+    }
+
+    /**
+     * Muestra formulario para agregar información adicional a una denuncia.
+     * 
+     * Requiere:
+     * - Sesión autenticada del denunciante
+     * - Tracking ID válido
+     * - Denuncia debe tener requiresMoreInfo = true
+     * 
+     * @param trackingId ID de seguimiento de la denuncia
+     * @param session sesión autenticada del denunciante
+     * @param model modelo Thymeleaf
+     * @return vista de edición o redirección a error
+     */
+    @GetMapping("/denuncia/editar/{trackingId}")
+    public String showAdditionalInfoForm(
+            @PathVariable String trackingId,
+            HttpSession session,
+            Model model) {
+        
+        // Verificar sesión autenticada
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login?session_expired=true";
+        }
+
+        // Verificar que el denunciante es el propietario
+        Long idRegistro = (Long) session.getAttribute("idRegistro");
+        Optional<Complaint> complaintOpt = complaintService.findByTrackingId(trackingId);
+        
+        if (complaintOpt.isEmpty() || !complaintOpt.get().getIdRegistro().equals(idRegistro)) {
+            model.addAttribute("error", "No tienes permiso para editar esta denuncia.");
+            return "public/error-acceso";
+        }
+
+        Complaint complaint = complaintOpt.get();
+        
+        // Verificar que requiere más información
+        if (!complaint.isRequiresMoreInfo()) {
+            model.addAttribute("error", "Esta denuncia no requiere información adicional.");
+            return "public/error-acceso";
+        }
+
+        // Preparar formulario
+        AdditionalInfoForm form = new AdditionalInfoForm();
+        model.addAttribute("trackingId", trackingId);
+        model.addAttribute("additionalInfoForm", form);
+        model.addAttribute("complaint", complaint);
+        model.addAttribute("analystNotes", complaint.getAnalystNotes());
+        
+        return "public/denuncia-editar";
+    }
+
+    /**
+     * Procesa envío de información adicional a una denuncia.
+     * 
+     * Validaciones:
+     * - Sesión autenticada
+     * - Usuario es propietario de la denuncia
+     * - Denuncia requiere más información
+     * - Información no está vacía
+     * 
+     * @param trackingId ID de seguimiento
+     * @param form información adicional
+     * @param bindingResult validación
+     * @param session sesión del denunciante
+     * @param redirectAttributes para mensajes
+     * @return redirección a confirmación o formulario con errores
+     */
+    @PostMapping("/denuncia/editar/{trackingId}")
+    public String submitAdditionalInfo(
+            @PathVariable String trackingId,
+            @Valid @ModelAttribute("additionalInfoForm") AdditionalInfoForm form,
+            BindingResult bindingResult,
+            HttpSession session,
+            RedirectAttributes redirectAttributes,
+            Model model) {
+        
+        // Verificar sesión autenticada
+        Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+        if (authenticated == null || !authenticated) {
+            return "redirect:/auth/login?session_expired=true";
+        }
+
+        // Verificar que el denunciante es el propietario
+        Long idRegistro = (Long) session.getAttribute("idRegistro");
+        Optional<Complaint> complaintOpt = complaintService.findByTrackingId(trackingId);
+        
+        if (complaintOpt.isEmpty() || !complaintOpt.get().getIdRegistro().equals(idRegistro)) {
+            redirectAttributes.addFlashAttribute("error", "No tienes permiso para editar esta denuncia.");
+            return "redirect:/seguimiento";
+        }
+
+        Complaint complaint = complaintOpt.get();
+        
+        // Verificar validaciones
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("trackingId", trackingId);
+            model.addAttribute("complaint", complaint);
+            model.addAttribute("analystNotes", complaint.getAnalystNotes());
+            return "public/denuncia-editar";
+        }
+
+        if (form.getAdditionalInfo() == null || form.getAdditionalInfo().isBlank()) {
+            bindingResult.rejectValue("additionalInfo", "error.empty", "Debes proporcionar información adicional");
+            model.addAttribute("trackingId", trackingId);
+            model.addAttribute("complaint", complaint);
+            model.addAttribute("analystNotes", complaint.getAnalystNotes());
+            return "public/denuncia-editar";
+        }
+
+        try {
+            // Actualizar denuncia con información adicional Y nuevas evidencias
+            complaintService.addAdditionalInfo(trackingId, form.getAdditionalInfo(), form.getEvidences());
+            
+            redirectAttributes.addFlashAttribute("success", true);
+            redirectAttributes.addFlashAttribute("message", "Información adicional enviada exitosamente. El analista revisará tu denuncia nuevamente.");
+            redirectAttributes.addFlashAttribute("trackingId", trackingId);
+            redirectAttributes.addFlashAttribute("autoProcess", true);
+            
+            return "redirect:/seguimiento";
+        } catch (Exception e) {
+            model.addAttribute("error", "Error al enviar la información. Por favor intenta de nuevo.");
+            model.addAttribute("trackingId", trackingId);
+            model.addAttribute("complaint", complaint);
+            model.addAttribute("analystNotes", complaint.getAnalystNotes());
+            return "public/denuncia-editar";
+        }
     }
     
     /**

@@ -71,7 +71,7 @@ public class JwtAuthenticationGatewayFilterFactory
                 "Generate with: openssl rand -base64 32"
             );
         }
-        log.info("✓ Gateway JWT Filter initialized with valid security configuration");
+        log.info("Gateway JWT Filter initialized");
     }
 
     public JwtAuthenticationGatewayFilterFactory() {
@@ -84,13 +84,9 @@ public class JwtAuthenticationGatewayFilterFactory
             String path = exchange.getRequest().getPath().value();
             String method = exchange.getRequest().getMethod().name();
             
-            log.debug("[Gateway] {} {} from {}", 
-                method, path, exchange.getRequest().getRemoteAddress());
-            
             try {
                 // 1. Verificar si es ruta pública (sin autenticación)
                 if (routeSecurityConfig != null && routeSecurityConfig.isPublicRoute(path)) {
-                    log.debug("[Gateway] Public route: {} {}", method, path);
                     return chain.filter(exchange);
                 }
 
@@ -116,8 +112,6 @@ public class JwtAuthenticationGatewayFilterFactory
                 }
 
                 if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                    log.warn("[Gateway] Missing or invalid JWT token for protected route: {} {}", 
-                        method, path);
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
@@ -140,8 +134,6 @@ public class JwtAuthenticationGatewayFilterFactory
                 if (cedula == null || cedula.isBlank() || 
                     userType == null || userType.isBlank() || 
                     apiKey == null || apiKey.isBlank()) {
-                    log.warn("[Gateway] Invalid JWT claims for route: {} {} - Missing cedula/userType/apiKey", 
-                        method, path);
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
@@ -150,8 +142,6 @@ public class JwtAuthenticationGatewayFilterFactory
                 if (routeSecurityConfig != null) {
                     Set<String> allowedRoles = routeSecurityConfig.getAllowedRoles(path);
                     if (!allowedRoles.isEmpty() && !allowedRoles.contains(userType)) {
-                        log.warn("[Gateway] Access denied - Unauthorized role. User: {}, Type: {}, Route: {} {}", 
-                            cedula, userType, method, path);
                         exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                         return exchange.getResponse().setComplete();
                     }
@@ -175,25 +165,19 @@ public class JwtAuthenticationGatewayFilterFactory
                         .request(mutatedRequest)
                         .build();
 
-                log.debug("[Gateway] ✓ Authentication successful - User: {} ({}), Route: {} {}", 
-                    cedula, userType, method, path);
-
-                // 8. Continuar con la petición
+                // Continuar con la petición
                 return chain.filter(mutatedExchange);
 
             } catch (JwtException e) {
-                log.warn("[Gateway] JWT validation failed for route: {} {} - {}", 
-                    method, path, e.getMessage());
+                log.error("JWT validation error: {}", e.getMessage());
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             } catch (IllegalArgumentException e) {
-                log.warn("[Gateway] Invalid JWT format for route: {} {} - {}", 
-                    method, path, e.getMessage());
+                log.error("Invalid JWT format: {}", e.getMessage());
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             } catch (Exception e) {
-                log.error("[Gateway] Unexpected error processing request {} {} - {}", 
-                    method, path, e.getMessage(), e);
+                log.error("Unexpected error processing request", e);
                 exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
                 return exchange.getResponse().setComplete();
             }

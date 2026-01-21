@@ -102,6 +102,46 @@ public class TrackingController {
             return gatewayConfig.redirectToSessionExpired();
         }
 
+        // ✅ NUEVO: Si viene con autoProcess=true y trackingId en flash attributes,
+        // procesar automáticamente sin necesidad de formulario
+        Boolean autoProcess = (Boolean) model.asMap().get("autoProcess");
+        String trackingIdFlash = (String) model.asMap().get("trackingId");
+        Boolean success = (Boolean) model.asMap().get("success");
+        
+        if (autoProcess != null && autoProcess && trackingIdFlash != null) {
+            // Procesar automáticamente y mostrar resultado
+            Optional<Complaint> complaintOpt = complaintService.findByTrackingId(trackingIdFlash);
+            
+            if (complaintOpt.isPresent()) {
+                Complaint complaint = complaintOpt.get();
+                Long idRegistro = (Long) session.getAttribute("idRegistro");
+                
+                if (complaint.getIdRegistro().equals(idRegistro)) {
+                    // Usuario es propietario - mostrar resultado
+                    int evidenceCount = evidenceRepository.countByComplaint(complaint);
+                    
+                    ComplaintStatusDto status = new ComplaintStatusDto(
+                        complaint.getTrackingId(),
+                        complaint.getStatus(),
+                        complaint.getSeverity(),
+                        complaint.getCreatedAt(),
+                        complaint.getUpdatedAt(),
+                        evidenceCount,
+                        complaint.getDerivedTo(),
+                        complaint.getAnalystNotes(),
+                        complaint.isRequiresMoreInfo(),
+                        complaint.getComplaintType()
+                    );
+                    
+                    model.addAttribute("complaintStatus", status);
+                    model.addAttribute("success", success);
+                    model.addAttribute("message", model.asMap().get("message"));
+                    
+                    return "public/seguimiento-resultado";
+                }
+            }
+        }
+
         model.addAttribute("trackingForm", new TrackingForm());
         return "public/seguimiento";
     }

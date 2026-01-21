@@ -71,15 +71,13 @@ public class ZeroTrustGatewayFilter implements Filter {
                 long diff = Math.abs(now - requestTime);
 
                 if (diff > 300000) { // 5 minutos
-                    log.warn("⚠️ ZERO TRUST VIOLATION: Timestamp too old ({}ms old, uri={}, user={})",
-                            diff, requestUri, cedula);
+                    log.warn("Zero Trust validation failed: Timestamp expired");
                     httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                                           "Request timestamp expired");
                     return;
                 }
             } catch (NumberFormatException e) {
-                log.warn("⚠️ ZERO TRUST VIOLATION: Invalid timestamp (uri={}, user={})",
-                        requestUri, cedula);
+                log.warn("Zero Trust validation failed: Invalid timestamp");
                 httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid timestamp");
                 return;
             }
@@ -98,16 +96,12 @@ public class ZeroTrustGatewayFilter implements Filter {
                 expectedSignature.getBytes(StandardCharsets.UTF_8),
                 gatewaySignature.getBytes(StandardCharsets.UTF_8)
             )) {
-                log.error("🚨 ZERO TRUST VIOLATION: Invalid Gateway signature (uri={}, user={}, ip={})",
-                        requestUri, cedula, httpRequest.getRemoteAddr());
+                log.error("Zero Trust validation failed: Invalid signature");
                 httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                                       "Invalid gateway signature");
                 return;
             }
 
-            log.debug("✅ Zero Trust validated: {} {} (user: {}, type: {})",
-                     httpRequest.getMethod(), requestUri, cedula, userType);
-            
             // Request válido del Gateway → continuar
             chain.doFilter(request, response);
             return;
@@ -122,17 +116,13 @@ public class ZeroTrustGatewayFilter implements Filter {
             userType = (String) session.getAttribute("userType");
             
             if (authenticated != null && authenticated && cedula != null && userType != null) {
-                log.debug("✅ Request validado por sesión HTTP: {} {} (cedula: {}, type: {})",
-                        httpRequest.getMethod(), requestUri, cedula, userType);
                 chain.doFilter(request, response);
                 return;
             }
         }
 
         // Si ninguna validación pasó → rechazar
-        log.warn("🚨 ZERO TRUST VIOLATION: Missing Gateway headers AND no valid session (uri={}, ip={}). " +
-                "IMPORTANTE: Accede a http://localhost:8080 (GATEWAY), NO http://localhost:8082 (CORE)",
-                requestUri, httpRequest.getRemoteAddr());
+        log.warn("Zero Trust validation failed: No valid credentials or session");
         httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                               "Access denied: requests must come through API Gateway (http://localhost:8080)");
         return;

@@ -30,6 +30,11 @@
             <p class="vs-card__subtitle">Información actualizada de tu caso</p>
         </div>
 
+        <!-- Mensaje de éxito (después de enviar información adicional) -->
+        <div th:if="${success}" class="vs-alert vs-alert--success vs-mb-6" role="alert" aria-live="polite">
+            <p th:text="${message}">¡Información enviada exitosamente!</p>
+        </div>
+
         <!-- Resumen -->
         <div class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Resumen</h3>

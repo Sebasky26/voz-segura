@@ -56,6 +56,11 @@ public class ComplaintForm {
     @Size(max = 20)
     private String companyPhone;
 
+    @Size(min = 50, max = 4000, message = "La información adicional debe tener entre 50 y 4000 caracteres")
+    private String additionalInfo;
+
+    private MultipartFile[] newEvidences;
+
     public String getDetail() { return detail; }
     public void setDetail(String detail) { this.detail = detail; }
 
@@ -76,4 +81,10 @@ public class ComplaintForm {
 
     public String getCompanyPhone() { return companyPhone; }
     public void setCompanyPhone(String companyPhone) { this.companyPhone = companyPhone; }
+
+    public String getAdditionalInfo() { return additionalInfo; }
+    public void setAdditionalInfo(String additionalInfo) { this.additionalInfo = additionalInfo; }
+
+    public MultipartFile[] getNewEvidences() { return newEvidences; }
+    public void setNewEvidences(MultipartFile[] newEvidences) { this.newEvidences = newEvidences; }
 }

@@ -88,20 +88,18 @@ supabase:
 logging:
   level:
     root: INFO
-    com.vozsegura.gateway: INFO  # SEGURIDAD: NO DEBUG - expone JWT/headers
-    org.springframework.cloud.gateway: INFO  # SEGURIDAD: NO DEBUG - expone request bodies
-    org.springframework.security: WARN  # SEGURIDAD: NO DEBUG - expone tokens
-    reactor.netty: WARN  # SEGURIDAD: NO DEBUG - expone headers HTTP
+    com.vozsegura.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: WARN
+    reactor.netty: WARN
+    com.vozsegura.gateway.config: DEBUG
+    com.vozsegura.gateway.filter: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %logger{36} - %msg%n"
   file:
     name: logs/gateway.log
     max-size: 10MB
-    max-history: 30
-  level:
-    com.vozsegura.gateway.config: DEBUG  # Ver configuración de rutas
-    com.vozsegura.gateway.filter: DEBUG  # Ver validación de JWT y HMAC
     max-history: 30
 
 # ============================================

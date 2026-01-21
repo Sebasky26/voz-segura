@@ -324,8 +324,7 @@ public class UnifiedAuthController {
             DiditVerification verification = verificationOpt.get();
             String documentNumber = verification.getDocumentNumber();
             
-            // SEGURIDAD: NO loggear cédulas en logs
-            log.info("Verification successful for user");
+            // Verificación completada
 
             // PASO 1: Verificar si la cédula está en la tabla staff_user (ADMIN o ANALISTA)
             Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(documentNumber);
@@ -338,25 +337,20 @@ public class UnifiedAuthController {
                 // Es un usuario staff (ADMIN o ANALISTA)
                 StaffUser user = staffUser.get();
                 staffRole = user.getRole();
-                log.info("👤 Usuario STAFF encontrado: document={}, role={}", documentNumber, staffRole);
                 
                 if ("ADMIN".equals(staffRole)) {
                     staffRedirectButton = "Ver Panel";
                     staffRedirectUrl = "/admin/panel";
-                    log.info("User is ADMIN - redirect to panel");
                 } else if ("ANALISTA".equals(staffRole)) {
                     staffRedirectButton = "Ver Denuncias";
                     staffRedirectUrl = "/staff/casos";
-                    log.info("User is ANALISTA - redirect to complaints");
                 } else {
-                    log.warn("⚠️  Unknown staff role: {}", staffRole);
                     staffRedirectButton = "Hacer Denuncia";
                     staffRedirectUrl = "/denuncia/form";
                 }
             } else {
                 // PASO 2: No es staff - verificar si es una persona válida en registro_civil.personas
                 // (es decir, es un denunciante)
-                log.info("👤 No es usuario STAFF. Verificando si es persona válida para denuncias: document={}", documentNumber);
                 
                 // Buscar persona por cédula
                 Optional<Persona> persona = personaRepository.findByCedula(documentNumber);
@@ -366,10 +360,8 @@ public class UnifiedAuthController {
                     staffRole = "DENUNCIANTE";
                     staffRedirectButton = "Hacer Denuncia";
                     staffRedirectUrl = "/denuncia/form";
-                    log.info("Usuario es DENUNCIANTE válido - redirect to denuncia form");
                 } else {
                     // Cédula no encontrada en ninguna tabla
-                    // SEGURIDAD: NO loggear cédulas
                     log.warn("Document not found in system");
                     redirectAttributes.addFlashAttribute("error", "Cédula no registrada en el sistema. Por favor intente nuevamente.");
                     return "redirect:/auth/login";
@@ -441,12 +433,10 @@ public class UnifiedAuthController {
                 return prepareVerifyConfirmModel(session, model, turnstileToken);
             }
             
-            // SEGURIDAD: NO loggear cédulas completas
-            log.info("completeVerification - staffRole={}", staffRole);
+            // Completando verificación
 
             // Todos los usuarios verificados pasan por el flujo de clave secreta (solo ADMIN y ANALISTA)
             if ("ADMIN".equals(staffRole) || "ANALISTA".equals(staffRole)) {
-                log.info("Redirecting staff/admin user to secret-key verification");
                 session.setAttribute("staffCedula", documentNumber);
                 session.setAttribute("staffRole", staffRole);
                 
@@ -459,7 +449,6 @@ public class UnifiedAuthController {
             }
             
             // Si es denunciante, proceder directamente al formulario de denuncia
-            log.info("👤 Redirecting denunciante user to denuncia form");
             
             // Generar hash anónimo de la cédula para la denuncia
             String citizenHash = hashCedula(documentNumber);
@@ -482,8 +471,8 @@ public class UnifiedAuthController {
             session.removeAttribute("verifiedDocumentNumber");
             session.removeAttribute("verifiedStaffRole");
             
-            // Redirigir al formulario de denuncia
-            return "redirect:/denuncia/form";
+            // Redirigir al panel de opciones de denuncia
+            return "redirect:/denuncia/opciones";
             
         } catch (Exception e) {
             model.addAttribute("error", "Error al procesar la verificación. Por favor intente nuevamente.");
@@ -539,11 +528,6 @@ public class UnifiedAuthController {
         if (staffCedula == null && citizenRef == null) {
             return "redirect:/auth/login";
         }
-        
-        // Si viene del flujo Didit, loggear acceso (NO mostramos datos personales en UI)
-        if (staffCedula != null) {
-            log.info("🔐 Staff/Admin accessing secret-key page (cedula verificada)");
-        }
 
         model.addAttribute("secretKeyForm", new SecretKeyForm());
         return "auth/secret-key";
@@ -572,7 +556,6 @@ public class UnifiedAuthController {
         }
         
         if (cedulaActual == null) {
-            log.warn("⚠️  verifySecretKey: No cedula found in session");
             return "redirect:/auth/login";
         }
 
@@ -587,47 +570,35 @@ public class UnifiedAuthController {
             Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(cedulaActual);
             
             if (!staffUser.isPresent()) {
-                log.warn("Staff user not found for cedula: {}", cedulaActual);
                 redirectAttributes.addFlashAttribute("error", "Clave secreta incorrecta");
                 return "redirect:/auth/secret-key?error";
             }
-            
-            log.info("Staff user found for cedula: {}", cedulaActual);
             
             // Verificar clave secreta contra el hash en la base de datos
             boolean isValid = unifiedAuthService.validateSecretKey(staffUser.get(), form.getSecretKey());
 
             if (!isValid) {
-                log.warn("Invalid secret key for cedula: {}", cedulaActual);
                 redirectAttributes.addFlashAttribute("error", "Clave secreta incorrecta");
                 return "redirect:/auth/secret-key?error";
             }
-
-            log.info("Secret key validated for cedula: {}", cedulaActual);
             
             // Clave secreta válida - Enviar OTP por email (MFA)
             String email = staffUser.get().getEmail();
             
             if (email == null || email.isBlank()) {
                 // Si no tiene email configurado, mostrar error - MFA es obligatorio
-                log.error("No email configured for MFA for cedula: {}", cedulaActual);
                 redirectAttributes.addFlashAttribute("error", "Error de configuracion: Email no configurado para MFA. Contacte al administrador.");
                 return "redirect:/auth/secret-key?error";
             }
-            
-            log.info("📧 Email found: {}", maskEmail(email));
             
             // Enviar OTP por email
             try {
                 String otpToken = unifiedAuthService.sendEmailOtp(email);
                 
                 if (otpToken == null) {
-                    log.error("Failed to send OTP email");
                     redirectAttributes.addFlashAttribute("error", "Error al enviar codigo de verificacion. Intente nuevamente.");
                     return "redirect:/auth/secret-key?error";
                 }
-                
-                log.info("OTP sent to email for cedula: {}", cedulaActual);
                 
                 session.setAttribute("otpToken", otpToken);
                 session.setAttribute("otpEmail", maskEmail(email));
@@ -686,28 +657,21 @@ public class UnifiedAuthController {
         String cedulaActual = cedula != null ? cedula : otpCedula;
         
         if (otpToken == null || cedulaActual == null) {
-            log.warn("⚠️  verifyOtp: Missing otpToken or cedula");
             return "redirect:/auth/login";
         }
 
-        // SEGURIDAD: NO loggear cédulas completas
-        log.info("Verifying OTP for staff user");
-
+        // Verificando OTP
         try {
             boolean isValid = unifiedAuthService.verifyOtp(otpToken, form.getOtpCode());
 
             if (!isValid) {
-                log.warn("Invalid OTP code");
                 redirectAttributes.addFlashAttribute("error", "Código incorrecto o expirado");
                 return "redirect:/auth/verify-otp?error";
             }
 
-            log.info("OTP verified successfully");
-
             // MFA exitoso - Obtener datos del staff_user
             Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(cedulaActual);
             if (!staffUser.isPresent()) {
-                log.error("StaffUser not found for cedula: {}", cedulaActual);
                 redirectAttributes.addFlashAttribute("error", "Usuario no encontrado. Contacte al administrador.");
                 return "redirect:/auth/login";
             }
@@ -741,9 +705,6 @@ public class UnifiedAuthController {
             session.removeAttribute("staffFirstName");
             session.removeAttribute("staffLastName");
             session.removeAttribute("staffFullName");
-
-            log.info("MFA successful for {}: {}. Redirecting to {}", userType, cedulaActual, 
-                    "ADMIN".equals(userType) ? "/admin/panel" : "/staff/casos");
 
             // Redirigir según rol
             if ("ADMIN".equals(userType)) {
@@ -781,14 +742,12 @@ public class UnifiedAuthController {
     public String resendOtp(HttpSession session, RedirectAttributes redirectAttributes) {
         String cedula = (String) session.getAttribute("cedula");
         if (cedula == null) {
-            log.warn("Intento de reenvío de OTP sin sesión válida (cedula nula)");
             return "redirect:/auth/login";
         }
 
         try {
             String email = unifiedAuthService.getStaffEmail(cedula);
             if (email == null || email.isBlank()) {
-                log.warn("Email no configurado para cedula: {}", cedula);
                 redirectAttributes.addFlashAttribute("error", 
                     "Error: Email no configurado para su cuenta. Contacte al administrador.");
                 return "redirect:/auth/verify-otp?error";
@@ -796,17 +755,16 @@ public class UnifiedAuthController {
             
             String otpToken = unifiedAuthService.sendEmailOtp(email);
             session.setAttribute("otpToken", otpToken);
-            log.info("OTP reenviado exitosamente a email: {}", maskEmail(email));
             redirectAttributes.addFlashAttribute("success", 
                 "Código reenviado exitosamente a " + maskEmail(email));
             return "redirect:/auth/verify-otp";
         } catch (SecurityException e) {
-            log.error("Error de seguridad al reenviar OTP para cedula: {}", cedula, e);
+            log.error("Error de seguridad al reenviar OTP", e);
             redirectAttributes.addFlashAttribute("error", 
                 "Error al reenviar el código. Intente en unos minutos.");
             return "redirect:/auth/verify-otp?error";
         } catch (Exception e) {
-            log.error("Error inesperado al reenviar OTP para cedula: {}", cedula, e);
+            log.error("Error inesperado al reenviar OTP", e);
             redirectAttributes.addFlashAttribute("error", 
                 "Error al reenviar el código. Intente en unos minutos.");
             return "redirect:/auth/verify-otp?error";

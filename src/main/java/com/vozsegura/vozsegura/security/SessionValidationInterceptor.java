@@ -65,6 +65,7 @@ public class SessionValidationInterceptor implements HandlerInterceptor {
         "/denuncia/form",
         "/denuncia/submit",
         "/denuncia/additional-info",
+        "/denuncia/editar",
         "/seguimiento",
         "/staff/",
         "/admin/"

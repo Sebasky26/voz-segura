@@ -45,7 +45,7 @@
 
         <!-- Filtros -->
         <form th:action="@{/staff/casos}" method="get" class="vs-mb-6" aria-label="Filtros">
-            <div class="vs-grid vs-grid--3cols">
+            <div class="vs-grid vs-grid--2cols">
 
                 <div class="vs-form__group">
                     <label class="vs-form__label" for="status">Estado</label>
@@ -61,18 +61,7 @@
                 </div>
 
                 <div class="vs-form__group">
-                    <label class="vs-form__label" for="q">Buscar</label>
-                    <input id="q"
-                           name="q"
-                           class="vs-input"
-                           type="text"
-                           th:value="${q}"
-                           placeholder="Código o empresa (opcional)"
-                           autocomplete="off"/>
-                    <div class="vs-form__help">Ej: ABC-123 o “Empresa XYZ”.</div>
-                </div>
 
-                <div class="vs-form__group">
                     <label class="vs-form__label">&nbsp;</label>
                     <div class="vs-button-group">
                         <button type="submit" class="vs-button vs-button--primary">

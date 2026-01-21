@@ -17,7 +17,7 @@ import jakarta.validation.constraints.Size;
  * 6. Se cifra y agrega a la denuncia
  * 
  * Validaciones:
- * - additionalInfo: 20-5000 caracteres (texto que se cifrará)
+ * - additionalInfo: 50-5000 caracteres (texto que se cifrará)
  * - evidences: máximo 5 archivos nuevos (cada uno máx 25MB)
  * - Total evidencias por denuncia: máximo 5 (incluyendo originales)
  * 
@@ -27,7 +27,7 @@ import jakarta.validation.constraints.Size;
 public class AdditionalInfoForm {
 
     @NotBlank(message = "La información adicional es requerida")
-    @Size(min = 20, max = 5000, message = "La información debe tener entre 20 y 5000 caracteres")
+    @Size(min = 50, max = 5000, message = "La información debe tener entre 50 y 5000 caracteres")
     private String additionalInfo;
 
     private MultipartFile[] evidences;
