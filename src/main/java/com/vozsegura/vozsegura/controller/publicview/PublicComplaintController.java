@@ -326,8 +326,10 @@ public class PublicComplaintController {
             // Guardar denuncia en la base de datos con idRegistro
             String trackingId = complaintService.createComplaint(form, citizenHash, idRegistro);
             
-            // Limpiar sesión
+            // ✅ Invalidar sesión después de denuncia exitosa
+            // El denunciante debe autentica nuevamente si quiere hacer otra denuncia
             sessionStatus.setComplete();
+            session.invalidate();
             
             // Pasar tracking ID a la vista de confirmación
             redirectAttributes.addFlashAttribute("trackingId", trackingId);
@@ -350,12 +352,19 @@ public class PublicComplaintController {
      * Los atributos flash (trackingId, success) se inyectan automáticamente
      * en el model desde el RedirectAttributes del envío anterior.
      * 
+     * ✅ VALIDACIÓN DE SESIÓN:
+     * Después de una denuncia exitosa, la sesión se invalida.
+     * Esta página de confirmación es la ÚLTIMA que ve el denunciante con esa sesión.
+     * Los datos se pasan por Flash Attributes (sin depender de sesión).
+     * 
      * @param model modelo con atributos flash (trackingId, success)
      * @return vista de confirmación con tracking ID
      */
     @GetMapping("/denuncia/confirmacion")
     public String showConfirmation(Model model) {
         // Los atributos flash (trackingId, success) se agregan automáticamente al model
+        // Estos datos NO requieren sesión válida (son flash attributes)
+        // La sesión ya fue invalidada en submitComplaint()
         return "public/denuncia-confirmacion";
     }
     

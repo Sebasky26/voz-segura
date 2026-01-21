@@ -45,6 +45,11 @@
             Sesión cerrada correctamente.
         </div>
 
+        <!-- ✅ Mensaje de sesión expirada -->
+        <div th:if="${param.session_expired}" class="vs-alert vs-alert--warning" role="alert" aria-live="assertive">
+            Tu sesión ha expirado. Por favor, inicia sesión nuevamente.
+        </div>
+
         <form method="post" th:action="@{/login}" class="vs-form" autocomplete="on">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 

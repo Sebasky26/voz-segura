@@ -119,7 +119,7 @@ public class VozSeguraGatewayApplication {
                 // ============================================
                 .route("webhooks", r -> r
                         .path("/webhooks/**")
-                        .uri("http://localhost:8082")
+                        .uri(coreServiceUri)
                 )
 
                 // ============================================

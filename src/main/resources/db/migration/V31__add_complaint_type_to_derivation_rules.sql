@@ -20,4 +20,6 @@ NULL = cualquier tipo (wildcard). Se combina con severity_match para derivación
 -- severity_match=HIGH + complaint_type_match=HARASSMENT → Ministerio de Trabajo
 -- severity_match=CRITICAL + complaint_type_match=FRAUD → Fiscalía
 
-RAISE NOTICE 'V31: Columna complaint_type_match agregada a regla_derivacion';
+-- ============================================================================
+-- V31 COMPLETE: Columna complaint_type_match agregada exitosamente
+-- ============================================================================

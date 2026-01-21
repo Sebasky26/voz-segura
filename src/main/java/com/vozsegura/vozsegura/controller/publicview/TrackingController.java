@@ -183,6 +183,36 @@ public class TrackingController {
 
         Complaint complaint = complaintOpt.get();
 
+        // ✅ VALIDACIÓN CRÍTICA DE SEGURIDAD:
+        // Verificar que el usuario autenticado es el DUEÑO de la denuncia
+        // Previene que un denunciante acceda a denuncias de otros usando tracking ID robado
+        Long idRegistro = (Long) session.getAttribute("idRegistro");
+        if (idRegistro == null) {
+            // Sesión inválida - redirigir a login
+            model.addAttribute("error", "Sesión inválida. Por favor auténticate de nuevo.");
+            model.addAttribute("trackingForm", form);
+            return "public/seguimiento";
+        }
+
+        if (!complaint.getIdRegistro().equals(idRegistro)) {
+            // ❌ Usuario intenta acceder a denuncia de OTRO denunciante
+            // Usar mensaje genérico para no revelar que la denuncia existe
+            model.addAttribute("error", "No se encontró información para el código proporcionado. Verifica que esté correcto.");
+            model.addAttribute("trackingForm", form);
+
+            // Registrar intento de acceso no autorizado en auditoría
+            String denuncianteActual = (String) session.getAttribute("cedula");
+            complaintService.logUnauthorizedAccessAttempt(
+                trackingId,
+                denuncianteActual,
+                complaint.getIdRegistro(),
+                clientIp
+            );
+
+            return "public/seguimiento";
+        }
+
+        // ✅ Usuario es propietario - permitir acceso a información
         // Contar evidencias
         int evidenceCount = evidenceRepository.countByComplaint(complaint);
 

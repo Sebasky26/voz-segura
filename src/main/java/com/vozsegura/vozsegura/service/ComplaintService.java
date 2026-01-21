@@ -526,4 +526,43 @@ public class ComplaintService {
                                   "Información adicional enviada por denunciante");
         });
     }
+
+    /**
+     * Registra un intento de acceso no autorizado a una denuncia.
+     * 
+     * Se llama cuando un usuario autenticado intenta ver una denuncia que no le pertenece,
+     * típicamente usando un tracking ID robado o adivinado.
+     * 
+     * Información registrada:
+     * - Tracking ID que se intentó acceder
+     * - Cédula del usuario que intentó acceder
+     * - ID del propietario real de la denuncia
+     * - IP desde la que se hizo el intento
+     * 
+     * Uso en Seguridad:
+     * - Detectar intentos de enumeración de denuncias
+     * - Identificar patrones de ataque (múltiples IPs, múltiples denuncias)
+     * - Alertas automáticas si hay muchos intentos fallidos
+     * - Cumplimiento con políticas de seguridad
+     * 
+     * @param trackingId ID de la denuncia que se intentó acceder
+     * @param userCedula Cédula del usuario que hizo el intento (denunciante actual)
+     * @param ownerIdRegistro ID del propietario real de la denuncia
+     * @param ipAddress IP desde la que se hizo el intento
+     */
+    public void logUnauthorizedAccessAttempt(String trackingId, String userCedula,
+                                             Long ownerIdRegistro, String ipAddress) {
+        String details = String.format(
+            "Intento de acceso no autorizado a denuncia de otro usuario desde IP: %s (Owner ID: %d)",
+            ipAddress, ownerIdRegistro
+        );
+        
+        auditService.logEvent(
+            "DENUNCIANTE",
+            userCedula,
+            "UNAUTHORIZED_TRACKING_ACCESS_ATTEMPT",
+            trackingId,
+            details
+        );
+    }
 }

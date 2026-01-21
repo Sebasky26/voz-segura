@@ -61,61 +61,81 @@ public class ZeroTrustGatewayFilter implements Filter {
         String gatewaySignature = httpRequest.getHeader("X-Gateway-Signature");
         String timestamp = httpRequest.getHeader("X-Request-Timestamp");
 
-        // Validar que todos los headers están presentes
-        if (cedula == null || userType == null || gatewaySignature == null || timestamp == null) {
-            log.warn("⚠️ ZERO TRUST VIOLATION: Missing Gateway headers (uri={}, ip={})",
-                    requestUri, httpRequest.getRemoteAddr());
-            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
-                                  "Access denied: requests must come through API Gateway");
-            return;
-        }
+        // Si viene del Gateway (headers presentes), validar firma HMAC
+        if (cedula != null && userType != null && gatewaySignature != null && timestamp != null) {
+            
+            // Validar timestamp (no más de 5 minutos de antigüedad - previene replay attacks)
+            try {
+                long requestTime = Long.parseLong(timestamp);
+                long now = System.currentTimeMillis();
+                long diff = Math.abs(now - requestTime);
 
-        // Validar timestamp (no más de 5 minutos de antigüedad - previene replay attacks)
-        try {
-            long requestTime = Long.parseLong(timestamp);
-            long now = System.currentTimeMillis();
-            long diff = Math.abs(now - requestTime);
-
-            if (diff > 300000) { // 5 minutos
-                log.warn("⚠️ ZERO TRUST VIOLATION: Timestamp too old ({}ms old, uri={}, user={})",
-                        diff, requestUri, cedula);
-                httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
-                                      "Request timestamp expired");
+                if (diff > 300000) { // 5 minutos
+                    log.warn("⚠️ ZERO TRUST VIOLATION: Timestamp too old ({}ms old, uri={}, user={})",
+                            diff, requestUri, cedula);
+                    httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                                          "Request timestamp expired");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                log.warn("⚠️ ZERO TRUST VIOLATION: Invalid timestamp (uri={}, user={})",
+                        requestUri, cedula);
+                httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid timestamp");
                 return;
             }
-        } catch (NumberFormatException e) {
-            log.warn("⚠️ ZERO TRUST VIOLATION: Invalid timestamp (uri={}, user={})",
-                    requestUri, cedula);
-            httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid timestamp");
+
+            // Generar firma esperada (mismo algoritmo que Gateway)
+            String expectedSignature = generateHmacSignature(
+                timestamp,
+                httpRequest.getMethod(),
+                requestUri,
+                cedula,
+                userType
+            );
+
+            // Comparar firmas (timing-attack safe)
+            if (!MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                gatewaySignature.getBytes(StandardCharsets.UTF_8)
+            )) {
+                log.error("🚨 ZERO TRUST VIOLATION: Invalid Gateway signature (uri={}, user={}, ip={})",
+                        requestUri, cedula, httpRequest.getRemoteAddr());
+                httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                                      "Invalid gateway signature");
+                return;
+            }
+
+            log.debug("✅ Zero Trust validated: {} {} (user: {}, type: {})",
+                     httpRequest.getMethod(), requestUri, cedula, userType);
+            
+            // Request válido del Gateway → continuar
+            chain.doFilter(request, response);
             return;
         }
 
-        // Generar firma esperada (mismo algoritmo que Gateway)
-        String expectedSignature = generateHmacSignature(
-            timestamp,
-            httpRequest.getMethod(),
-            requestUri,
-            cedula,
-            userType
-        );
-
-        // Comparar firmas (timing-attack safe)
-        if (!MessageDigest.isEqual(
-            expectedSignature.getBytes(StandardCharsets.UTF_8),
-            gatewaySignature.getBytes(StandardCharsets.UTF_8)
-        )) {
-            log.error("🚨 ZERO TRUST VIOLATION: Invalid Gateway signature (uri={}, user={}, ip={})",
-                    requestUri, cedula, httpRequest.getRemoteAddr());
-            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
-                                  "Invalid gateway signature");
-            return;
+        // Si NO hay headers del Gateway, intentar validar por sesión HTTP
+        // (Permite desarrollo local y debugging)
+        jakarta.servlet.http.HttpSession session = httpRequest.getSession(false);
+        if (session != null) {
+            Boolean authenticated = (Boolean) session.getAttribute("authenticated");
+            cedula = (String) session.getAttribute("cedula");
+            userType = (String) session.getAttribute("userType");
+            
+            if (authenticated != null && authenticated && cedula != null && userType != null) {
+                log.debug("✅ Request validado por sesión HTTP: {} {} (cedula: {}, type: {})",
+                        httpRequest.getMethod(), requestUri, cedula, userType);
+                chain.doFilter(request, response);
+                return;
+            }
         }
 
-        log.debug("✅ Zero Trust validated: {} {} (user: {}, type: {})",
-                 httpRequest.getMethod(), requestUri, cedula, userType);
-
-        // Request válido → continuar
-        chain.doFilter(request, response);
+        // Si ninguna validación pasó → rechazar
+        log.warn("🚨 ZERO TRUST VIOLATION: Missing Gateway headers AND no valid session (uri={}, ip={}). " +
+                "IMPORTANTE: Accede a http://localhost:8080 (GATEWAY), NO http://localhost:8082 (CORE)",
+                requestUri, httpRequest.getRemoteAddr());
+        httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                              "Access denied: requests must come through API Gateway (http://localhost:8080)");
+        return;
     }
 
     /**
@@ -142,18 +162,42 @@ public class ZeroTrustGatewayFilter implements Filter {
 
     /**
      * Verifica si la ruta es pública (no requiere Gateway).
+     * 
+     * Rutas públicas:
+     * - /auth/** → Login, logout, MFA
+     * - /webhooks/** → Callbacks de DIDIT
+     * - /denuncia/** → Denuncias públicas
+     * - /seguimiento/** → Seguimiento anónimo
+     * - /terms** → Términos y condiciones
+     * - /actuator/health → Health check (monitoreo)
+     * - /health/** → Endpoints de salud
+     * - /css/**, /js/**, /img/**, /images/** → Recursos estáticos
+     * - /error** → Manejo de errores
+     * - / → Home / index
+     * 
+     * @param uri URI de la petición
+     * @return true si es pública
      */
     private boolean isPublicRoute(String uri) {
         return uri.startsWith("/auth/") ||
+               uri.equals("/auth") ||
                uri.startsWith("/public/") ||
                uri.startsWith("/webhooks/") ||
+               uri.equals("/webhooks") ||
+               uri.startsWith("/denuncia/") ||
+               uri.equals("/denuncia") ||
+               uri.startsWith("/seguimiento") ||
+               uri.startsWith("/terms") ||
                uri.startsWith("/actuator/health") ||
-               uri.startsWith("/health/config") ||
+               uri.startsWith("/health/") ||
+               uri.equals("/health") ||
                uri.startsWith("/css/") ||
                uri.startsWith("/js/") ||
                uri.startsWith("/img/") ||
                uri.startsWith("/images/") ||
-               uri.startsWith("/error");
+               uri.startsWith("/error") ||
+               uri.equals("/") ||
+               uri.startsWith("/favicon");
     }
 
     @Override

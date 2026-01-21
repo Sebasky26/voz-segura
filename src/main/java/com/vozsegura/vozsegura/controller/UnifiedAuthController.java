@@ -760,26 +760,55 @@ public class UnifiedAuthController {
     }
 
     /**
-     * Reenviar código OTP.
+     * Reenvía OTP (si usuario no recibió código).
+     * 
+     * Endpoint para reenviar el código OTP por email si el usuario no lo recibió
+     * o lo perdió. Valida que la sesión sea válida y que el email esté configurado.
+     * 
+     * Validaciones:
+     * - Cédula debe estar en sesión (desde paso anterior)
+     * - Email debe estar configurado en base de datos
+     * - Envío por email no debe fallar
+     * 
+     * @param session sesión HTTP con cédula del usuario
+     * @param redirectAttributes para mensajes flash
+     * @return redirect a /auth/verify-otp en caso de éxito
+     *         redirect a /auth/login en caso de sesión expirada
+     * 
+     * @see UnifiedAuthService#sendEmailOtp(String)
      */
     @PostMapping("/resend-otp")
-    /**
-     * Reenvía OTP (si usuario no recibió código).
-     */
     public String resendOtp(HttpSession session, RedirectAttributes redirectAttributes) {
         String cedula = (String) session.getAttribute("cedula");
         if (cedula == null) {
+            log.warn("Intento de reenvío de OTP sin sesión válida (cedula nula)");
             return "redirect:/auth/login";
         }
 
         try {
             String email = unifiedAuthService.getStaffEmail(cedula);
+            if (email == null || email.isBlank()) {
+                log.warn("Email no configurado para cedula: {}", cedula);
+                redirectAttributes.addFlashAttribute("error", 
+                    "Error: Email no configurado para su cuenta. Contacte al administrador.");
+                return "redirect:/auth/verify-otp?error";
+            }
+            
             String otpToken = unifiedAuthService.sendEmailOtp(email);
             session.setAttribute("otpToken", otpToken);
-            redirectAttributes.addFlashAttribute("success", "Código reenviado exitosamente");
+            log.info("OTP reenviado exitosamente a email: {}", maskEmail(email));
+            redirectAttributes.addFlashAttribute("success", 
+                "Código reenviado exitosamente a " + maskEmail(email));
             return "redirect:/auth/verify-otp";
+        } catch (SecurityException e) {
+            log.error("Error de seguridad al reenviar OTP para cedula: {}", cedula, e);
+            redirectAttributes.addFlashAttribute("error", 
+                "Error al reenviar el código. Intente en unos minutos.");
+            return "redirect:/auth/verify-otp?error";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al reenviar el código. Intente en unos minutos.");
+            log.error("Error inesperado al reenviar OTP para cedula: {}", cedula, e);
+            redirectAttributes.addFlashAttribute("error", 
+                "Error al reenviar el código. Intente en unos minutos.");
             return "redirect:/auth/verify-otp?error";
         }
     }

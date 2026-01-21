@@ -99,6 +99,10 @@ logging:
     name: logs/gateway.log
     max-size: 10MB
     max-history: 30
+  level:
+    com.vozsegura.gateway.config: DEBUG  # Ver configuración de rutas
+    com.vozsegura.gateway.filter: DEBUG  # Ver validación de JWT y HMAC
+    max-history: 30
 
 # ============================================
 # Management (Actuator)

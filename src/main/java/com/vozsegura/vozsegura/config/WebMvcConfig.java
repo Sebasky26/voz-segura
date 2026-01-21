@@ -2,8 +2,11 @@ package com.vozsegura.vozsegura.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import com.vozsegura.vozsegura.security.SessionValidationInterceptor;
 
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +34,38 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
+
+    private final SessionValidationInterceptor sessionValidationInterceptor;
+
+    public WebMvcConfig(SessionValidationInterceptor sessionValidationInterceptor) {
+        this.sessionValidationInterceptor = sessionValidationInterceptor;
+    }
+
+    @Override
+    /**
+     * Registra interceptores para validar sesión en rutas protegidas.
+     * 
+     * El SessionValidationInterceptor verifica:
+     * - Rutas públicas: sin requerir sesión
+     * - Rutas protegidas: requieren sesión autenticada válida
+     * - Si sesión expiró: redirige a login con mensaje
+     * 
+     * @param registry InterceptorRegistry inyectado por Spring
+     */
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(sessionValidationInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                    "/css/**",
+                    "/js/**",
+                    "/img/**",
+                    "/images/**",
+                    "/error",
+                    "/auth/**",
+                    "/api/**",
+                    "/verification/**"
+                );
+    }
 
     @Override
     /**
