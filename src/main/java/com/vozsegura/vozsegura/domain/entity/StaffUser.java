@@ -6,6 +6,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.OffsetDateTime;
 
 /**
  * Usuario del sistema (staff) almacenado en schema staff.staff_user
@@ -57,6 +60,14 @@ public class StaffUser {
     @Column(length = 255)
     private String email;
 
+    @Column(name = "created_at")
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private OffsetDateTime updatedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -80,4 +91,10 @@ public class StaffUser {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

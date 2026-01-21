@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.InputStream;
 
 /**
  * Servicio de validación de archivos (evidencias).
@@ -249,9 +250,14 @@ public class FileValidationService {
             return true;
         }
 
-        // Leer primeros bytes del archivo
-        byte[] fileBytes = file.getBytes();
-        if (fileBytes.length == 0) {
+        // Leer SOLO los primeros bytes necesarios (max 32 bytes es suficiente para la mayoría de firmas)
+        byte[] fileBytes = new byte[32];
+        try (InputStream is = file.getInputStream()) {
+            int bytesRead = is.read(fileBytes);
+            if (bytesRead == -1) {
+                return false;
+            }
+        } catch (IOException e) {
             return false;
         }
 

@@ -90,6 +90,15 @@ public class AuditEvent {
     @Column(name = "details", length = 512)
     private String details;
 
+    @Column(name = "ip_address", length = 255)
+    private String ipAddress;
+
+    @Column(name = "user_agent", columnDefinition = "text")
+    private String userAgent;
+
+    @Column(name = "status", length = 255)
+    private String status;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -113,4 +122,13 @@ public class AuditEvent {
 
     public String getDetails() { return details; }
     public void setDetails(String details) { this.details = details; }
+
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+
+    public String getUserAgent() { return userAgent; }
+    public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

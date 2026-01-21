@@ -1,6 +1,8 @@
 package com.vozsegura.vozsegura.domain.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import java.time.OffsetDateTime;
 
 /**
@@ -32,30 +34,6 @@ public class DestinationEntity {
     private Long id;
 
     /**
-     * Codigo unico (ej: CPCCS, CPC, CIDH) - usado en DerivationRule.
-     * 
-     * Proposito:
-     * - Identificador legible para humanos (no numerico)
-     * - Usado en DerivationRule.destinationCode para routing
-     * - Usado en reportes y logs
-     * 
-     * Restricciones:
-     * - unique=true: Debe ser unico en la BD
-     * - nullable=false: No puede ser nulo
-     * - length=32: Maximo 32 caracteres
-     * 
-     * Ejemplos:
-     * - "CPCCS" para Corte Penal
-     * - "FISCALIA" para Fiscal General
-     * - "POLICIA" para Policia Nacional
-     * - "DEFENSORIA" para Defensoria Publica
-     * 
-     * Nota: Usado como clave en DerivationRule para evitar buscar por ID
-     */
-    @Column(nullable = false, unique = true, length = 32)
-    private String code;
-
-    /**
      * Nombre completo de la entidad en espanol.
      * 
      * Proposito:
@@ -75,6 +53,15 @@ public class DestinationEntity {
      */
     @Column(nullable = false, length = 255)
     private String name;
+
+    @Column(length = 255)
+    private String email;
+
+    @Column(length = 255)
+    private String phone;
+
+    @Column(columnDefinition = "text")
+    private String address;
 
     /**
      * Descripcion: areas de competencia, criterios de derivacion.
@@ -137,7 +124,12 @@ public class DestinationEntity {
      * - Es read-only para usuarios
      */
     @Column(name = "created_at")
+    @CreationTimestamp
     private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private OffsetDateTime updatedAt;
 
     // Getters y Setters
 
@@ -152,18 +144,6 @@ public class DestinationEntity {
      * @param id ID a establecer (usualmente generado por BD)
      */
     public void setId(Long id) { this.id = id; }
-
-    /**
-     * Obtiene el codigo unico de la entidad.
-     * @return String: Codigo (ej: CPCCS, FISCALIA)
-     */
-    public String getCode() { return code; }
-
-    /**
-     * Establece el codigo unico.
-     * @param code Codigo a establecer (ej: CPCCS)
-     */
-    public void setCode(String code) { this.code = code; }
 
     /**
      * Obtiene el nombre completo de la entidad.
@@ -212,4 +192,8 @@ public class DestinationEntity {
      * @param createdAt Timestamp a establecer (usualmente System.now())
      */
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

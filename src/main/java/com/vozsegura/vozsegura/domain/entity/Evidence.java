@@ -1,6 +1,9 @@
 package com.vozsegura.vozsegura.domain.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.OffsetDateTime;
 
 /**
  * Evidencia cifrada asociada a denuncia (schema evidencias.evidencia)
@@ -46,6 +49,17 @@ public class Evidence {
     /** Contenido del archivo cifrado con AES-256-GCM (guardado como binario) */
     private byte[] encryptedContent;
 
+    @Column(name = "checksum", length = 255)
+    private String checksum;
+
+    @Column(name = "created_at")
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private OffsetDateTime updatedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -66,4 +80,13 @@ public class Evidence {
 
     public byte[] getEncryptedContent() { return encryptedContent; }
     public void setEncryptedContent(byte[] encryptedContent) { this.encryptedContent = encryptedContent; }
+
+    public String getChecksum() { return checksum; }
+    public void setChecksum(String checksum) { this.checksum = checksum; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

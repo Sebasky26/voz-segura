@@ -1,6 +1,9 @@
 package com.vozsegura.vozsegura.domain.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.OffsetDateTime;
 
 /**
  * Configuración dinámica del sistema (schema reglas_derivacion.configuracion)
@@ -52,6 +55,14 @@ public class SystemConfig {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "created_at")
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private OffsetDateTime updatedAt;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -73,4 +84,10 @@ public class SystemConfig {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

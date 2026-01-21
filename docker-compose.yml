@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # Servicio Core (Lógica de Negocio)
+  core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voz-segura-core
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8082
+      # URL pública del Gateway para redirecciones (Login, etc.)
+      # EN EC2: Cambiar 'localhost' por la IP Pública o Dominio de tu EC2
+      - VOZSEGURA_GATEWAY_BASE_URL=${GATEWAY_PUBLIC_URL:-http://localhost:8080}
+      # Pasar credenciales de AWS y BD desde el host
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+      - SUPABASE_DB_USERNAME=${SUPABASE_DB_USERNAME}
+      - SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - VOZSEGURA_DATA_KEY_B64=${VOZSEGURA_DATA_KEY_B64}
+    env_file:
+      - .env
+    networks:
+      - voz-segura-net
+    restart: always
+
+  # Servicio Gateway (Entrada)
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: voz-segura-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8080
+      # Aquí deberías configurar la ruta hacia el core si usas variables en application.yml del gateway
+      - CORE_URI=http://core:8082
+    networks:
+      - voz-segura-net
+    depends_on:
+      - core
+    restart: always
+
+networks:
+  voz-segura-net:
+    driver: bridge

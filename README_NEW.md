@@ -154,18 +154,18 @@ Las Access Keys permiten que el codigo Java se conecte a AWS:
 
 ```bash
 # Windows CMD
-set AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
-set AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+set AWS_ACCESS_KEY_ID=AKIA...
+set AWS_SECRET_ACCESS_KEY=...
 set AWS_REGION=us-east-1
 
 # Windows PowerShell
-$env:AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXXXXX"
-$env:AWS_SECRET_ACCESS_KEY="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+$env:AWS_ACCESS_KEY_ID="AKIA..."
+$env:AWS_SECRET_ACCESS_KEY="..."
 $env:AWS_REGION="us-east-1"
 
 # Linux/Mac
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
-export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+export AWS_ACCESS_KEY_ID=AKIA...
+export AWS_SECRET_ACCESS_KEY=...
 export AWS_REGION=us-east-1
 ```
 

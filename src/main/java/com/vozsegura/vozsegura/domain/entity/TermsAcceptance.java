@@ -38,6 +38,12 @@ public class TermsAcceptance {
     @Column(name = "accepted_at", nullable = false)
     private OffsetDateTime acceptedAt;
 
+    @Column(name = "ip_address", length = 255)
+    private String ipAddress;
+
+    @Column(name = "user_agent", columnDefinition = "text")
+    private String userAgent;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -49,4 +55,10 @@ public class TermsAcceptance {
 
     public OffsetDateTime getAcceptedAt() { return acceptedAt; }
     public void setAcceptedAt(OffsetDateTime acceptedAt) { this.acceptedAt = acceptedAt; }
+
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+
+    public String getUserAgent() { return userAgent; }
+    public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
 }
