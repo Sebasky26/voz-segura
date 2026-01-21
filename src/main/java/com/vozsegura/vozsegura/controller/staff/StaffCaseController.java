@@ -104,6 +104,8 @@ public class StaffCaseController {
 
         model.addAttribute("complaints", complaints);
         model.addAttribute("selectedStatus", status);
+        // Pasar el servicio para que el template pueda traducir estados y severidades
+        model.addAttribute("systemConfigService", systemConfigService);
         return "staff/casos-list";
     }
 
@@ -131,7 +133,15 @@ public class StaffCaseController {
             String decryptedText = complaintService.decryptComplaintText(complaint.getEncryptedText());
             List<Evidence> evidences = evidenceRepository.findByComplaintId(complaint.getId());
 
+            // Traducir estados, prioridades y tipos a español usando display_label
+            String statusLabel = systemConfigService.translateStatus(complaint.getStatus());
+            String priorityLabel = systemConfigService.translateSeverity(complaint.getPriority());
+            String complaintTypeLabel = systemConfigService.translateComplaintType(complaint.getComplaintType());
+
             model.addAttribute("complaint", complaint);
+            model.addAttribute("statusLabel", statusLabel);
+            model.addAttribute("priorityLabel", priorityLabel);
+            model.addAttribute("complaintTypeLabel", complaintTypeLabel);
             model.addAttribute("decryptedText", decryptedText);
             model.addAttribute("evidences", evidences);
             model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesAsArray());

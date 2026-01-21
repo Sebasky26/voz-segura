@@ -43,11 +43,12 @@ public class SystemConfigService {
     private final SystemConfigRepository systemConfigRepository;
 
     // Constantes para grupos de configuración
-    public static final String GROUP_COMPLAINT_TYPE = "COMPLAINT_TYPE";
-    public static final String GROUP_PRIORITY = "PRIORITY";
+    // Los datos están en reglas_derivacion.configuracion con estos grupos
+    public static final String GROUP_COMPLAINT_TYPE = "COMPLAINT_TYPE";  // Tipos de denuncia
+    public static final String GROUP_STATUS = "SYSTEM";                  // Estados en español
+    public static final String GROUP_PRIORITY = "SEVERITY";              // Prioridades están en SEVERITY
     public static final String GROUP_EVENT_TYPE = "EVENT_TYPE";
-    public static final String GROUP_STATUS = "STATUS";
-    public static final String GROUP_SEVERITY = "SEVERITY";
+    public static final String GROUP_SEVERITY = "SEVERITY";              // Severidades y prioridades
 
     public SystemConfigService(SystemConfigRepository systemConfigRepository) {
         this.systemConfigRepository = systemConfigRepository;
@@ -78,7 +79,8 @@ public class SystemConfigService {
 
     /**
      * Obtiene los tipos de denuncia desde la base de datos.
-     * @return Array de [código, etiqueta] o array vacío si no hay datos
+     * Los tipos están en config_group='COMPLAINT_TYPE'
+     * @return Array de [config_key, display_label] o error si no hay datos
      */
     public String[][] getComplaintTypesAsArray() {
         try {
@@ -93,7 +95,8 @@ public class SystemConfigService {
             result[0] = new String[]{"", "Seleccionar..."};
 
             for (int i = 0; i < configs.size(); i++) {
-                result[i + 1] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+                // Usar config_key como valor y display_label como etiqueta para mostrar
+                result[i + 1] = new String[]{configs.get(i).getConfigKey(), configs.get(i).getDisplayLabel()};
             }
 
             return result;
@@ -104,7 +107,8 @@ public class SystemConfigService {
 
     /**
      * Obtiene las prioridades desde la base de datos.
-     * @return Array de [código, etiqueta] o array vacío si no hay datos
+     * Las prioridades están en config_group='PRIORITY'
+     * @return Array de [config_key, display_label] o error si no hay datos
      */
     public String[][] getPrioritiesAsArray() {
         try {
@@ -117,7 +121,7 @@ public class SystemConfigService {
 
             String[][] result = new String[configs.size()][2];
             for (int i = 0; i < configs.size(); i++) {
-                result[i] = new String[]{configs.get(i).getConfigValue(), configs.get(i).getDisplayLabel()};
+                result[i] = new String[]{configs.get(i).getConfigKey(), configs.get(i).getDisplayLabel()};
             }
 
             return result;

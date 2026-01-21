@@ -53,7 +53,7 @@ import software.amazon.awssdk.services.ses.model.SesException;
  */
 @Component
 @Primary
-@Profile({"aws", "prod"})
+@Profile({"aws", "prod","dev"})
 public class AwsSesOtpClient implements OtpClient {
 
     @Value("${aws.region:us-east-1}")

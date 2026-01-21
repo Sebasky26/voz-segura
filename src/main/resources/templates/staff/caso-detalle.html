@@ -45,17 +45,17 @@
             <div class="vs-grid vs-grid--3cols">
                 <div class="vs-form__group">
                     <label class="vs-form__label">Estado</label>
-                    <p th:text="${complaint.status}">PENDING</p>
+                    <p th:text="${statusLabel ?: complaint.status}">PENDING</p>
                 </div>
 
                 <div class="vs-form__group">
                     <label class="vs-form__label">Prioridad</label>
-                    <p th:text="${complaint.priority ?: 'Sin asignar'}">MEDIUM</p>
+                    <p th:text="${priorityLabel ?: complaint.priority ?: 'Sin asignar'}">MEDIUM</p>
                 </div>
 
                 <div class="vs-form__group">
                     <label class="vs-form__label">Tipo</label>
-                    <p th:text="${complaint.complaintType ?: 'Sin clasificar'}">-</p>
+                    <p th:text="${complaintTypeLabel ?: complaint.complaintType ?: 'Sin clasificar'}">-</p>
                 </div>
             </div>
         </div>

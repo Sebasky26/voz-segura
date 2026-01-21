@@ -53,7 +53,7 @@
                         <option value="">Todos</option>
                         <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Pendiente</option>
                         <option value="IN_REVIEW" th:selected="${selectedStatus == 'IN_REVIEW'}">En revisión</option>
-                        <option value="NEEDS_INFO" th:selected="${selectedStatus == 'NEEDS_INFO'}">Requiere info</option>
+                        <option value="NEEDS_INFO" th:selected="${selectedStatus == 'NEEDS_INFO'}">Requiere información</option>
                         <option value="APPROVED" th:selected="${selectedStatus == 'APPROVED'}">Aprobado</option>
                         <option value="REJECTED" th:selected="${selectedStatus == 'REJECTED'}">Rechazado</option>
                         <option value="DERIVED" th:selected="${selectedStatus == 'DERIVED'}">Derivado</option>
@@ -116,9 +116,9 @@
                         <code th:text="${#strings.abbreviate(complaint.trackingId, 20)}">ABC123</code>
                     </td>
 
-                    <td th:text="${complaint.status}">PENDING</td>
+                    <td th:text="${systemConfigService.translateStatus(complaint.status)}">PENDING</td>
 
-                    <td th:text="${complaint.severity}">MEDIUM</td>
+                    <td th:text="${systemConfigService.translateSeverity(complaint.severity)}">MEDIUM</td>
 
                     <td th:text="${complaint.companyName}">Empresa XYZ</td>
 
