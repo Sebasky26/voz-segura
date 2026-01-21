@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -24,6 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * - Extraer información de usuario de headers del Gateway (Zero Trust)
  * - Validar identidad según múltiples métodos (headers, sesión, JWT)
  * - Rechazar requests malformadas o no autenticadas
+ * - Logging defensivo (sin exponer tokens ni datos sensibles)
  *
  * Flujo de autenticación (en orden):
  * 1. Si ruta pública: permitir directamente
@@ -47,10 +49,12 @@ import jakarta.servlet.http.HttpServletResponse;
  * - @Component: Bean de Spring
  * - @Order(1): Ejecuta primero (antes de otros filtros)
  * - implements Filter: Filtro estándar Jakarta Servlet
+ * - @Slf4j: Logging defensivo sin datos sensibles
  *
  * @author Voz Segura Team
  * @version 2.0
  */
+@Slf4j
 @Component
 @Order(1)
 public class ApiGatewayFilter implements Filter {
@@ -127,6 +131,7 @@ public class ApiGatewayFilter implements Filter {
 
         // Si no hay autenticación, redirigir a login del Gateway (8080)
         if (cedula == null || userType == null) {
+            log.warn("Access denied: missing authentication (uri={})", requestUri);
             String loginUrl = gatewayBaseUrl + "/auth/login?session_expired";
             httpResponse.sendRedirect(loginUrl);
             return;
@@ -134,6 +139,7 @@ public class ApiGatewayFilter implements Filter {
 
         // 3. Validar autorización
         if (!isAuthorized(requestUri, userType)) {
+            log.warn("Access denied: insufficient permissions (userType={}, uri={})", userType, requestUri);
             httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                 "No tiene permisos para acceder a este recurso");
             return;
@@ -165,17 +171,35 @@ public class ApiGatewayFilter implements Filter {
             return false;
         }
 
+        // ADMIN: solo /admin/** y /staff/**
+        // NOTA: ADMIN puede acceder a ambas rutas por propósitos de supervisión
         if ("ADMIN".equals(userType)) {
-            return requestUri.equals("/admin") || requestUri.startsWith("/admin/") ||
-                   requestUri.equals("/staff") || requestUri.startsWith("/staff/");
+            return (requestUri.equals("/admin") || requestUri.startsWith("/admin/")) ||
+                   (requestUri.equals("/staff") || requestUri.startsWith("/staff/"));
         }
 
+        // ANALYST: solo /staff/** (panel de análisis)
+        // NOTA: ANALYST NO puede acceder a /admin/** 
+        // (admin es para superusuarios, analyst es operacional)
         if ("ANALYST".equals(userType)) {
-            return requestUri.equals("/staff") || requestUri.startsWith("/staff/") ||
-                   requestUri.startsWith("/denuncia/");
+            // Verificar estrictamente que sea /staff/
+            // Rechazar intentos de acceder a /admin/
+            if (requestUri.equals("/staff") || requestUri.startsWith("/staff/")) {
+                return true;
+            }
+            if (requestUri.startsWith("/admin")) {
+                return false; // Explícitamente prohibido
+            }
+            // ANALYST también puede acceder a /denuncia/ para ver casos
+            return requestUri.startsWith("/denuncia/");
         }
 
+        // DENUNCIANTE: solo /denuncia/** (su propio flujo)
         if ("DENUNCIANTE".equals(userType)) {
+            // Rechazar explícitamente intentos de acceder a rutas protegidas
+            if (requestUri.startsWith("/admin") || requestUri.startsWith("/staff")) {
+                return false;
+            }
             return requestUri.startsWith("/denuncia/");
         }
 

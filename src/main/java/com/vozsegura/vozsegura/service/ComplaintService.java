@@ -8,6 +8,7 @@ import com.vozsegura.vozsegura.repo.ComplaintRepository;
 import com.vozsegura.vozsegura.repo.EvidenceRepository;
 import com.vozsegura.vozsegura.repo.PersonaRepository;
 import com.vozsegura.vozsegura.security.EncryptionService;
+import com.vozsegura.vozsegura.security.FileValidationService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,17 +70,20 @@ public class ComplaintService {
     private final PersonaRepository personaRepository;
     private final EncryptionService encryptionService;
     private final AuditService auditService;
+    private final FileValidationService fileValidationService;
 
     public ComplaintService(ComplaintRepository complaintRepository,
                             EvidenceRepository evidenceRepository,
                             PersonaRepository personaRepository,
                             EncryptionService encryptionService,
-                            AuditService auditService) {
+                            AuditService auditService,
+                            FileValidationService fileValidationService) {
         this.complaintRepository = complaintRepository;
         this.evidenceRepository = evidenceRepository;
         this.personaRepository = personaRepository;
         this.encryptionService = encryptionService;
         this.auditService = auditService;
+        this.fileValidationService = fileValidationService;
     }
 
     /**
@@ -142,18 +146,19 @@ public class ComplaintService {
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) continue;
             if (count >= MAX_EVIDENCES) break;
-            if (file.getSize() > MAX_FILE_SIZE) continue;
             
-            // Validar content type (permitir variaciones con charset)
-            String contentType = file.getContentType();
-            if (contentType == null || !isAllowedContentType(contentType)) continue;
+            // Usar validación estricta: MIME type + magic bytes + nombre + tamaño
+            if (!fileValidationService.isValidEvidence(file)) {
+                // Log de rechazo sin exponer detalles al usuario
+                continue;
+            }
 
             try {
                 Evidence evidence = new Evidence();
                 evidence.setComplaint(complaint);
                 evidence.setIdDenuncia(complaint.getId()); // FK explícita
                 evidence.setFileName(sanitizeFileName(file.getOriginalFilename()));
-                evidence.setContentType(contentType);
+                evidence.setContentType(file.getContentType());
                 evidence.setSizeBytes(file.getSize());
                 // Cifrar contenido binario
                 evidence.setEncryptedContent(encryptBytes(file.getBytes()));
@@ -168,6 +173,8 @@ public class ComplaintService {
     private boolean isAllowedContentType(String contentType) {
         if (contentType == null) return false;
         
+        // NOTA: Esta validación básica se mantiene para compatibilidad.
+        // La validación principal ahora es en FileValidationService (incluye magic bytes).
         // Remover charset y espacios
         String baseType = contentType.split(";")[0].trim();
         
