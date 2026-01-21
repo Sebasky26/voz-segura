@@ -48,7 +48,183 @@ aws-credentials*.csv
 application-local.yml
 application-local.properties
 application-secrets.yml
+Actúa como arquitecto de software + auditor de seguridad Zero Trust + senior Spring Boot/Spring Security + auditor de Spring Cloud Gateway. Tengo un proyecto llamado Voz Segura (Java, Spring Boot, Spring Security, Thymeleaf, Spring Cloud Gateway, JPA/Flyway, Postgres/Supabase con schemas: registro_civil, denuncias, evidencias, staff, reglas_derivacion, logs).
 
+Importante
+
+NO cambies la lógica de negocio ni el flujo funcional (roles, pantallas, estados, tracking, derivación, OTP, evidencia).
+
+Solo aplica las correcciones listadas abajo.
+
+El ZIP incluía .env, .git, logs, target solo para que se pueda revisar; NO se publica ni se comparte.
+
+Correcciones obligatorias (solo estas)
+1) CERO secretos o claves en repositorio/código/config
+
+Debes eliminar/evitar absolutamente cualquier valor sensible en:
+
+código Java
+
+application.yml/properties
+
+gateway configs
+
+Dockerfiles / docker-compose
+
+tests / fixtures
+
+documentación (README, md)
+
+endpoints de debug
+
+✅ Permitido: variables de entorno, Secrets Manager, o BD cifrada.
+🚫 Prohibido: defaults tipo change_me, VOZSEGURA_DATA_KEY_B64 con fallback, JWT secret por defecto, API keys en md.
+
+Resultado: si falta un secreto crítico, la app debe fallar al iniciar (fail-closed), con un error claro.
+
+2) Cerrar Zero Trust: impedir bypass del Gateway hacia Core
+
+Objetivo: aunque alguien intente acceder al Core directamente, no debe poder autenticarse ni “inventar” headers.
+
+Aplica:
+
+Core no expuesto públicamente (solo red interna) Y además:
+
+Implementar verificación fuerte de origen Gateway → Core (elige una):
+
+mTLS entre Gateway y Core, o
+
+header interno firmado (HMAC) con clave solo en env, o
+
+Core valida también JWT (además del gateway) y rechaza requests sin token válido.
+
+En Core, quitar configuración insegura tipo .anyRequest().permitAll() si aplica para rutas sensibles.
+
+No confiar en headers como X-User-Type/X-User-Cedula sin prueba de autenticidad.
+
+3) Eliminar o bloquear endpoints de debug (CRÍTICO)
+
+Eliminar endpoints tipo /health/didit-debug o cualquier endpoint que devuelva config o secretos.
+
+Si existe por necesidad, debe quedar:
+
+solo en perfil dev, y
+
+inaccesible en prod (bloqueado por Spring Security + red).
+
+4) Logs seguros: limpiar y evitar PII/SQL/tokens
+
+Quitar logs innecesarios.
+
+Prohibido loggear:
+
+SQL queries
+
+JWT, OTP
+
+secretos
+
+payloads completos (Didit)
+
+PII (cédula completa, nombres)
+
+Ajustar log levels y desactivar debug en prod.
+
+Asegurar que logs/ no se versiona ni se empaqueta.
+
+5) Validación de archivos: cerrar bypass (CRÍTICO)
+
+Actualmente hay riesgo si aceptas image/* genérico o confías en content-type.
+
+Debes:
+
+Aceptar SOLO lista blanca estricta por firma real (magic bytes), no por extension ni content-type:
+
+PDF real
+
+DOCX real (no DOC; rechazar macros)
+
+PNG/JPEG reales (y si aceptas GIF, solo si es necesario)
+
+Si el tipo no está en whitelist o no coincide su firma real → rechazar.
+
+Poner límites de tamaño por tipo y nombre generado por el sistema.
+
+Mantener checksum + almacenamiento cifrado.
+
+6) Reglas de derivación: alinear DB ↔ entidad ↔ UI
+
+Debes corregir inconsistencia entre migraciones y entidades.
+
+Requisitos mínimos:
+
+La regla debe poder matchear:
+
+prioridad (bajo/medio/alto/crítico)
+
+tipo de denuncia (fraude, acoso, etc.) ✅ obligatorio
+
+(si existe en DB priority_match, debe existir en entidad y viceversa)
+
+Admin define reglas completas (incluyendo tipo).
+
+Analista selecciona parámetros (incluyendo tipo) sin ver la entidad destino.
+
+Debe calzar 1:1 para que la derivación funcione siempre.
+
+Entrega:
+
+Migración Flyway (si falta columna) para complaint_type_match (o equivalente).
+
+Ajuste de entidad JPA + repositorio + service + UI.
+
+Tests mínimos para confirmar que reglas se aplican correctamente.
+
+7) Cifrado/anonimización de PII en BD (mínimo en personas y staff)
+
+Objetivo: si alguien accede a la BD, no debe ver PII en claro.
+
+Debes implementar:
+
+Para registro_civil.personas y staff.staff_user (mínimo):
+
+NO guardar cédula/nombres/emails en claro (o eliminarlo tras migrar)
+
+Guardar cifrado reversible para lo que necesite recuperación (AES-GCM)
+
+Guardar hash determinístico (HMAC con pepper) para búsquedas/validaciones
+
+Crear migración Flyway que:
+
+agrega columnas *_enc (BYTEA ideal) + *_hash
+
+migra datos existentes (puede ser con job de app si hace falta)
+
+neutraliza/elimina campos en claro
+
+Importante: Nada de base64 como “seguridad”. Si serializas, debe ser por formato, no por “ocultar”.
+
+8) Frontend seguro: sin JS/CSS inline, y Thymeleaf sin XSS
+
+No usar <script>...</script> inline ni style="..." (salvo mínimo inevitable).
+
+Separar en /static/js y /static/css.
+
+Evitar th:utext para contenido de usuario.
+
+Sanitizar inputs y escapar outputs.
+
+Entregables (en este orden)
+
+Lista de cambios realizados por severidad (CRÍTICO/ALTO/MEDIO/BAJO)
+
+Cambios exactos por archivo (ruta + qué cambiaste)
+
+Parches/snippets listos para pegar (config, security, migraciones, validación de archivos)
+
+Checklist de pruebas (bypass core, JWT, OTP, upload malicioso, reglas derivación, tracking)
+
+Nota final: qué NO pudiste cambiar sin romper lógica (si aplica)
 # Archivos de log (pueden contener datos sensibles)
 logs/
 *.log

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- ===================================================================== -->
+    <!-- LOGBACK CONFIGURATION - VOZ SEGURA GATEWAY                            -->
+    <!-- ===================================================================== -->
+    <!-- SEGURIDAD: Configuración de logging seguro para API Gateway          -->
+    <!-- - NO loggea JWT tokens, API keys, headers de autenticación           -->
+    <!-- - NO loggea request/response bodies                                   -->
+    <!-- - NO loggea URLs completas con parámetros sensibles                   -->
+    <!-- - Niveles restrictivos: INFO en dev, WARN en prod                     -->
+    <!-- ===================================================================== -->
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- ===================================================================== -->
+    <!-- PATRÓN DE LOG SEGURO                                                  -->
+    <!-- ===================================================================== -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"/>
+
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %logger{36} - %msg%n"/>
+
+    <!-- ===================================================================== -->
+    <!-- APPENDER DE CONSOLA                                                   -->
+    <!-- ===================================================================== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- Solo INFO y superior -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- ===================================================================== -->
+    <!-- APPENDER DE ARCHIVO                                                   -->
+    <!-- ===================================================================== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/gateway.log</file>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+
+        <!-- Rotación de archivos -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/gateway-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ===================================================================== -->
+    <!-- NIVEL ROOT                                                            -->
+    <!-- ===================================================================== -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- ===================================================================== -->
+    <!-- PROFILE: DESARROLLO                                                   -->
+    <!-- ===================================================================== -->
+    <springProfile name="dev,default">
+        <!-- Gateway: INFO solamente (NO DEBUG - expone headers y tokens) -->
+        <logger name="com.vozsegura.gateway" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Spring Cloud Gateway: INFO (NO DEBUG - expone request bodies) -->
+        <logger name="org.springframework.cloud.gateway" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Reactor Netty: WARN (NO DEBUG - expone headers HTTP completos) -->
+        <logger name="reactor.netty" level="WARN" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Spring Security: WARN (NO DEBUG - expone JWT tokens) -->
+        <logger name="org.springframework.security" level="WARN" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Spring Web: INFO (NO DEBUG - expone payloads) -->
+        <logger name="org.springframework.web" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+    </springProfile>
+
+    <!-- ===================================================================== -->
+    <!-- PROFILE: PRODUCCIÓN                                                   -->
+    <!-- ===================================================================== -->
+    <springProfile name="prod,aws">
+        <root level="WARN">
+            <appender-ref ref="FILE"/>
+        </root>
+
+        <logger name="com.vozsegura.gateway" level="INFO" additivity="false">
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Solo errores en producción -->
+        <logger name="org.springframework.cloud.gateway" level="WARN"/>
+        <logger name="org.springframework.security" level="ERROR"/>
+        <logger name="reactor.netty" level="ERROR"/>
+    </springProfile>
+
+    <!-- ===================================================================== -->
+    <!-- LOGGERS CRÍTICOS: NUNCA DEBUG                                         -->
+    <!-- ===================================================================== -->
+    <!-- Estos manejan datos sensibles de autenticación -->
+    <logger name="com.vozsegura.gateway.filter.JwtAuthenticationGatewayFilterFactory" level="INFO"/>
+    <logger name="com.vozsegura.gateway.filter.ApiKeyValidationFilter" level="INFO"/>
+
+    <!-- Desactivar logs de routing detallados -->
+    <logger name="org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator" level="WARN"/>
+    <logger name="org.springframework.cloud.gateway.handler.predicate.PredicateDefinition" level="WARN"/>
+
+</configuration>

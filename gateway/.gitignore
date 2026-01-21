@@ -1,0 +1,26 @@
+# ============================================
+# GATEWAY - ARCHIVOS SENSIBLES
+# ============================================
+
+# Logs (pueden contener JWT tokens, headers, firmas HMAC)
+logs/
+*.log
+*.log.*
+*.log.gz
+
+# Variables de entorno
+.env
+.env.*
+
+# Build
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
