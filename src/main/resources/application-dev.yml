@@ -55,9 +55,10 @@ spring:
     cache: false
 
 # JWT Development (desde .env)
+# CRÍTICO: jwt.secret es OBLIGATORIO - no tiene default
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 86400000
+  expiration: ${JWT_EXPIRATION:86400000}
 
 # Supabase (desde .env)
 supabase:

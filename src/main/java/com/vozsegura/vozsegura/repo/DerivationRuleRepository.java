@@ -49,25 +49,28 @@ public interface DerivationRuleRepository extends JpaRepository<DerivationRule, 
     List<DerivationRule> findAllByOrderByNameAsc();
 
     /**
-     * Busca la regla de derivación más específica que coincida con la severidad.
+     * Busca la regla de derivación más específica que coincida con severidad Y tipo.
      *
      * Algoritmo de Matching:
      * 1. Filtra reglas activas (active=true)
-     * 2. Coincide severidad: exacta (if severityMatch presente) O ignora (if NULL)
-     * 3. Ordena por especificidad: primero las que tienen severidad específica
+     * 2. Coincide severidad: exacta O NULL (wildcard)
+     * 3. Coincide tipo de denuncia: exacta O NULL (wildcard)
+     * 4. Ordena por especificidad (más específicas primero)
      *
-     * Ejemplos:
-     * - Regla: severity=HIGH → Coincide con denuncias de severidad HIGH
-     * - Regla: severity=NULL → Coincide con cualquier severidad (fallback)
-     *
-     * @param severity Severidad de la denuncia (ej: "HIGH", "CRITICAL")
-     * @return Lista de reglas que coinciden, ordenadas por especificidad (MÁS específicas primero)
+     * @param severity Severidad (HIGH, CRITICAL, etc.)
+     * @param complaintType Tipo (HARASSMENT, FRAUD, etc.)
+     * @return Lista de reglas ordenadas por especificidad
      */
     @Query("SELECT r FROM DerivationRule r WHERE r.active = true " +
            "AND (r.severityMatch = :severity OR r.severityMatch IS NULL) " +
+           "AND (r.complaintTypeMatch = :complaintType OR r.complaintTypeMatch IS NULL) " +
            "ORDER BY " +
-           "CASE WHEN r.severityMatch IS NOT NULL THEN 1 ELSE 0 END DESC")
-    List<DerivationRule> findMatchingRules(@Param("severity") String severity);
+           "CASE WHEN r.severityMatch IS NOT NULL AND r.complaintTypeMatch IS NOT NULL THEN 3 " +
+           "     WHEN r.severityMatch IS NOT NULL THEN 2 " +
+           "     WHEN r.complaintTypeMatch IS NOT NULL THEN 1 " +
+           "     ELSE 0 END DESC")
+    List<DerivationRule> findMatchingRules(@Param("severity") String severity,
+                                          @Param("complaintType") String complaintType);
 
     /**
      * Busca una regla por su nombre único.

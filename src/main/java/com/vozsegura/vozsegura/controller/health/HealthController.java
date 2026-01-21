@@ -125,40 +125,7 @@ public class HealthController {
         return config;
     }
 
-    /**
-     * Obtiene la configuracion de Didit COMPLETA (incluyendo secretos).
-     * 
-     * ADVERTENCIA:
-     * - Esta ruta EXPONE la clave API de Didit COMPLETA
-     * - Solo debe estar accesible en desarrollo local
-     * - En produccion, debe estar protegida o removida
-     * - NO debe exponerse en internet publico
-     * 
-     * Proposito:
-     * - Diagnosticar problemas de integracion
-     * - Verificar que secretos estan correctamente configurados
-     * - Solo para administradores de desarrollo
-     * 
-     * Ruta: GET /health/didit-debug
-     * 
-     * Seguridad:
-     * - NUNCA exponer en endpoints publicos
-     * - Considerar agregar @Secured(\"ROLE_ADMIN\")
-     * - Considerar agregar IP whitelist (solo localhost)
-     * 
-     * @return Map con configuracion COMPLETA (incluyendo clave API)
-     */
-    @GetMapping("/didit-debug")
-    public Map<String, Object> diditDebug() {
-        Map<String, Object> debug = new HashMap<>();
-        debug.put("didit_app_id", diditAppId);
-        debug.put("didit_api_key_set", !diditApiKey.equals("NOT_SET"));
-        debug.put("didit_workflow_id", diditWorkflowId);
-        debug.put("didit_api_url", diditApiUrl);
-        debug.put("didit_webhook_url", diditWebhookUrl);
-        
-        log.info("Didit Config Debug: {}", debug);
-        
-        return debug;
-    }
+    // SEGURIDAD: Endpoint /health/didit-debug ELIMINADO por riesgo crítico
+    // Exponía secretos completos en respuesta HTTP
+    // Para debug en dev, usar logs con nivel INFO en /health/config
 }

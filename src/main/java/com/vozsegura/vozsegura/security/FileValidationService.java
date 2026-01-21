@@ -61,10 +61,8 @@ public class FileValidationService {
             {(byte) 0x89, 0x50, 0x4E, 0x47}
         });
 
-        // GIF: 474946
-        MAGIC_BYTES.put("image/gif", new byte[][] {
-            {0x47, 0x49, 0x46}
-        });
+        // GIF eliminado: raramente necesario para evidencias legales
+        // Si se requiere, agregar explícitamente con justificación
 
         // MP4/MOV: ftyp (variable, pero contiene "ftyp")
         MAGIC_BYTES.put("video/mp4", new byte[][] {
@@ -77,20 +75,21 @@ public class FileValidationService {
             {(byte) 0xFF, (byte) 0xFB}
         });
 
-        // DOCX/XLSX/Word: PK (ZIP)
-        MAGIC_BYTES.put("application/msword", new byte[][] {
-            {0x50, 0x4B} // PK
-        });
+        // DOCX (Office Open XML): PK (ZIP) - bytes 0-1
+        // SEGURIDAD: Solo DOCX moderno, NO DOC antiguo (riesgo de macros)
+        MAGIC_BYTES.put("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            new byte[][] {
+                {0x50, 0x4B} // PK (ZIP signature)
+            });
 
-        MAGIC_BYTES.put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+        // XLSX (Excel Open XML): PK (ZIP)
+        MAGIC_BYTES.put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             new byte[][] {
                 {0x50, 0x4B} // PK
             });
 
-        MAGIC_BYTES.put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-            new byte[][] {
-                {0x50, 0x4B} // PK
-            });
+        // NOTA: application/msword (DOC antiguo) ELIMINADO por riesgo de seguridad
+        // DOC puede contener macros y exploits. Solo aceptamos DOCX moderno.
     }
 
     /**
@@ -139,8 +138,9 @@ public class FileValidationService {
     }
 
     /**
-     * Valida que el MIME type esté en whitelist.
-     * 
+     * Valida que el MIME type esté en whitelist ESTRICTA.
+     * SEGURIDAD: NO acepta image/* genérico - solo tipos específicos
+     *
      * @param contentType MIME type a validar
      * @return true si está permitido
      */
@@ -150,31 +150,11 @@ public class FileValidationService {
         }
 
         // Remover charset/parámetros
-        String baseType = contentType.split(";")[0].trim();
+        String baseType = contentType.split(";")[0].trim().toLowerCase();
 
-        // Permitir tipos exactos registrados en MAGIC_BYTES
-        if (MAGIC_BYTES.containsKey(baseType)) {
-            return true;
-        }
-
-        // Permitir variantes image/* (cualquier imagen)
-        if (baseType.startsWith("image/")) {
-            return true; // Permitir todas las imágenes (magic bytes las validará)
-        }
-
-        // Permitir variantes video/* (cualquier video)
-        if (baseType.startsWith("video/")) {
-            return true; // Permitir todos los videos (magic bytes las validará)
-        }
-
-        // Permitir application/* comunes (Word antiguo, Office, PDF)
-        if (baseType.equals("application/pdf") || 
-            baseType.equals("application/msword") ||
-            baseType.startsWith("application/vnd")) {
-            return true;
-        }
-
-        return false;
+        // WHITELIST ESTRICTA: Solo tipos con magic bytes registrados
+        // NO aceptamos image/* genérico ni video/* genérico
+        return MAGIC_BYTES.containsKey(baseType);
     }
 
     /**
@@ -219,20 +199,23 @@ public class FileValidationService {
 
     /**
      * Valida que la extensión esté permitida.
-     * 
+     * SEGURIDAD: Solo extensiones modernas y seguras
+     *
      * @param extension Extensión sin punto
      * @return true si está permitida
      */
     private boolean isAllowedExtension(String extension) {
-        return extension.matches("^(pdf|jpg|jpeg|png|gif|mp4|mpeg|doc|docx|xls|xlsx)$");
+        // WHITELIST: pdf, imágenes (jpg/jpeg/png), videos (mp4/mpeg), Office moderno (docx/xlsx)
+        // ELIMINADO: doc (DOC antiguo con riesgo de macros), gif (raramente necesario)
+        return extension.matches("^(pdf|jpg|jpeg|png|mp4|mpeg|docx|xlsx)$");
     }
 
     /**
      * Valida los magic bytes del archivo contra su MIME type.
-     * Solo valida si el MIME type tiene magic bytes registrados.
-     * 
+     * SEGURIDAD: SIEMPRE valida magic bytes - no hay bypass
+     *
      * @param file Archivo a validar
-     * @return true si los bytes coinciden o si el tipo no requiere validación
+     * @return true SOLO si los bytes coinciden con el tipo declarado
      * @throws IOException si hay error al leer el archivo
      */
     private boolean isValidMagicBytes(MultipartFile file) throws IOException {
@@ -241,16 +224,17 @@ public class FileValidationService {
             return false;
         }
 
-        String baseType = contentType.split(";")[0].trim();
+        String baseType = contentType.split(";")[0].trim().toLowerCase();
         byte[][] expectedMagicBytes = MAGIC_BYTES.get(baseType);
 
-        // Si no hay magic bytes registrados para este tipo, permitir
-        // (la validación de MIME type ya lo filtró)
+        // Si no hay magic bytes registrados, RECHAZAR
+        // Ya no permitimos tipos sin validación de firma
         if (expectedMagicBytes == null) {
-            return true;
+            log.warn("File rejected: no magic bytes signature for type: {}", baseType);
+            return false;
         }
 
-        // Leer SOLO los primeros bytes necesarios (max 32 bytes es suficiente para la mayoría de firmas)
+        // Leer SOLO los primeros bytes necesarios (max 32 bytes)
         byte[] fileBytes = new byte[32];
         try (InputStream is = file.getInputStream()) {
             int bytesRead = is.read(fileBytes);
@@ -268,6 +252,7 @@ public class FileValidationService {
             }
         }
 
+        log.warn("File rejected: magic bytes don't match declared type {}", baseType);
         return false;
     }
 

@@ -113,10 +113,12 @@ spring:
 
 # ============================================
 # JWT Configuration (desde .env)
+# CRÍTICO: jwt.secret y jwt.expiration son OBLIGATORIOS
+# La app fallará al iniciar si no están configurados (fail-closed)
 # ============================================
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 86400000  # 24 horas
+  expiration: ${JWT_EXPIRATION:86400000}
 
 # ============================================
 # Supabase Configuration (desde .env)

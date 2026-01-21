@@ -3,6 +3,7 @@ package com.vozsegura.gateway.filter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -36,8 +37,24 @@ public class JwtAuthenticationGatewayFilterFactory
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${vozsegura.gateway.shared-secret:}")
+    @Value("${vozsegura.gateway.shared-secret}")
     private String sharedSecret;
+
+    @PostConstruct
+    private void validateConfiguration() {
+        if (jwtSecret == null || jwtSecret.isEmpty() || jwtSecret.length() < 32) {
+            throw new IllegalStateException(
+                "SECURITY ERROR: jwt.secret must be configured with at least 32 characters"
+            );
+        }
+        if (sharedSecret == null || sharedSecret.isEmpty() || sharedSecret.length() < 32) {
+            throw new IllegalStateException(
+                "SECURITY ERROR: vozsegura.gateway.shared-secret must be configured. " +
+                "Must be the SAME value in Gateway and Core for Zero Trust validation. " +
+                "Generate with: openssl rand -base64 32"
+            );
+        }
+    }
 
     public JwtAuthenticationGatewayFilterFactory() {
         super(Config.class);
@@ -146,10 +163,8 @@ public class JwtAuthenticationGatewayFilterFactory
     private String generateHmacSignature(String timestamp, String method, String path,
                                          String cedula, String userType) {
         try {
-            // Si no hay shared secret configurado, retornar vacío (dev mode sin validación)
-            if (sharedSecret == null || sharedSecret.isEmpty()) {
-                return "";
-            }
+            // La validación de shared-secret ya se hace en @PostConstruct
+            // Si llegamos aquí, el secret está configurado
 
             // Construir mensaje a firmar (mismo formato que en Core)
             String message = String.join(":", timestamp, method, path, cedula, userType);

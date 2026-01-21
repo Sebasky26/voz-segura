@@ -121,28 +121,8 @@ public class UnifiedAuthController {
         return "auth/login-simple";
     }
 
-    /**
-     * Endpoint de debug para verificar configuración de Didit
-     */
-    @GetMapping("/debug/didit-config")
-    @ResponseBody
-    public Map<String, Object> debugDiditConfig() {
-        try {
-            Map<String, Object> response = diditService.createVerificationSession("debug-test");
-            log.info("Debug: Didit session created: {}", response);
-            return Map.of(
-                    "status", "success",
-                    "response", response
-            );
-        } catch (Exception e) {
-            log.error("Debug: Error creating Didit session", e);
-            return Map.of(
-                    "status", "error",
-                    "error", e.getMessage(),
-                    "cause", e.getCause() != null ? e.getCause().getMessage() : "N/A"
-            );
-        }
-    }
+    // SEGURIDAD: Endpoint /auth/debug/didit-config ELIMINADO por riesgo crítico
+    // Exponía respuestas completas de Didit API con datos sensibles
 
     /**
      * Procesar login unificado (Paso 1: Verificación Registro Civil + Turnstile).

@@ -32,6 +32,9 @@ public class DerivationRule {
     /** Severidad a coincidir: LOW, MEDIUM, HIGH, CRITICAL (NULL = cualquier severidad) */
     private String severityMatch;
 
+    @Column(name = "complaint_type_match", length = 64)
+    /** Tipo de denuncia a coincidir: LABOR_RIGHTS, HARASSMENT, DISCRIMINATION, SAFETY, FRAUD, OTHER (NULL = cualquier tipo) */
+    private String complaintTypeMatch;
 
     @Column(name = "destination_id")
     /** ID de la institución destino (DestinationEntity) */
@@ -79,6 +82,8 @@ public class DerivationRule {
     public String getSeverityMatch() { return severityMatch; }
     public void setSeverityMatch(String severityMatch) { this.severityMatch = severityMatch; }
 
+    public String getComplaintTypeMatch() { return complaintTypeMatch; }
+    public void setComplaintTypeMatch(String complaintTypeMatch) { this.complaintTypeMatch = complaintTypeMatch; }
 
     public Long getDestinationId() { return destinationId; }
     public void setDestinationId(Long destinationId) { this.destinationId = destinationId; }

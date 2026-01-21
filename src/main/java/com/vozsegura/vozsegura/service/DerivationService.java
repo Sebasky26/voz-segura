@@ -113,6 +113,7 @@ public class DerivationService {
         return ruleRepository.findById(id).map(rule -> {
             rule.setName(updated.getName());
             rule.setSeverityMatch(updated.getSeverityMatch());
+            rule.setComplaintTypeMatch(updated.getComplaintTypeMatch());
             rule.setDestinationId(updated.getDestinationId());
             rule.setDescription(updated.getDescription());
             rule.setActive(updated.isActive());
@@ -154,10 +155,12 @@ public class DerivationService {
 
     /**
      * Encuentra el ID de la entidad de destino para una denuncia basándose en las reglas activas.
+     * CRÍTICO: Ahora matchea por severity Y complaintType para derivación precisa
      */
     public Long findDestinationIdForComplaint(Complaint complaint) {
         List<DerivationRule> matchingRules = ruleRepository.findMatchingRules(
-                complaint.getSeverity()
+                complaint.getSeverity(),
+                complaint.getComplaintType() // Ahora incluye tipo de denuncia
         );
 
         if (matchingRules.isEmpty() || matchingRules.get(0).getDestinationId() == null) {

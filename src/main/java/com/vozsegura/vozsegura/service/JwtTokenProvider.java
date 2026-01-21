@@ -2,6 +2,7 @@ package com.vozsegura.vozsegura.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -48,9 +49,24 @@ public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    /** Tiempo de expiración del token en milisegundos (default: 24 horas = 86400000) */
-    @Value("${jwt.expiration:86400000}")
+    /** Tiempo de expiración del token en milisegundos (24 horas = 86400000) */
+    @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+    @PostConstruct
+    private void validateConfiguration() {
+        if (jwtSecret == null || jwtSecret.isEmpty() || jwtSecret.length() < 32) {
+            throw new IllegalStateException(
+                "SECURITY ERROR: jwt.secret must be configured with at least 32 characters. " +
+                "Generate with: openssl rand -base64 32"
+            );
+        }
+        if (jwtExpiration <= 0) {
+            throw new IllegalStateException(
+                "SECURITY ERROR: jwt.expiration must be a positive number (milliseconds)"
+            );
+        }
+    }
 
     /**
      * Genera JWT con información de usuario y API Key
