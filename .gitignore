@@ -48,6 +48,12 @@ aws-credentials*.csv
 application-local.yml
 application-local.properties
 application-secrets.yml
+
+# Archivos de log (pueden contener datos sensibles)
+logs/
+*.log
+*.log.*
+*.log.gz
 *-secrets.yml
 *-secrets.properties
 

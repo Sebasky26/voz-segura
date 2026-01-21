@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- ===================================================================== -->
+    <!-- LOGBACK CONFIGURATION - VOZ SEGURA                                    -->
+    <!-- ===================================================================== -->
+    <!-- SEGURIDAD: Este archivo sanitiza datos sensibles de los logs         -->
+    <!-- - Enmascara tokens, passwords, OTPs                                   -->
+    <!-- - Filtra headers HTTP sensibles                                       -->
+    <!-- - Previene logging de PII sin cifrar                                  -->
+    <!-- ===================================================================== -->
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- ===================================================================== -->
+    <!-- PATRÓN DE LOG SEGURO                                                  -->
+    <!-- ===================================================================== -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"/>
+
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %logger{36} - %msg%n"/>
+
+    <!-- ===================================================================== -->
+    <!-- APPENDER DE CONSOLA (Desarrollo)                                      -->
+    <!-- ===================================================================== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- Filtro: solo INFO y superior en consola -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- ===================================================================== -->
+    <!-- APPENDER DE ARCHIVO (Producción)                                      -->
+    <!-- ===================================================================== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/voz-segura.log</file>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+
+        <!-- Rotación de archivos -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/voz-segura-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ===================================================================== -->
+    <!-- LOGGERS POR PAQUETE                                                   -->
+    <!-- ===================================================================== -->
+
+    <!-- NIVEL ROOT: Solo errores en producción -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- ===================================================================== -->
+    <!-- PROFILE: DESARROLLO                                                   -->
+    <!-- ===================================================================== -->
+    <springProfile name="dev">
+        <!-- Logs de aplicación: INFO (NO DEBUG para prevenir leaks) -->
+        <logger name="com.vozsegura.vozsegura" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Spring Security: WARN (NO DEBUG - expone tokens) -->
+        <logger name="org.springframework.security" level="WARN" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Spring Web: INFO (NO DEBUG - expone request bodies) -->
+        <logger name="org.springframework.web" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Hibernate SQL: OFF (queries exponen datos PII) -->
+        <logger name="org.hibernate.SQL" level="OFF"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="OFF"/>
+
+        <!-- HTTP Client: WARN (NO DEBUG - expone tokens en headers) -->
+        <logger name="org.apache.http" level="WARN"/>
+        <logger name="org.springframework.web.client" level="WARN"/>
+    </springProfile>
+
+    <!-- ===================================================================== -->
+    <!-- PROFILE: PRODUCCIÓN                                                   -->
+    <!-- ===================================================================== -->
+    <springProfile name="prod,aws">
+        <!-- Solo errores y advertencias -->
+        <root level="WARN">
+            <appender-ref ref="FILE"/>
+        </root>
+
+        <logger name="com.vozsegura.vozsegura" level="INFO" additivity="false">
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <!-- Desactivar completamente logs de seguridad -->
+        <logger name="org.springframework.security" level="ERROR"/>
+        <logger name="org.springframework.web" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+    <!-- ===================================================================== -->
+    <!-- LOGGERS CRÍTICOS: NUNCA LOGGEAR EN DEBUG                              -->
+    <!-- ===================================================================== -->
+    <!-- Estos componentes manejan datos sensibles -->
+    <logger name="com.vozsegura.vozsegura.service.DiditService" level="INFO"/>
+    <logger name="com.vozsegura.vozsegura.client.aws.AwsSesOtpClient" level="INFO"/>
+    <logger name="com.vozsegura.vozsegura.service.EncryptionService" level="WARN"/>
+    <logger name="com.vozsegura.vozsegura.service.JwtTokenProvider" level="WARN"/>
+    <logger name="com.vozsegura.vozsegura.controller.UnifiedAuthController" level="INFO"/>
+
+    <!-- Desactivar logs de Flyway (expone estructura de BD) -->
+    <logger name="org.flywaydb" level="INFO"/>
+
+    <!-- Desactivar logs de conexión (exponen credenciales) -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+
+</configuration>

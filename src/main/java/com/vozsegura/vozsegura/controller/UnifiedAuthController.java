@@ -270,8 +270,9 @@ public class UnifiedAuthController {
             // Guardar session_id en la sesión HTTP para luego validar el webhook
             session.setAttribute("diditSessionId", diditSessionId);
             
-            log.info("Didit verification session created: {} -> {}", diditSessionId, verificationUrl);
-            
+            // SEGURIDAD: NO loggear URLs completas ni session IDs (contienen tokens)
+            log.info("Didit verification session created");
+
             // Redirigir a Didit
             return "redirect:" + verificationUrl;
             
@@ -343,8 +344,9 @@ public class UnifiedAuthController {
             DiditVerification verification = verificationOpt.get();
             String documentNumber = verification.getDocumentNumber();
             
-            log.info("Verification successful for document: {}", documentNumber);
-            
+            // SEGURIDAD: NO loggear cédulas en logs
+            log.info("Verification successful for user");
+
             // PASO 1: Verificar si la cédula está en la tabla staff_user (ADMIN o ANALISTA)
             Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(documentNumber);
             
@@ -387,7 +389,8 @@ public class UnifiedAuthController {
                     log.info("Usuario es DENUNCIANTE válido - redirect to denuncia form");
                 } else {
                     // Cédula no encontrada en ninguna tabla
-                    log.warn("Cédula no encontrada en sistema: document={}", documentNumber);
+                    // SEGURIDAD: NO loggear cédulas
+                    log.warn("Document not found in system");
                     redirectAttributes.addFlashAttribute("error", "Cédula no registrada en el sistema. Por favor intente nuevamente.");
                     return "redirect:/auth/login";
                 }
@@ -458,11 +461,12 @@ public class UnifiedAuthController {
                 return prepareVerifyConfirmModel(session, model, turnstileToken);
             }
             
-            log.info("completeVerification - documentNumber={}, staffRole={}", documentNumber, staffRole);
-            
+            // SEGURIDAD: NO loggear cédulas completas
+            log.info("completeVerification - staffRole={}", staffRole);
+
             // Todos los usuarios verificados pasan por el flujo de clave secreta (solo ADMIN y ANALISTA)
             if ("ADMIN".equals(staffRole) || "ANALISTA".equals(staffRole)) {
-                log.info("👤 Redirecting staff/admin user to secret-key verification");
+                log.info("Redirecting staff/admin user to secret-key verification");
                 session.setAttribute("staffCedula", documentNumber);
                 session.setAttribute("staffRole", staffRole);
                 
@@ -706,18 +710,19 @@ public class UnifiedAuthController {
             return "redirect:/auth/login";
         }
 
-        log.info("🔐 Verifying OTP for cedula: {}", cedulaActual);
+        // SEGURIDAD: NO loggear cédulas completas
+        log.info("Verifying OTP for staff user");
 
         try {
             boolean isValid = unifiedAuthService.verifyOtp(otpToken, form.getOtpCode());
 
             if (!isValid) {
-                log.warn("Invalid OTP code for cedula: {}", cedulaActual);
+                log.warn("Invalid OTP code");
                 redirectAttributes.addFlashAttribute("error", "Código incorrecto o expirado");
                 return "redirect:/auth/verify-otp?error";
             }
 
-            log.info("OTP verified for cedula: {}", cedulaActual);
+            log.info("OTP verified successfully");
 
             // MFA exitoso - Obtener datos del staff_user
             Optional<StaffUser> staffUser = staffUserRepository.findByCedulaAndEnabledTrue(cedulaActual);

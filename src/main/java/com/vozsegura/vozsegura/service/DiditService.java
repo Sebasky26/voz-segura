@@ -114,11 +114,7 @@ public class DiditService {
             // Construir URLs: reemplazar /webhooks/didit con /auth/verify-callback
             String returnUrl = webhookUrl.replace("/webhooks/didit", "/auth/verify-callback");
             
-            log.debug("Creating Didit verification session with:");
-            log.debug("- API URL: {}", url);
-            log.debug("- Webhook URL (callback): {}", webhookUrl);
-            log.debug("- Return URL: {}", returnUrl);
-            log.debug("- Workflow ID: {}", workflowId);
+            // SEGURIDAD: NO loggear URLs completas ni request bodies (contienen tokens y webhooks)
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("workflow_id", workflowId);
@@ -133,26 +129,31 @@ public class DiditService {
             headers.set("X-Api-Key", apiKey);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-            
-            log.debug("Didit request body: {}", requestBody);
 
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
 
             if (response != null) {
-                log.info("Didit session created successfully: session_id={}, url={}", 
-                        response.get("session_id"), response.get("url"));
-                log.debug("Full Didit response: {}", response);
+                String sessionId = (String) response.get("session_id");
+                // SEGURIDAD: NO loggear URL completa (contiene session token en path)
+                log.info("Didit session created - ID: {}", maskSessionId(sessionId));
             } else {
                 log.warn("Didit returned null response");
             }
             return response;
 
         } catch (Exception e) {
-            log.error("Error creating Didit session. API URL: {}, Workflow: {}, API Key: {}", 
-                    apiUrl, workflowId, (apiKey != null ? "***" : "NOT SET"), e);
+            log.error("Error creating Didit session. Workflow: {}", workflowId, e);
             throw new RuntimeException("Error creando sesión de verificación con Didit: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Enmascara session ID para logs seguros
+     */
+    private String maskSessionId(String sessionId) {
+        if (sessionId == null || sessionId.length() < 8) return "***";
+        return sessionId.substring(0, 8) + "...";
     }
 
     /**

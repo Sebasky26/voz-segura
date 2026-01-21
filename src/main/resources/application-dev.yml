@@ -26,10 +26,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false  # SEGURIDAD: Desactivado - expone PII
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false  # SEGURIDAD: Desactivado
         # CRÍTICO: Desactivar completamente prepared statements en Hibernate
         jdbc:
           batch_size: 0
@@ -102,15 +102,19 @@ server:
       enabled: false
     include-message: never
 
-# Development Logging
+# Development Logging - SEGURO
 logging:
   level:
     root: INFO
-    com.vozsegura.vozsegura: DEBUG
-    com.vozsegura.vozsegura.service.DiditService: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.vozsegura.vozsegura: INFO  # SEGURIDAD: INFO solamente
+    com.vozsegura.vozsegura.service.DiditService: INFO
+    org.springframework.security: WARN  # SEGURIDAD: NO DEBUG - expone tokens
+    org.springframework.web: INFO  # SEGURIDAD: NO DEBUG - expone request bodies
+    org.hibernate.SQL: OFF  # SEGURIDAD: Desactivado - expone PII
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF
+    org.springframework.web.client: WARN  # NO DEBUG - expone headers HTTP
   file:
-    name: logs/core-dev.log
+    name: logs/voz-segura-dev.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %logger{36} - %msg%n"
