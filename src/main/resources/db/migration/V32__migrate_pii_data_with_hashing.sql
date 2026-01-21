@@ -108,9 +108,9 @@ BEGIN
     RAISE WARNING '4. Verificar que TODOS los registros están cifrados';
     RAISE WARNING '5. Solo entonces ejecutar V30 (elimina plaintext)';
     RAISE WARNING '';
-    RAISE WARNING 'Comando ejemplo: DataMigrationJob.migrateAllPiiToEncrypted()';
+    RAISE WARNING 'Comando: mvn spring-boot:run -Dspring-boot.run.arguments="--encrypt-pii"';
     RAISE WARNING '=============================================================';
 END $$;
 
--- Limpieza
+-- Limpieza (al final después de usarla)
 DROP FUNCTION IF EXISTS sha256_hex(text);
