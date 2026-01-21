@@ -113,7 +113,6 @@ public class DerivationService {
         return ruleRepository.findById(id).map(rule -> {
             rule.setName(updated.getName());
             rule.setSeverityMatch(updated.getSeverityMatch());
-            rule.setPriorityMatch(updated.getPriorityMatch());
             rule.setDestinationId(updated.getDestinationId());
             rule.setDescription(updated.getDescription());
             rule.setActive(updated.isActive());
@@ -158,13 +157,11 @@ public class DerivationService {
      */
     public Long findDestinationIdForComplaint(Complaint complaint) {
         List<DerivationRule> matchingRules = ruleRepository.findMatchingRules(
-                complaint.getSeverity(),
-                complaint.getPriority()
+                complaint.getSeverity()
         );
 
         if (matchingRules.isEmpty() || matchingRules.get(0).getDestinationId() == null) {
             // Retornar ID por defecto si no hay regla que coincida
-            // TODO: Configurar ID de destino por defecto en base de datos
             return 1L;
         }
 

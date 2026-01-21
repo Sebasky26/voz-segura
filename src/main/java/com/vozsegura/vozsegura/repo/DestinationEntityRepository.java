@@ -39,12 +39,10 @@ public interface DestinationEntityRepository extends JpaRepository<DestinationEn
     List<DestinationEntity> findByActiveTrueOrderByNameAsc();
 
     /**
-     * Busca una institución por su código único.
-     * 
-     * Ejemplo de código: "MP-NACIONAL", "INDECOPI", "DIGEMID", etc.
-     * 
-     * @param code Código identificador de la institución
+     * Busca instituciones por nombre (búsqueda parcial).
+     *
+     * @param name Nombre a buscar
      * @return Optional con institución si existe
      */
-    Optional<DestinationEntity> findByCode(String code);
+    Optional<DestinationEntity> findByName(String name);
 }

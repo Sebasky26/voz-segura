@@ -61,18 +61,21 @@ public class UnifiedAuthService {
     private final StaffUserRepository staffUserRepository;
     private final CaptchaService captchaService;
     private final OtpClient otpClient;
+    private final AuditService auditService;
 
     public UnifiedAuthService(
             CivilRegistryClient civilRegistryClient,
             SecretsManagerClient secretsManagerClient,
             StaffUserRepository staffUserRepository,
             CaptchaService captchaService,
-            OtpClient otpClient) {
+            OtpClient otpClient,
+            AuditService auditService) {
         this.civilRegistryClient = civilRegistryClient;
         this.secretsManagerClient = secretsManagerClient;
         this.staffUserRepository = staffUserRepository;
         this.captchaService = captchaService;
         this.otpClient = otpClient;
+        this.auditService = auditService;
     }
 
     /**
@@ -303,7 +306,33 @@ public class UnifiedAuthService {
      * @see OtpClient#verifyOtp(String, String)
      */
     public boolean verifyOtp(String otpToken, String otpCode) {
-        return otpClient.verifyOtp(otpToken, otpCode);
+        boolean result = otpClient.verifyOtp(otpToken, otpCode);
+        if (result) {
+            auditService.logEvent("STAFF", null, "LOGIN_SUCCESS", null, "OTP verificado correctamente");
+        } else {
+            auditService.logEvent("STAFF", null, "LOGIN_FAILED", null, "OTP inválido o expirado");
+        }
+        return result;
+    }
+
+    /**
+     * Registra un intento de login fallido en el sistema de auditoría.
+     *
+     * @param role Rol del usuario (ADMIN, ANALYST, CITIZEN)
+     * @param reason Razón del fallo
+     */
+    public void logLoginFailed(String role, String reason) {
+        auditService.logEvent(role != null ? role : "UNKNOWN", null, "LOGIN_FAILED", null, reason);
+    }
+
+    /**
+     * Registra un login exitoso en el sistema de auditoría.
+     *
+     * @param role Rol del usuario
+     * @param username Username o identificador del usuario (será hasheado)
+     */
+    public void logLoginSuccess(String role, String username) {
+        auditService.logEvent(role, username, "LOGIN_SUCCESS", null, "Acceso exitoso al sistema");
     }
 
     /**

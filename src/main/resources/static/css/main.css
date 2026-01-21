@@ -591,6 +591,56 @@ a:focus-visible {
 }
 
 /* ============================================
+   SUCCESS BOX - Caja de éxito profesional
+   ============================================ */
+.vs-success-box {
+    background-color: #d4edda;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-6);
+    border-left: 4px solid #28a745;
+    text-align: center;
+}
+
+.vs-success-box__title {
+    margin: 0 0 var(--space-2) 0;
+    color: #155724;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+}
+
+.vs-success-box__text {
+    margin: 0;
+    color: #155724;
+    font-size: var(--font-size-base);
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+.vs-link {
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.vs-link:hover {
+    color: var(--accent-hover);
+}
+
+/* ============================================
+   UTILITY MARGINS
+   ============================================ */
+.vs-ml-2 {
+    margin-left: var(--space-2);
+}
+
+.vs-ml-4 {
+    margin-left: var(--space-4);
+}
+
+/* ============================================
    MODAL
    ============================================ */
 .vs-modal-overlay {

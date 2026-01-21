@@ -188,7 +188,7 @@
                                 class="vs-button vs-button--primary vs-button--block vs-mt-3"
                                 th:disabled="${complaint.complaintType == null or complaint.priority == null}"
                                 th:title="${complaint.complaintType == null ? 'Debe clasificar primero el caso' : ''}">
-                            ✓ Aprobar y enviar
+                            Aprobar y enviar
                         </button>
                     </form>
                     <p th:if="${complaint.complaintType == null}" class="vs-form__error vs-mt-2">

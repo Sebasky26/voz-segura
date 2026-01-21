@@ -30,7 +30,7 @@
     <section class="vs-card" aria-labelledby="titulo-success">
 
         <div class="vs-card__header">
-            <h1 id="titulo-success" class="vs-card__title">✓ Verificación Exitosa</h1>
+            <h1 id="titulo-success" class="vs-card__title">Verificación Exitosa</h1>
             <p class="vs-card__subtitle">Tu identidad ha sido verificada correctamente</p>
         </div>
 
@@ -39,29 +39,16 @@
             Tu identidad ha sido verificada exitosamente mediante biometría.
         </div>
 
-        <!-- Usuario verificado - NO mostramos cédula ni nombre por privacidad -->
-        <div style="background-color: #d4edda; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1rem;">
-                <span style="font-size: 3rem;">✅</span>
-            </div>
-            <h3 style="margin: 0; color: #155724; font-size: 1.5rem;">Usuario Verificado</h3>
-            <p style="margin: 1rem 0 0 0; color: #155724;">
-                Tu identidad ha sido confirmada. Puedes proceder con tu solicitud.
-            </p>
+        <!-- Usuario verificado - Diseño profesional sin emojis -->
+        <div class="vs-success-box">
+            <h3 class="vs-success-box__title">Usuario Verificado</h3>
+            <p class="vs-success-box__text">Tu identidad ha sido confirmada. Puedes proceder con tu solicitud.</p>
         </div>
 
         <!-- Botones de acción -->
-        <div class="vs-button-group" style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <a th:href="@{/verification/inicio}" 
-               class="vs-button vs-button--ghost"
-               style="flex: 1; text-align: center;">
-                ← Volver
-            </a>
-            <a th:href="@{/denuncia/form}" 
-               class="vs-button vs-button--primary"
-               style="flex: 1; text-align: center;">
-                Continuar a Denuncia →
-            </a>
+        <div class="vs-button-group vs-mt-6">
+            <a th:href="@{/verification/inicio}" class="vs-button vs-button--ghost">Volver</a>
+            <a th:href="@{/denuncia/form}" class="vs-button vs-button--primary">Continuar a Denuncia</a>
         </div>
 
         <!-- Nota de seguridad -->

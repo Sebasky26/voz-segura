@@ -10,6 +10,57 @@
 
 <body class="vs-app">
 
+<!-- Modal Términos y Condiciones -->
+<div class="vs-modal-overlay vs-modal--hidden" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <div class="vs-modal" role="document">
+        <div class="vs-modal__header">
+            <h2 id="termsTitle">Términos y Condiciones</h2>
+            <button type="button" class="vs-modal__close" data-terms-close aria-label="Cerrar">&times;</button>
+        </div>
+
+        <div class="vs-modal__body">
+            <div class="vs-terms">
+                <p><strong>Fecha de vigencia: enero 2026</strong></p>
+
+                <h3>Validación de identidad</h3>
+                <ul>
+                    <li>La identidad se valida para evitar suplantaciones.</li>
+                    <li>Los datos se usan solo para este proceso de acceso.</li>
+                </ul>
+
+                <h3>Protección de identidad</h3>
+                <ul>
+                    <li>La identidad del denunciante no se muestra al personal que revisa los casos.</li>
+                    <li>Las denuncias y evidencias se almacenan cifradas y se eliminan tras un período de retención definido.</li>
+                </ul>
+
+                <h3>Revelación excepcional</h3>
+                <ul>
+                    <li>La identidad solo podrá revelarse en casos excepcionales y bajo autorización formal de la autoridad competente.</li>
+                </ul>
+
+                <h3>Uso responsable</h3>
+                <ul>
+                    <li>No se permite enviar información falsa o malintencionada.</li>
+                    <li>No se permite subir contenido ilegal.</li>
+                    <li>Las evidencias deben ser lícitas y pertinentes al caso.</li>
+                </ul>
+
+                <h3>Registros y auditoría</h3>
+                <ul>
+                    <li>Los registros de auditoría no almacenan datos personales del denunciante.</li>
+                    <li>Solo se guardan datos mínimos necesarios para trazabilidad del sistema.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="vs-modal__footer">
+            <button type="button" class="vs-button vs-button--secondary" data-terms-close>Cerrar</button>
+            <button type="button" class="vs-button vs-button--primary" id="acceptTermsBtn">Aceptar términos</button>
+        </div>
+    </div>
+</div>
+
 <a class="vs-sr-only" href="#contenido">Saltar al contenido</a>
 
 <header class="vs-header">
@@ -31,7 +82,7 @@
     <section class="vs-card" aria-labelledby="titulo-confirm">
 
         <div class="vs-card__header">
-            <h1 id="titulo-confirm" class="vs-card__title">✓ Identidad Verificada</h1>
+            <h1 id="titulo-confirm" class="vs-card__title">Identidad Verificada</h1>
             <p class="vs-card__subtitle" th:if="${staffRole == 'ADMIN' or staffRole == 'ANALYST'}">Procede con la verificación de seguridad para acceder</p>
             <p class="vs-card__subtitle" th:if="${staffRole != 'ADMIN' and staffRole != 'ANALYST'}">Completa el formulario para continuar</p>
         </div>
@@ -41,15 +92,10 @@
             Error
         </div>
 
-        <!-- Usuario verificado - NO mostramos cédula ni nombre por privacidad -->
-        <div style="background-color: #d4edda; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #28a745; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-                <span style="font-size: 2rem;">✅</span>
-                <h3 style="margin: 0; color: #155724; font-size: 1.5rem;">Usuario Verificado</h3>
-            </div>
-            <p style="margin: 1rem 0 0 0; color: #155724;">
-                Tu identidad ha sido verificada exitosamente mediante biometría.
-            </p>
+        <!-- Usuario verificado - Diseño profesional sin emojis -->
+        <div class="vs-success-box">
+            <h3 class="vs-success-box__title">Usuario Verificado</h3>
+            <p class="vs-success-box__text">Tu identidad ha sido verificada exitosamente mediante biometría.</p>
         </div>
 
         <!-- Formulario de confirmación -->
@@ -61,58 +107,51 @@
 
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
             <input type="hidden" name="diditSessionId" th:value="${diditSessionId}"/>
+            <!-- Checkbox oculto para validación -->
+            <input type="checkbox" id="termsAccepted" name="termsAccepted" required style="display: none;"/>
 
             <!-- CAPTCHA Turnstile -->
-            <div style="margin-bottom: 2rem;">
-                <label style="display: block; font-weight: bold; margin-bottom: 1rem;">
-                    Verificación de Seguridad:
-                </label>
-                <div class="cf-turnstile" 
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required">Verificación de Seguridad:</label>
+                <div class="cf-turnstile"
                      th:attr="data-sitekey=${turnstileSiteKey}"
                      data-theme="light"
                      aria-label="Widget de Cloudflare Turnstile para verificación de seguridad"></div>
             </div>
 
-            <!-- Términos y Condiciones -->
-            <div style="background-color: #fff3cd; padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 2rem;">
-                <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;">
-                    <input type="checkbox" 
-                           name="termsAccepted"
-                           required
-                           style="margin-top: 0.25rem; cursor: pointer;"
-                           aria-required="true"/>
-                    <span>
-                        <strong>Acepto los términos y condiciones</strong><br/>
-                        <span style="font-size: 0.9rem; color: #666;">
-                            Autorizo la recopilación y procesamiento de mi información de identidad 
-                            de forma segura y cifrada. Entiendo que esta plataforma es para denuncias 
-                            y que mi identidad real no será expuesta públicamente.
-                        </span>
+            <!-- Sección de Términos y Condiciones -->
+            <div class="vs-form__group vs-mt-4">
+                <div id="termsStatus" class="vs-alert vs-alert--warning">
+                    <span id="termsNotAccepted">
+                        <strong>Términos pendientes:</strong> Debes aceptar los términos y condiciones para continuar.
+                        <button type="button" id="openTermsBtn" class="vs-button vs-button--sm vs-button--secondary vs-ml-2">
+                            Ver términos
+                        </button>
                     </span>
-                </label>
+                    <span id="termsAcceptedMsg" style="display: none;">
+                        <strong>Términos aceptados.</strong>
+                        <a href="#" id="viewTermsLink" class="vs-link">Ver términos nuevamente</a>
+                    </span>
+                </div>
             </div>
 
             <!-- Botones de acción -->
-            <div class="vs-button-group" style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <a th:href="@{/auth/login}" 
-                   class="vs-button vs-button--ghost"
-                   style="flex: 1; text-align: center;">
-                    ← Volver
-                </a>
-                
-                <!-- Botón de acción según rol -->
+            <div class="vs-button-group vs-mt-6">
+                <a th:href="@{/auth/login}" class="vs-button vs-button--ghost">Volver</a>
+
                 <button type="submit"
+                        id="submitBtn"
                         form="confirmForm"
                         class="vs-button vs-button--primary"
-                        style="flex: 1;">
-                    <span th:text="${staffRedirectButton} ?: 'Continuar'">Continuar</span> →
+                        disabled>
+                    <span th:text="${staffRedirectButton} ?: 'Continuar'">Continuar</span>
                 </button>
             </div>
         </form>
 
         <!-- Nota de seguridad -->
-        <div class="vs-alert vs-alert--info vs-mt-6" role="status" aria-live="polite" style="font-size: 0.9rem;">
-            <strong>Nota:</strong>
+        <div class="vs-alert vs-alert--info vs-mt-6" role="status" aria-live="polite">
+            <strong>Nota de seguridad:</strong>
             <span th:if="${staffRole == 'ADMIN' or staffRole == 'ANALYST'}">
                 Se requerirá tu clave secreta y código OTP por email para acceder al panel. Esto garantiza máxima seguridad.
             </span>
@@ -123,6 +162,80 @@
 
     </section>
 </main>
+
+<script>
+(function() {
+    const modal = document.getElementById('termsModal');
+    const acceptBtn = document.getElementById('acceptTermsBtn');
+    const termsCheck = document.getElementById('termsAccepted');
+    const submitBtn = document.getElementById('submitBtn');
+    const closeBtns = document.querySelectorAll('[data-terms-close]');
+    const openTermsBtn = document.getElementById('openTermsBtn');
+    const viewTermsLink = document.getElementById('viewTermsLink');
+    const termsNotAccepted = document.getElementById('termsNotAccepted');
+    const termsAcceptedMsg = document.getElementById('termsAcceptedMsg');
+    const termsStatus = document.getElementById('termsStatus');
+
+    function openModal() {
+        modal.classList.remove('vs-modal--hidden');
+        acceptBtn.focus();
+    }
+
+    function closeModal() {
+        modal.classList.add('vs-modal--hidden');
+    }
+
+    function updateUI() {
+        const accepted = termsCheck.checked;
+        submitBtn.disabled = !accepted;
+
+        if (accepted) {
+            termsNotAccepted.style.display = 'none';
+            termsAcceptedMsg.style.display = 'inline';
+            termsStatus.classList.remove('vs-alert--warning');
+            termsStatus.classList.add('vs-alert--success');
+        } else {
+            termsNotAccepted.style.display = 'inline';
+            termsAcceptedMsg.style.display = 'none';
+            termsStatus.classList.remove('vs-alert--success');
+            termsStatus.classList.add('vs-alert--warning');
+        }
+    }
+
+    // Mostrar modal automáticamente al cargar
+    setTimeout(openModal, 500);
+
+    // Aceptar términos
+    acceptBtn.addEventListener('click', function() {
+        termsCheck.checked = true;
+        updateUI();
+        closeModal();
+    });
+
+    // Abrir modal desde botón o enlace
+    if (openTermsBtn) openTermsBtn.addEventListener('click', openModal);
+    if (viewTermsLink) viewTermsLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        openModal();
+    });
+
+    // Cerrar modal (solo con botones, no con ESC ni clic fuera si no ha aceptado)
+    closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
+
+    // Cerrar con ESC solo si ya aceptó
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && termsCheck.checked) closeModal();
+    });
+
+    // Cerrar al hacer clic fuera solo si ya aceptó
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal && termsCheck.checked) closeModal();
+    });
+
+    // Inicializar UI
+    updateUI();
+})();
+</script>
 
 </body>
 </html>

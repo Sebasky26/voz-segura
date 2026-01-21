@@ -38,6 +38,16 @@
         <div th:if="${success}" data-vs-success th:data-vs-success="${success}" style="display:none;"></div>
         <div th:if="${error}" data-vs-error th:data-vs-error="${error}" style="display:none;"></div>
 
+        <!-- Mensaje de error visible -->
+        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4" role="alert">
+            <strong>Error:</strong> <span th:text="${error}">Mensaje de error</span>
+        </div>
+
+        <!-- Mensaje de éxito visible -->
+        <div th:if="${success}" class="vs-alert vs-alert--success vs-mb-4" role="status">
+            <span th:text="${success}">Operación exitosa</span>
+        </div>
+
         <!-- Formulario para crear regla -->
         <div class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Nueva regla</h3>
@@ -59,26 +69,30 @@
                     </div>
 
                     <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="destination">Entidad de destino</label>
-                        <select id="destination" name="destination" class="vs-select" required>
+                        <label class="vs-form__label vs-form__label--required" for="destinationId">Entidad de destino</label>
+                        <select id="destinationId" name="destinationId" class="vs-select" required>
                             <option value="">Seleccionar entidad...</option>
-                            <option th:each="e : ${entidades}" th:value="${e.code}" th:text="${e.name}"></option>
+                            <option th:each="e : ${entidades}" th:value="${e.id}" th:text="${e.name}"></option>
                         </select>
                     </div>
 
                     <div class="vs-form__group">
-                        <label class="vs-form__label" for="complaintTypeMatch">Tipo de denuncia</label>
-                        <select id="complaintTypeMatch" name="complaintTypeMatch" class="vs-select">
-                            <option th:each="t : ${complaintTypes}" th:value="${t[0]}" th:text="${t[1]}"></option>
+                        <label class="vs-form__label" for="severityMatch">Severidad</label>
+                        <select id="severityMatch" name="severityMatch" class="vs-select">
+                            <option value="">Cualquiera</option>
+                            <option th:each="sev : ${severities}" th:value="${sev.configValue}" th:text="${sev.displayLabel}"></option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="vs-form__group">
-                        <label class="vs-form__label" for="priorityMatch">Prioridad</label>
-                        <select id="priorityMatch" name="priorityMatch" class="vs-select">
-                            <option th:each="p : ${priorities}" th:value="${p[0]}" th:text="${p[1]}"></option>
-                        </select>
-                    </div>
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="description">Descripción</label>
+                    <textarea id="description"
+                              name="description"
+                              class="vs-input"
+                              rows="2"
+                              maxlength="512"
+                              placeholder="Descripción opcional de la regla"></textarea>
                 </div>
 
                 <div class="vs-button-group vs-mt-4">
@@ -108,17 +122,18 @@
                     <div class="vs-rule-card__body">
                         <div class="vs-rule-card__item">
                             <span class="vs-rule-card__label">Destino:</span>
-                            <span class="vs-rule-card__value" th:text="${rule.destination}">Ministerio</span>
+                            <span class="vs-rule-card__value" th:text="${rule.destinationEntity != null ? rule.destinationEntity.name : 'No asignado'}">Ministerio</span>
                         </div>
 
                         <div class="vs-rule-card__item">
-                            <span class="vs-rule-card__label">Tipo:</span>
-                            <span class="vs-rule-card__value" th:text="${rule.complaintTypeMatch ?: 'Cualquiera'}">-</span>
+                            <span class="vs-rule-card__label">Severidad:</span>
+                            <span class="vs-rule-card__value" th:text="${rule.severityMatch ?: 'Cualquiera'}">-</span>
                         </div>
 
-                        <div class="vs-rule-card__item">
-                            <span class="vs-rule-card__label">Prioridad:</span>
-                            <span class="vs-rule-card__value" th:text="${rule.priorityMatch ?: 'Cualquiera'}">-</span>
+
+                        <div class="vs-rule-card__item" th:if="${rule.description}">
+                            <span class="vs-rule-card__label">Descripción:</span>
+                            <span class="vs-rule-card__value" th:text="${rule.description}">-</span>
                         </div>
                     </div>
 

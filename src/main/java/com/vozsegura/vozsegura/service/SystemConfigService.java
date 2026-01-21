@@ -231,6 +231,30 @@ public class SystemConfigService {
     }
 
     /**
+     * Obtiene los tipos de denuncia como lista de SystemConfig.
+     * @return Lista de configuraciones de tipos de denuncia
+     */
+    public List<SystemConfig> getComplaintTypesList() {
+        try {
+            return systemConfigRepository.findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_COMPLAINT_TYPE);
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    /**
+     * Obtiene las severidades como lista de SystemConfig.
+     * @return Lista de configuraciones de severidad
+     */
+    public List<SystemConfig> getSeveritiesList() {
+        try {
+            return systemConfigRepository.findByConfigGroupAndActiveTrueOrderBySortOrderAsc(GROUP_SEVERITY);
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    /**
      * Traduce un código de tipo de denuncia a su etiqueta en español.
      * @param typeCode Código del tipo de denuncia
      * @return Etiqueta traducida o el código si no se encuentra

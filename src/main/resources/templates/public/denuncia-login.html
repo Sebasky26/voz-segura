@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -197,24 +197,13 @@
 
             <div class="vs-divider"></div>
 
-            <!-- Términos -->
-            <label class="vs-checkbox" for="termsAcceptance">
-                <input type="checkbox"
-                       class="vs-checkbox__input"
-                       id="termsAcceptance"
-                       name="termsAccepted"
-                       value="true"
-                       required/>
-                <span class="vs-checkbox__label">
-                    He leído y acepto los términos y condiciones.
-                </span>
-            </label>
-
-            <div class="vs-button-group vs-mt-4">
-                <button type="button" class="vs-button vs-button--outline vs-button--sm" id="openTermsBtn">
-                    Ver términos
-                </button>
-            </div>
+            <!-- Términos oculto para validación -->
+            <input type="checkbox"
+                   id="termsAcceptance"
+                   name="termsAccepted"
+                   value="true"
+                   required
+                   style="display: none;"/>
 
             <button type="submit"
                     class="vs-button vs-button--primary vs-button--block vs-button--lg vs-mt-4"

@@ -185,13 +185,22 @@ public class AdminController {
             return gatewayConfig.redirectToSessionExpired();
         }
 
-        List<DerivationRule> rules = derivationService.findAllRules();
-        List<DestinationEntity> entidades = destinationEntityRepository.findByActiveTrueOrderByNameAsc();
+        try {
+            List<DerivationRule> rules = derivationService.findAllRules();
+            List<DestinationEntity> entidades = destinationEntityRepository.findByActiveTrueOrderByNameAsc();
 
-        model.addAttribute("rules", rules);
-        model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesForRules());
-        model.addAttribute("priorities", systemConfigService.getPrioritiesForRules());
-        model.addAttribute("entidades", entidades);
+            model.addAttribute("rules", rules);
+            model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesList());
+            model.addAttribute("severities", systemConfigService.getSeveritiesList());
+            model.addAttribute("entidades", entidades);
+        } catch (Exception e) {
+            model.addAttribute("error", "Error al cargar reglas: " + e.getMessage());
+            model.addAttribute("rules", java.util.Collections.emptyList());
+            model.addAttribute("entidades", java.util.Collections.emptyList());
+            model.addAttribute("complaintTypes", java.util.Collections.emptyList());
+            model.addAttribute("severities", java.util.Collections.emptyList());
+            e.printStackTrace();
+        }
 
         return "admin/reglas";
     }
@@ -203,25 +212,23 @@ public class AdminController {
      * - Crear una nueva regla que define como derivar denuncias
      * 
      * Parametros del formulario:
-     * - name: Nombre descriptivo de la regla (ej: "Crimenes de lesa humanidad")
-     * - severityMatch: Severidad a la que aplica (CRITICAL, HIGH, etc.) [opcional]
-     * - priorityMatch: Prioridad a la que aplica (URGENT, NORMAL, etc.) [opcional]
+     * - name: Nombre descriptivo de la regla (ej: "Severidad Alta -> OIJ")
+     * - severityMatch: Severidad a la que aplica (LOW, MEDIUM, HIGH, CRITICAL) [opcional]
      * - destinationId: ID de entidad destino que recibe derivaciones
      * - description: Descripcion de la regla (notas, criterios) [opcional]
-     * 
+     *
      * Flujo:
      * 1. Verificar autenticacion
      * 2. Crear objeto DerivationRule
      * 3. Guardar con DerivationService (registra en AuditEvent)
      * 4. Redirigir a /admin/reglas con mensaje de exito
-     * 
+     *
      * Auditoria:
      * - Se registra con DerivationService.createRule(rule, username)
      * - Se guarda username del admin que creo
-     * 
+     *
      * @param name Nombre de la regla
      * @param severityMatch Severidad [opcional]
-     * @param priorityMatch Prioridad [opcional]
      * @param destinationId ID de entidad destino
      * @param description Descripcion [opcional]
      * @param session Sesion HTTP
@@ -232,7 +239,6 @@ public class AdminController {
     public String crearRegla(
             @RequestParam("name") String name,
             @RequestParam(value = "severityMatch", required = false) String severityMatch,
-            @RequestParam(value = "priorityMatch", required = false) String priorityMatch,
             @RequestParam("destinationId") Long destinationId,
             @RequestParam(value = "description", required = false) String description,
             HttpSession session,
@@ -247,7 +253,6 @@ public class AdminController {
         DerivationRule rule = new DerivationRule();
         rule.setName(name);
         rule.setSeverityMatch(emptyToNull(severityMatch));
-        rule.setPriorityMatch(emptyToNull(priorityMatch));
         rule.setDestinationId(destinationId);
         rule.setDescription(description);
         rule.setActive(true);
@@ -263,21 +268,19 @@ public class AdminController {
      * Proposito:
      * - Actualizar parametros de una regla
      * - Cambiar entidad destino
-     * - Modificar criterios (severidad, prioridad)
-     * 
+     * - Modificar criterios (severidad)
+     *
      * Parametros:
      * - id (PathVariable): ID de la regla a editar
      * - name: Nuevo nombre
      * - severityMatch: Nueva severidad [opcional]
-     * - priorityMatch: Nueva prioridad [opcional]
      * - destinationId: Nueva entidad destino
      * - description: Nueva descripcion [opcional]
      * - active: true/false para habilitar/deshabilitar
-     * 
+     *
      * @param id ID de la regla (PathVariable)
      * @param name Nuevo nombre
      * @param severityMatch Severidad [opcional]
-     * @param priorityMatch Prioridad [opcional]
      * @param destinationId Entidad destino
      * @param description Descripcion [opcional]
      * @param active true/false
@@ -290,7 +293,6 @@ public class AdminController {
             @PathVariable("id") Long id,
             @RequestParam("name") String name,
             @RequestParam(value = "severityMatch", required = false) String severityMatch,
-            @RequestParam(value = "priorityMatch", required = false) String priorityMatch,
             @RequestParam("destinationId") Long destinationId,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "active", defaultValue = "false") boolean active,
@@ -307,7 +309,6 @@ public class AdminController {
             DerivationRule updated = new DerivationRule();
             updated.setName(name);
             updated.setSeverityMatch(emptyToNull(severityMatch));
-            updated.setPriorityMatch(emptyToNull(priorityMatch));
             updated.setDestinationId(destinationId);
             updated.setDescription(description);
             updated.setActive(active);

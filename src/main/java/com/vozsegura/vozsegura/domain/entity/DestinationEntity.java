@@ -34,55 +34,29 @@ public class DestinationEntity {
     private Long id;
 
     /**
-     * Nombre completo de la entidad en espanol.
-     * 
-     * Proposito:
-     * - Mostrar en UI (dropdowns, reportes)
-     * - Auditar derivaciones (registrar nombre de entidad en logs)
-     * 
-     * Restricciones:
-     * - nullable=false: Siempre debe haber nombre
-     * - length=255: Maximo 255 caracteres
-     * 
-     * Ejemplos:
-     * - "Corte Penal y de Crimenes contra la Seguridad del Estado"
-     * - "Fiscal General del Estado"
-     * - "Policia Nacional del Ecuador"
-     * - "Defensoria Publica"
-     * - "Comision Interamericana de Derechos Humanos"
+     * Nombre completo de la entidad en español.
      */
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 255, unique = true)
     private String name;
 
+
+    /**
+     * Email de contacto de la entidad.
+     */
     @Column(length = 255)
     private String email;
 
-    @Column(length = 255)
+    /**
+     * Teléfono de contacto.
+     */
+    @Column(length = 20)
     private String phone;
 
-    @Column(columnDefinition = "text")
-    private String address;
-
     /**
-     * Descripcion: areas de competencia, criterios de derivacion.
-     * 
-     * Proposito:
-     * - Documentar areas en que la entidad acepta denuncias
-     * - Mostrar en UI para ayudar al usuario a elegir entidad
-     * - Registrar en reportes administrativos
-     * 
-     * Restricciones:
-     * - nullable=true: Opcional (puede no haber descripcion)
-     * - length=512: Maximo 512 caracteres
-     * 
-     * Ejemplos de contenido:
-     * - "Recibe denuncias sobre crimenes de lesa humanidad, genocidio"
-     * - "Investiga delitos de corrupcion y peculado"
-     * - "Protege derechos humanos; casos internacionales"
-     * - "Asiste a victimas de violaciones de derechos"
+     * Dirección física de la entidad.
      */
-    @Column(length = 512)
-    private String description;
+    @Column(columnDefinition = "TEXT")
+    private String address;
 
     /**
      * Soft-delete: true = activa (recibe derivaciones), false = inactiva.
@@ -132,65 +106,25 @@ public class DestinationEntity {
     private OffsetDateTime updatedAt;
 
     // Getters y Setters
-
-    /**
-     * Obtiene el ID unico de la entidad destino.
-     * @return Long: ID (ej: 1, 2, 3)
-     */
     public Long getId() { return id; }
-
-    /**
-     * Establece el ID unico.
-     * @param id ID a establecer (usualmente generado por BD)
-     */
     public void setId(Long id) { this.id = id; }
 
-    /**
-     * Obtiene el nombre completo de la entidad.
-     * @return String: Nombre completo
-     */
     public String getName() { return name; }
-
-    /**
-     * Establece el nombre completo.
-     * @param name Nombre a establecer
-     */
     public void setName(String name) { this.name = name; }
 
-    /**
-     * Obtiene la descripcion de la entidad.
-     * @return String: Descripcion (puede ser nulo)
-     */
-    public String getDescription() { return description; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    /**
-     * Establece la descripcion.
-     * @param description Descripcion a establecer
-     */
-    public void setDescription(String description) { this.description = description; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    /**
-     * Obtiene el estado activo de la entidad.
-     * @return boolean: true si activa, false si inactiva
-     */
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
     public boolean isActive() { return active; }
-
-    /**
-     * Establece el estado activo.
-     * @param active true si activa, false si inactiva
-     */
     public void setActive(boolean active) { this.active = active; }
 
-    /**
-     * Obtiene el timestamp de creacion.
-     * @return OffsetDateTime: Cuando se creo la entidad (UTC)
-     */
     public OffsetDateTime getCreatedAt() { return createdAt; }
-
-    /**
-     * Establece el timestamp de creacion.
-     * @param createdAt Timestamp a establecer (usualmente System.now())
-     */
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

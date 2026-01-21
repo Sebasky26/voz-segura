@@ -15,15 +15,15 @@ import com.vozsegura.vozsegura.domain.entity.DerivationRule;
  * 
  * Responsabilidad:
  * - Gestionar las reglas de derivación automática de denuncias
- * - Buscar reglas activas basadas en criterios de severidad y prioridad
+ * - Buscar reglas activas basadas en criterios de severidad y tipo de denuncia
  * - Soporte para soft-delete (reglas se marcan como inactivas)
  * 
  * Lógica de Routing:
  * Las denuncias se derivan automáticamente a DestinationEntity (ministerios, etc.)
  * basada en una regla que coincida con:
  * 1. Severidad de la denuncia (HIGH, MEDIUM, LOW)
- * 2. Prioridad de la denuncia (URGENT, NORMAL, LOW)
- * 
+ * 2. Tipo de denuncia (ACOSO_LABORAL, DISCRIMINACION, etc.)
+ *
  * La regla más específica (ambos criterios) se prefiere sobre genérica (uno solo).
  * 
  * @author Voz Segura Team
@@ -49,33 +49,25 @@ public interface DerivationRuleRepository extends JpaRepository<DerivationRule, 
     List<DerivationRule> findAllByOrderByNameAsc();
 
     /**
-     * Busca la regla de derivación más específica que coincida con severidad + prioridad.
-     * 
+     * Busca la regla de derivación más específica que coincida con la severidad.
+     *
      * Algoritmo de Matching:
      * 1. Filtra reglas activas (active=true)
      * 2. Coincide severidad: exacta (if severityMatch presente) O ignora (if NULL)
-     * 3. Coincide prioridad: exacta (if priorityMatch presente) O ignora (if NULL)
-     * 4. Ordena por: primero las que coinciden ambos (score 2), luego una sola (score 1)
-     * 5. Retorna la mejor coincidencia ordenada por especificidad
-     * 
+     * 3. Ordena por especificidad: primero las que tienen severidad específica
+     *
      * Ejemplos:
-     * - Regla: severity=HIGH, priority=URGENT → score 2 (MÁS ESPECÍFICA)
-     * - Regla: severity=HIGH, priority=NULL → score 1
-     * - Regla: severity=NULL, priority=NULL → score 0 (fallback genérica)
-     * 
-     * @param severity Severidad de la denuncia (ej: "HIGH")
-     * @param priority Prioridad de la denuncia (ej: "URGENT")
+     * - Regla: severity=HIGH → Coincide con denuncias de severidad HIGH
+     * - Regla: severity=NULL → Coincide con cualquier severidad (fallback)
+     *
+     * @param severity Severidad de la denuncia (ej: "HIGH", "CRITICAL")
      * @return Lista de reglas que coinciden, ordenadas por especificidad (MÁS específicas primero)
      */
     @Query("SELECT r FROM DerivationRule r WHERE r.active = true " +
            "AND (r.severityMatch = :severity OR r.severityMatch IS NULL) " +
-           "AND (r.priorityMatch = :priority OR r.priorityMatch IS NULL) " +
            "ORDER BY " +
-           "CASE WHEN r.severityMatch IS NOT NULL THEN 1 ELSE 0 END + " +
-           "CASE WHEN r.priorityMatch IS NOT NULL THEN 1 ELSE 0 END DESC")
-    List<DerivationRule> findMatchingRules(
-            @Param("severity") String severity,
-            @Param("priority") String priority);
+           "CASE WHEN r.severityMatch IS NOT NULL THEN 1 ELSE 0 END DESC")
+    List<DerivationRule> findMatchingRules(@Param("severity") String severity);
 
     /**
      * Busca una regla por su nombre único.

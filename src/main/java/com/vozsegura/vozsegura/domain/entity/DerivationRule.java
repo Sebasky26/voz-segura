@@ -7,13 +7,11 @@ import java.time.OffsetDateTime;
  * Regla de derivación automática (schema reglas_derivacion.regla_derivacion)
  * 
  * Define cómo se distribuyen las denuncias entre entidades:
- * - Coincide por severidad (null = cualquiera)
- * - Coincide por prioridad (null = cualquiera)
+ * - Coincide por severidad (LOW, MEDIUM, HIGH, CRITICAL o null = cualquiera)
  * - Especifica entidad_destino a la que se derive
  * 
- * Cambios V23: Removido complaintTypeMatch, destination ahora es ID (FK)
- * Algoritmo: Busca regla más específica (mayor score de coincidencias)
- * 
+ * Algoritmo: Busca regla más específica que coincida con la severidad
+ *
  * @author Voz Segura Team
  * @since 2026-01
  */
@@ -27,16 +25,13 @@ public class DerivationRule {
     private Long id;
 
     @Column(nullable = false, length = 64, unique = true)
-    /** Nombre único descriptivo de la regla (ej: "HighSeverityUrgent") */
+    /** Nombre único descriptivo de la regla (ej: "AcosoLaboralCritico") */
     private String name;
 
     @Column(name = "severity_match", length = 32)
-    /** Severidad a coincidir: HIGH, MEDIUM, LOW (NULL = cualquier severidad) */
+    /** Severidad a coincidir: LOW, MEDIUM, HIGH, CRITICAL (NULL = cualquier severidad) */
     private String severityMatch;
 
-    @Column(name = "priority_match", length = 16)
-    /** Prioridad a coincidir: URGENT, NORMAL, LOW (NULL = cualquier prioridad) */
-    private String priorityMatch;
 
     @Column(name = "destination_id")
     /** ID de la institución destino (DestinationEntity) */
@@ -84,8 +79,6 @@ public class DerivationRule {
     public String getSeverityMatch() { return severityMatch; }
     public void setSeverityMatch(String severityMatch) { this.severityMatch = severityMatch; }
 
-    public String getPriorityMatch() { return priorityMatch; }
-    public void setPriorityMatch(String priorityMatch) { this.priorityMatch = priorityMatch; }
 
     public Long getDestinationId() { return destinationId; }
     public void setDestinationId(Long destinationId) { this.destinationId = destinationId; }
