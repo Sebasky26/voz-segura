@@ -24,6 +24,10 @@ spring.jackson.time-zone: America/Guayaquil
 vozsegura:
   gateway:
     base-url: ${GATEWAY_BASE_URL:http://localhost:8080}
+    # Clave compartida para validación HMAC Gateway<->Core (Zero Trust)
+    # CRÍTICO: Debe ser la misma en Gateway y Core
+    # Generar con: openssl rand -base64 32
+    shared-secret: ${VOZSEGURA_GATEWAY_SHARED_SECRET}
   encryption:
     key-b64: ${VOZSEGURA_DATA_KEY_B64}
 
@@ -118,7 +122,7 @@ jwt:
 # Supabase Configuration (desde .env)
 # ============================================
 supabase:
-  project-url: https://yqpgdxezqiptjjkqmebu.supabase.co
+  project-url: ${SUPABASE_PROJECT_URL}
   anon-key: ${SUPABASE_ANON_KEY}
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 

@@ -10,7 +10,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 
 /**
@@ -21,6 +24,7 @@ import java.util.Collections;
  * - Verificar firma del JWT usando clave secreta
  * - Validar expiración del token
  * - Extraer información del usuario y agregar a headers
+ * - Generar firma HMAC para Zero Trust con Core
  * - Denegar acceso si el token es inválido
  * 
  * @author Voz Segura Team
@@ -31,6 +35,9 @@ public class JwtAuthenticationGatewayFilterFactory
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    @Value("${vozsegura.gateway.shared-secret:}")
+    private String sharedSecret;
 
     public JwtAuthenticationGatewayFilterFactory() {
         super(Config.class);
@@ -93,19 +100,27 @@ public class JwtAuthenticationGatewayFilterFactory
                     return exchange.getResponse().setComplete();
                 }
 
-                // 4. Agregar información de usuario a headers para el backend
+                // 4. Generar firma HMAC para Zero Trust (validación Core)
+                String timestamp = String.valueOf(System.currentTimeMillis());
+                String method = exchange.getRequest().getMethod().name();
+                String requestPath = exchange.getRequest().getPath().value();
+                String signature = generateHmacSignature(timestamp, method, requestPath, cedula, userType);
+
+                // 5. Agregar información de usuario a headers para el backend
                 var mutatedRequest = exchange.getRequest().mutate()
                         .header("X-User-Cedula", cedula)
                         .header("X-User-Type", userType)
                         .header("X-Api-Key", apiKey)
                         .header("X-Auth-Time", String.valueOf(claims.getIssuedAt().getTime()))
+                        .header("X-Gateway-Signature", signature)
+                        .header("X-Request-Timestamp", timestamp)
                         .build();
 
                 var mutatedExchange = exchange.mutate()
                         .request(mutatedRequest)
                         .build();
 
-                // 5. Continuar con la petición
+                // 6. Continuar con la petición
                 return chain.filter(mutatedExchange);
 
             } catch (JwtException e) {
@@ -116,6 +131,44 @@ public class JwtAuthenticationGatewayFilterFactory
                 return exchange.getResponse().setComplete();
             }
         };
+    }
+
+    /**
+     * Genera firma HMAC-SHA256 para validación Zero Trust en el Core.
+     *
+     * @param timestamp Timestamp de la petición
+     * @param method Método HTTP (GET, POST, etc)
+     * @param path Ruta de la petición
+     * @param cedula Cédula del usuario
+     * @param userType Tipo de usuario
+     * @return Firma Base64
+     */
+    private String generateHmacSignature(String timestamp, String method, String path,
+                                         String cedula, String userType) {
+        try {
+            // Si no hay shared secret configurado, retornar vacío (dev mode sin validación)
+            if (sharedSecret == null || sharedSecret.isEmpty()) {
+                return "";
+            }
+
+            // Construir mensaje a firmar (mismo formato que en Core)
+            String message = String.join(":", timestamp, method, path, cedula, userType);
+
+            // Generar HMAC-SHA256
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec keySpec = new SecretKeySpec(
+                sharedSecret.getBytes(StandardCharsets.UTF_8),
+                "HmacSHA256"
+            );
+            mac.init(keySpec);
+
+            byte[] hmacBytes = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hmacBytes);
+
+        } catch (Exception e) {
+            // En caso de error, retornar vacío (no bloquear el flujo)
+            return "";
+        }
     }
 
     /**

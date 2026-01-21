@@ -2,10 +2,12 @@ package com.vozsegura.vozsegura.config;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import com.vozsegura.vozsegura.security.GatewayRequestValidator;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -62,6 +64,9 @@ public class ApiGatewayFilter implements Filter {
     @Value("${vozsegura.gateway.base-url:http://localhost:8080}")
     private String gatewayBaseUrl;
 
+    @Autowired(required = false)
+    private GatewayRequestValidator gatewayRequestValidator;
+
     private static final String[] PUBLIC_PATHS = {
         "/auth/",
         "/webhooks/",
@@ -96,9 +101,37 @@ public class ApiGatewayFilter implements Filter {
         String cedula = null;
         String userType = null;
 
-        // Método 1: Headers del Gateway
+        // Método 1: Headers del Gateway (ZERO TRUST)
         cedula = httpRequest.getHeader("X-User-Cedula");
         userType = httpRequest.getHeader("X-User-Type");
+
+        // VALIDACIÓN ZERO TRUST: Si headers vienen del Gateway, validar firma
+        if (cedula != null && userType != null && gatewayRequestValidator != null) {
+            String signature = httpRequest.getHeader("X-Gateway-Signature");
+            String timestamp = httpRequest.getHeader("X-Request-Timestamp");
+            String method = httpRequest.getMethod();
+
+            // Si faltan headers de firma, rechazar (posible ataque)
+            if (signature == null || timestamp == null) {
+                log.warn("🚨 ALERTA SEGURIDAD: Headers de Gateway sin firma HMAC (posible falsificación) - URI: {}", requestUri);
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid gateway headers");
+                return;
+            }
+
+            // Validar firma HMAC
+            boolean validSignature = gatewayRequestValidator.validateRequest(
+                signature, timestamp, method, requestUri, cedula, userType
+            );
+
+            if (!validSignature) {
+                log.warn("🚨 ALERTA SEGURIDAD: Firma HMAC inválida - URI: {}, UserType: {}", requestUri, userType);
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid gateway signature");
+                return;
+            }
+
+            // ✅ Firma válida: confiar en headers del Gateway
+            log.debug("✅ Petición validada desde Gateway: {} {}", method, requestUri);
+        }
 
         // Método 2: Sesión HTTP
         if (cedula == null || userType == null) {

@@ -17,6 +17,11 @@ server:
 vozsegura:
   core-service:
     uri: ${CORE_SERVICE_URI:http://localhost:8082}
+  gateway:
+    # Clave compartida para validación HMAC Gateway<->Core (Zero Trust)
+    # CRÍTICO: Debe ser la misma en Gateway y Core
+    # Generar con: openssl rand -base64 32
+    shared-secret: ${VOZSEGURA_GATEWAY_SHARED_SECRET}
 
 spring:
   application:
@@ -59,20 +64,23 @@ spring:
         enabled: true
 
 # ============================================
-# JWT Configuration
+# JWT Configuration - OBLIGATORIO desde variables de entorno
 # ============================================
 jwt:
+  # CRÍTICO: Esta clave DEBE venir de variables de entorno
+  # NO tiene valor por defecto - la app fallará si no está configurado
   # Generar con: openssl rand -base64 32
-  secret: ${JWT_SECRET:voz-segura-jwt-secret-key-2026-change-in-production}
+  secret: ${JWT_SECRET}
   expiration: 86400000  # 24 horas en milisegundos
 
 # ============================================
-# Supabase Configuration
+# Supabase Configuration - OBLIGATORIO desde variables de entorno
 # ============================================
 supabase:
-  project-url: ${SUPABASE_PROJECT_URL:https://yqpgdxezqiptjjkqmebu.supabase.co}
-  anon-key: ${SUPABASE_ANON_KEY:}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  # CRÍTICO: NO exponer URLs de proyectos en el código
+  project-url: ${SUPABASE_PROJECT_URL}
+  anon-key: ${SUPABASE_ANON_KEY}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 
 # ============================================
 # Logging

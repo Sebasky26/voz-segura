@@ -1,773 +1,540 @@
-# Voz Segura - Plataforma Segura de Denuncias Anónimas
+# 🔐 VOZ SEGURA - Plataforma de Denuncias Anónimas
 
-**Versión:** 1.0.0  
-**Año:** 2026  
+**Versión:** 2.0  
+**Fecha:** Enero 2026  
 **Arquitectura:** Zero Trust Architecture (ZTA)  
-**Seguridad:** ISO 27001 | GDPR Compliant
-
-![Java](https://img.shields.io/badge/Java-21-orange) ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-green) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue) ![ZTA](https://img.shields.io/badge/Architecture-Zero%20Trust-red)
+**Base de Datos:** Supabase PostgreSQL
 
 ---
 
-## 📋 Tabla de Contenidos
+## 📖 Descripción del Proyecto
 
-- [Descripción](#-descripción)
-- [Arquitectura Zero Trust (ZTA)](#-arquitectura-zero-trust-zta)
-- [🚀 Setup e Instalación](#-setup-e-instalación)
-  - [Requisitos Previos](#requisitos-previos)
-  - [Pasos de Instalación](#pasos-de-instalación)
-  - [Configuración de Supabase](#configuración-de-supabase)
-- [Sistema de Autenticación Unificado](#-sistema-de-autenticación-unificado)
-- [Usuarios de Prueba](#-usuarios-de-prueba)
-- [Configuración AWS (MFA con Email OTP)](#️-configuración-aws-mfa-con-email-otp)
-- [API Gateway ZTA](#-api-gateway-zta)
-- [Endpoints y Rutas](#-endpoints-y-rutas)
-- [Seguridad](#-seguridad)
-- [Términos y Condiciones](#-términos-y-condiciones)
-- [Troubleshooting](#-troubleshooting)
-
----
-
-## 📖 Descripción
-
-**Voz Segura** es una plataforma de denuncias anónimas diseñada bajo los principios de **Zero Trust Architecture (ZTA)** implementada en 2026, que garantiza:
+**Voz Segura** es una plataforma gubernamental de denuncias anónimas desarrollada bajo principios de **Zero Trust Architecture**, diseñada para garantizar la máxima seguridad y privacidad de los denunciantes en Ecuador.
 
 ### 🎯 Características Principales
 
-- **✅ Autenticación Unificada**: Todos los usuarios (denunciantes, staff, admin) se autentican por el mismo punto de entrada contra el **Registro Civil del Ecuador**
-- **🛡️ Zero Trust Architecture**: Implementación completa de ZTA con API Gateway que valida cada petición
-- **🔐 Cifrado de Extremo a Extremo**: AES-256-GCM para todas las denuncias y evidencias
-- **👤 Identity Vault**: Separación total entre identidad real y denuncias
-- **📱 Verificación Biométrica**: Autenticación facial (integrable con servicios reales)
-- **🔑 MFA para Staff/Admin**: Autenticación de dos factores con código OTP por email (AWS SES)
-- **☁️ AWS Integration**: Secrets Manager + SES para gestión segura de credenciales y MFA
-- **📊 Auditoría Completa**: Todos los accesos y acciones son registrados
-- **📜 Términos y Condiciones**: Aceptación obligatoria con explicaciones claras
+- ✅ **Verificación Biométrica con DIDIT:** Autenticación facial contra Registro Civil del Ecuador
+- 🔐 **Cifrado de Extremo a Extremo:** AES-256-GCM para todas las denuncias y evidencias
+- 👤 **Anonimato Total:** Identity Vault separa identidad real de las denuncias
+- 🛡️ **Zero Trust:** Validación HMAC-SHA256 entre Gateway y Core
+- 📱 **MFA para Staff:** Autenticación de dos factores con OTP por email (AWS SES)
+- 🔒 **PII Cifrado en BD:** Datos sensibles cifrados automáticamente al guardar
+- 📊 **Auditoría Completa:** Todos los accesos registrados
+- ☁️ **Cloud Native:** Supabase PostgreSQL, AWS SES, Cloudflare Turnstile
 
 ---
 
-## 🏗️ Arquitectura Zero Trust (ZTA)
+## 🏗️ Arquitectura del Sistema
 
-### Principios Implementados
-
-1. **Never Trust, Always Verify** - Cada petición es verificada, sin importar el origen
-2. **Assume Breach** - El sistema asume que puede estar comprometido
-3. **Verify Explicitly** - Autenticación multifactor y continua
-4. **Least Privilege Access** - Solo permisos necesarios por rol
-5. **Microsegmentation** - Cada recurso está protegido individualmente
-
-### Componentes de la Arquitectura
+### Componentes Principales
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    REGISTRO CIVIL                       │
-│              (Verificación de Identidad)                │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-                  ↓
-┌─────────────────────────────────────────────────────────┐
-│            PUNTO DE ENTRADA ÚNICO                       │
-│         /auth/login (Todos los usuarios)                │
-│    ┌──────────────────────────────────────┐            │
-│    │  • Cédula + Código Dactilar          │            │
-│    │  • CAPTCHA Dinámico                  │            │
-│    │  • Términos y Condiciones            │            │
-│    └──────────────────────────────────────┘            │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-                  ↓
-┌─────────────────────────────────────────────────────────┐
-│              API GATEWAY FILTER (ZTA)                   │
-│     ┌────────────────────────────────────────┐         │
-│     │  1. Validar Autenticación              │         │
-│     │  2. Verificar Permisos                 │         │
-│     │  3. Enrutar según Rol                  │         │
-│     │  4. Registrar Auditoría                │         │
-│     └────────────────────────────────────────┘         │
-└─────────┬──────────────┬──────────────┬────────────────┘
-          │              │              │
-          ↓              ↓              ↓
-┌─────────────┐  ┌──────────────┐  ┌──────────┐
-│ DENUNCIANTE │  │   ANALYST    │  │  ADMIN   │
-│             │  │              │  │          │
-│ + Biométrica│  │ + AWS Secret │  │+ AWS     │
-│             │  │    Key       │  │  Secret  │
-└─────────────┘  └──────────────┘  └──────────┘
+┌─────────────┐
+│  USUARIO    │
+└──────┬──────┘
+       │ HTTPS
+       ↓
+┌─────────────────────────────────┐
+│   GATEWAY (Puerto 8080)         │
+│   - Validación JWT              │
+│   - Firma HMAC-SHA256           │
+│   - Rate Limiting               │
+│   - CORS/Security Headers       │
+└──────────┬──────────────────────┘
+           │ Zero Trust (HMAC)
+           ↓
+┌─────────────────────────────────┐
+│   CORE (Puerto 8082)            │
+│   - Validación HMAC             │
+│   - Lógica de Negocio           │
+│   - Cifrado/Descifrado PII      │
+│   - Flyway Migrations           │
+└──────────┬──────────────────────┘
+           │
+           ↓
+┌─────────────────────────────────┐
+│   SUPABASE POSTGRESQL           │
+│   - Schemas: registro_civil,    │
+│     staff, denuncias,           │
+│     evidencias, logs            │
+│   - PII Cifrado en Reposo       │
+└─────────────────────────────────┘
 ```
+
+### Zero Trust Architecture
+
+```
+Usuario → JWT válido → Gateway
+                         ↓
+          Firma HMAC: SHA256(timestamp:method:path:user:type)
+                         ↓
+          Headers: X-Gateway-Signature
+                   X-Request-Timestamp (60s TTL)
+                   X-User-Cedula
+                   X-User-Type
+                         ↓
+                      Core
+                         ↓
+          Valida HMAC → Si inválido: 401 Unauthorized
+                      → Si válido: Procesa petición
+```
+
+### Flujo de Autenticación
+
+#### Denunciantes
+1. Verificación biométrica DIDIT → Cédula + Nombre
+2. Validación contra Registro Civil
+3. Aceptación de términos y condiciones
+4. Acceso al panel de denuncias
+
+#### Staff (Admin/Analista)
+1. Verificación biométrica DIDIT
+2. Validación contra Registro Civil
+3. Verificación en tabla `staff_user`
+4. Ingreso de clave secreta (BCrypt)
+5. OTP por email (AWS SES)
+6. JWT token (24h)
+7. Acceso al panel correspondiente
 
 ---
 
-## � Setup e Instalación
+## 💻 Tecnologías Utilizadas
+
+### Backend
+- **Java 21** - LTS
+- **Spring Boot 3.3.4** - Framework principal
+- **Spring Security** - Autenticación y autorización
+- **Spring Cloud Gateway** - API Gateway con filtros
+- **Spring Data JPA** - Persistencia
+- **Flyway** - Migraciones de base de datos (automáticas)
+
+### Seguridad
+- **JWT (jjwt 0.12.3)** - Tokens de sesión
+- **BCrypt** - Hashing de contraseñas
+- **AES-256-GCM** - Cifrado de PII
+- **HMAC-SHA256** - Validación Zero Trust
+- **Cloudflare Turnstile** - Anti-bot
+
+### Base de Datos
+- **Supabase PostgreSQL 16** - Base de datos principal
+- **PgBouncer** - Connection pooling
+- **6 Schemas:** registro_civil, staff, denuncias, evidencias, logs, reglas_derivacion
+
+### Integraciones Externas
+- **DIDIT API v3** - Verificación biométrica
+- **AWS SES** - Envío de emails OTP
+- **AWS Secrets Manager** - Gestión de secretos (producción)
+- **Cloudflare Turnstile** - CAPTCHA
+
+### Frontend
+- **Thymeleaf** - Motor de plantillas
+- **HTML5 + CSS3** - UI responsive
+- **JavaScript Vanilla** - Interactividad
+
+---
+
+## 📊 Esquemas de Base de Datos
+
+### 1. `registro_civil` - Identidades
+- **`personas`**: Ciudadanos verificados (PII cifrado)
+- **`didit_verification`**: Registros de verificación biométrica
+
+### 2. `staff` - Personal del Sistema
+- **`staff_user`**: Usuarios Admin/Analista (PII cifrado)
+
+### 3. `denuncias` - Denuncias
+- **`complaint`**: Denuncias con texto cifrado
+- **`complaint_status_log`**: Historial de cambios
+
+### 4. `evidencias` - Archivos Adjuntos
+- **`evidence`**: Archivos PDF/DOCX/IMG cifrados
+
+### 5. `logs` - Auditoría
+- **`audit_event`**: Registro de todas las acciones
+
+### 6. `reglas_derivacion` - Configuración
+- **`derivation_rule`**: Reglas de derivación automática
+- **`destination_entity`**: Entidades destino
+
+---
+
+## 🚀 Instalación y Configuración
 
 ### Requisitos Previos
 
-#### Software Requerido
+- Java 21 JDK
+- Maven 3.8+
+- Cuenta Supabase (PostgreSQL)
+- Cuenta AWS (SES + Secrets Manager para prod)
+- Cuenta Cloudflare (Turnstile)
+- Cuenta DIDIT (Verificación biométrica)
 
-- **Java 21+** ([Descargar desde Adoptium](https://adoptium.net/) o [Oracle](https://www.oracle.com/java/technologies/downloads/))
-- **Maven 3.6+** ([Descargar](https://maven.apache.org/download.cgi))
-- **Git** (opcional)
-
-#### Verificar Instalaciones
-
-```bash
-# Verificar Java
-java -version
-# Debe mostrar: openjdk version "21.x.x" o superior
-
-# Verificar Maven
-mvn -version
-# Debe mostrar: Apache Maven 3.6.x o superior
-
-# Verificar Git
-git --version
-# Debe mostrar: git version 2.x.x o superior
-```
-
-⚠️ **Si no tienes Java 21 o Maven:**
-
-- **Java 21**: Descargar desde [Adoptium](https://adoptium.net/)
-- **Maven**: Descargar desde [Apache Maven](https://maven.apache.org/download.cgi)
-
----
-
-### Pasos de Instalación
-
-#### 1️⃣ Clonar el repositorio
+### 1. Clonar Repositorio
 
 ```bash
-git clone <url-del-repo>
+git clone https://github.com/tu-org/voz-segura.git
 cd voz-segura
 ```
 
-#### 2️⃣ Configurar credenciales de Supabase
-
-1. **Copia el archivo de ejemplo:**
-
-   ```bash
-   # En Linux/Mac:
-   cp .env.example .env
-
-   # En Windows PowerShell:
-   Copy-Item .env.example .env
-   ```
-
-2. **Edita el archivo `.env`** en la raíz del proyecto:
-
-   ```env
-   SUPABASE_DB_URL=jdbc:postgresql://db.xxxxx.supabase.co:5432/postgres?sslmode=require
-   SUPABASE_DB_USERNAME=postgres
-   SUPABASE_DB_PASSWORD=tu-password-aqui
-   VOZSEGURA_DATA_KEY_B64=clave-de-cifrado-aqui
-   CLOUDFLARE_SITE_KEY=0x4AAAAAACMxvT24oFdFEy77
-   CLOUDFLARE_SECRET_KEY=tu-secret-key-cloudflare-aqui
-   ```
-
-   ⚠️ **Solicita estas credenciales al líder del proyecto por correo** (no están en Git por seguridad)
-   
-   ℹ️ **Sobre Cloudflare Turnstile:**
-   - `CLOUDFLARE_SITE_KEY`: Clave pública (se puede exponer en el frontend)
-   - `CLOUDFLARE_SECRET_KEY`: Clave privada (solo en el backend, MUY sensible)
-
-   📝 **Nota:** El proyecto usa `spring-dotenv` que carga automáticamente el archivo `.env` al iniciar.
-
-#### 3️⃣ Ejecutar la aplicación
+### 2. Configurar Variables de Entorno
 
 ```bash
-# Descargar dependencias (opcional, mvn spring-boot:run lo hace automáticamente)
-mvn clean install
+# Copiar plantilla
+cp .env.example .env
 
-# Ejecutar la aplicación
-mvn spring-boot:run
+# Editar .env con tus credenciales
+nano .env
 ```
 
-**O desde el IDE:**
+**Variables Obligatorias:**
 
-- **IntelliJ IDEA**: Botón Run en la clase principal `VozSeguraApplication`
-- **Eclipse**: Run As → Spring Boot App
+```bash
+# === SUPABASE (PostgreSQL) ===
+SUPABASE_DB_URL=jdbc:postgresql://aws-0-us-west-2.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
+SUPABASE_DB_USERNAME=postgres.tu-proyecto-id
+SUPABASE_DB_PASSWORD=tu-password
+SUPABASE_PROJECT_URL=https://tu-proyecto.supabase.co
+SUPABASE_ANON_KEY=tu-anon-key
+SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
 
-La aplicación arrancará en: **http://localhost:8080**
+# === SEGURIDAD (Generar con: openssl rand -base64 32) ===
+JWT_SECRET=tu-jwt-secret-base64
+VOZSEGURA_DATA_KEY_B64=tu-encryption-key-base64
+VOZSEGURA_GATEWAY_SHARED_SECRET=tu-shared-secret-base64
 
-#### ✅ Verificar que está funcionando
+# === AWS ===
+AWS_SES_FROM_EMAIL=noreply@tudominio.com
+AWS_ACCESS_KEY_ID=tu-access-key
+AWS_SECRET_ACCESS_KEY=tu-secret-key
+AWS_REGION=us-east-1
 
-Deberías ver en los logs:
+# === CLOUDFLARE TURNSTILE ===
+CLOUDFLARE_SITE_KEY=tu-site-key
+CLOUDFLARE_SECRET_KEY=tu-secret-key
 
+# === DIDIT (Biometría) ===
+DIDIT_APP_ID=tu-app-id
+DIDIT_API_KEY=tu-api-key
+DIDIT_WEBHOOK_URL=https://tu-dominio.com/webhooks/didit
+DIDIT_WEBHOOK_SECRET_KEY=tu-webhook-secret
+DIDIT_WORKFLOW_ID=tu-workflow-id
+DIDIT_API_URL=https://verification.didit.me
+
+# === URLs (Opcional para desarrollo) ===
+GATEWAY_BASE_URL=http://localhost:8080
+CORE_SERVICE_URI=http://localhost:8082
 ```
-Database: jdbc:postgresql://db.xxxxx.supabase.co:5432/postgres (PostgreSQL 17.6)
-Started VozSeguraApplication in X.XXX seconds
-Tomcat started on port 8080 (http)
+
+### 3. Configurar Base de Datos en Supabase
+
+1. Crear proyecto en [Supabase](https://supabase.com)
+2. Obtener credenciales de conexión (usar Pooler para mejor rendimiento)
+3. Las migraciones se ejecutan **automáticamente** al iniciar la aplicación
+
+**Nota:** Las migraciones Flyway se ejecutan automáticamente en orden:
+- V1 a V27: Estructura de BD
+- V28: Agregar columnas PII cifradas
+- V29: Cifrado automático de datos existentes (si existen)
+- V30: Eliminar columnas texto plano
+
+### 4. Compilar Proyecto
+
+```bash
+./mvnw clean install
 ```
 
 ---
 
-### Configuración de Supabase
+## ▶️ Ejecutar la Aplicación
 
-#### Arquitectura de Datos Separados
+### Modo Desarrollo (Local)
 
-La aplicación usa **Supabase** (PostgreSQL en la nube) con **esquemas separados** para diferentes tipos de datos:
+#### Opción 1: Ejecutar ambos servicios en terminales separadas
 
-##### 📦 Esquemas de Base de Datos
+```bash
+# Terminal 1: Core Service (Puerto 8082)
+./mvnw spring-boot:run
 
-1. **`public`** (schema por defecto)
+# Terminal 2: Gateway (Puerto 8080)
+cd gateway
+../mvnw spring-boot:run
+```
 
-   - `staff_user`: Usuarios del sistema
-   - `complaint`: Denuncias (solo texto cifrado)
-   - `derivation_rule`: Reglas de derivación
-   - `terms_acceptance`: Aceptación de términos
+#### Opción 2: Usar Docker Compose
 
-2. **`secure_identities`** (datos del registro civil)
+```bash
+docker-compose up --build
+```
 
-   - `identity_vault`: Solo IDs y hashes de ciudadanos
-   - ⚠️ **NO guarda datos personales**, solo hashes SHA-256
-   - Con Row Level Security (RLS) habilitado
+### Acceso a la Aplicación
 
-3. **`evidence_vault`** (evidencias cifradas)
-
-   - `evidence`: Archivos y contenido cifrado
-   - Todo el contenido está cifrado con AES-256-GCM
-   - Con RLS habilitado
-
-4. **`audit_logs`** (logs de auditoría)
-   - `audit_event`: Registro de todas las acciones
-   - Con RLS habilitado para acceso restringido
-
-##### 🔒 Seguridad de Supabase
-
-**Cifrado en múltiples capas:**
-
-- **Cifrado en tránsito**: SSL/TLS obligatorio (`sslmode=require`)
-- **Cifrado en reposo**: Supabase cifra todos los datos en disco
-- **Cifrado a nivel de aplicación**:
-  - Textos de denuncias cifrados con AES-256-GCM
-  - Evidencias cifradas con AES-256-GCM
-  - Hashes SHA-256 para identidades
-
-**Row Level Security (RLS):**
-
-- Solo la aplicación (service_role) puede acceder a datos sensibles
-- Imposible acceso directo desde consola SQL sin permisos
-
-**Separación de datos:**
-
-- Identidades del registro civil en schema separado
-- Evidencias en vault separado
-- Logs de auditoría aislados
-
-##### 🚀 Migraciones Automáticas
-
-Las migraciones de **Flyway** crean automáticamente al iniciar la aplicación:
-
-- ✅ Los esquemas separados (`secure_identities`, `evidence_vault`, `audit_logs`)
-- ✅ Las tablas en cada schema
-- ✅ Los índices de seguridad
-- ✅ Las políticas RLS
-
-**No necesitas ejecutar nada manualmente**, Flyway se encarga de todo.
-
-##### 🔍 Verificar en Supabase
-
-Ve a tu proyecto en Supabase:
-
-1. **SQL Editor** → Verifica que existen los schemas: `secure_identities`, `evidence_vault`, `audit_logs`
-2. **Database** → **Policies** → Verifica que RLS está habilitado
-
-##### ⚠️ Notas Importantes
-
-- ❌ **NUNCA** commitees el archivo `.env` con credenciales reales
-- ✅ El archivo `.env` ya está en `.gitignore`
-- ✅ La clave de cifrado (`VOZSEGURA_DATA_KEY_B64`) debe ser diferente en cada ambiente
-- ✅ Supabase hace backups automáticos
-- ✅ Revisa regularmente los `audit_logs` para detectar accesos no autorizados
+- **URL Principal:** http://localhost:8080
+- **Gateway:** http://localhost:8080
+- **Core (interno):** http://localhost:8082 (no accesible directamente por Zero Trust)
 
 ---
 
-## �🔧 Requisitos Previos
+## 🔒 Seguridad Implementada
+
+### 1. Zero Trust Architecture
+- **Validación HMAC:** Gateway → Core con firma HMAC-SHA256
+- **Anti-replay:** Timestamps con TTL de 60 segundos
+- **Headers inmutables:** Imposible falsificar peticiones
+
+### 2. Cifrado de Datos (Automático)
+- **PII en BD:** AES-256-GCM (cédulas, nombres, emails)
+- **Denuncias:** AES-256-GCM en columna `encrypted_text`
+- **Evidencias:** AES-256-GCM para archivos binarios
+- **Claves:** AWS Secrets Manager (producción) o variables de entorno
+
+### 3. Autenticación y Autorización
+- **JWT:** Tokens firmados con HS256, expiración 24h
+- **MFA:** OTP por email con AWS SES (5 min TTL)
+- **BCrypt:** Hashing de contraseñas con strength 10
+- **Roles:** ADMIN, ANALYST, DENUNCIANTE
+
+### 4. Validación de Archivos
+- **Magic bytes:** Verificación de tipo real
+- **Whitelist:** Solo PDF, DOCX, JPG, PNG
+- **Límites:** 25MB por archivo, 30MB por request
+- **Anti-malware:** Sin macros en DOCX
+
+### 5. Headers de Seguridad
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Strict-Transport-Security: max-age=31536000`
+- `Content-Security-Policy` configurado
+- `X-XSS-Protection: 1; mode=block`
+
+### 6. Rate Limiting
+- Login: 5 intentos/minuto por IP
+- OTP: 3 intentos/5 minutos
+- Tracking: 10 consultas/hora por IP
 
 ---
 
-## 🔑 Sistema de Autenticación Unificado
-
-### Flujo Completo (ZTA)
+## 📁 Estructura del Proyecto
 
 ```
-1. Usuario accede a /auth/login
-   ↓
-2. Ingresa: Cédula + Código Dactilar + CAPTCHA
-   ↓
-3. Sistema verifica contra Registro Civil
-   ↓
-4. ¿Es Staff/Admin?
-   │
-   ├─→ SÍ: Solicitar Clave Secreta AWS
-   │   ↓
-   │   Verificar contra AWS Secrets Manager
-   │   ↓
-   │   Enviar código OTP por email (AWS SES)
-   │   ↓
-   │   Verificar código OTP (MFA)
-   │   ↓
-   │   Acceso a Panel Staff/Admin
-   │
-   └─→ NO: Continuar con Verificación Biométrica
-       ↓
-       Tomar fotografía facial
-       ↓
-       Acceso a Formulario de Denuncia
-```
-
-### Términos y Condiciones
-
-**TODOS** los usuarios deben aceptar antes de ingresar:
-
-✅ Datos legítimos y verídicos  
-✅ Uso responsable de evidencias  
-✅ Posible contacto por entidad receptora  
-✅ Proceso anónimo (salvo orden judicial)  
-✅ Consecuencias legales por mal uso
-
----
-
-## 👥 Usuarios de Prueba
-
-### Datos de Acceso (2026)
-
-| Cédula         | Código Dactilar           | Rol             | Clave Secreta AWS     | Acceso              |
-| -------------- | ------------------------- | --------------- | --------------------- | ------------------- |
-| `1234567890`   | Cualquiera (ej: `ABC123`) | **ADMIN**       | `admin_secret_2026`   | Panel completo      |
-| `0987654321`   | Cualquiera (ej: `XYZ789`) | **ANALYST**     | `analyst_secret_2026` | Gestión denuncias   |
-| Cualquier otra | Cualquiera                | **DENUNCIANTE** | -                     | Formulario denuncia |
-
-### Pasos para Probar
-
-#### Como Admin:
-
-1. Ir a http://localhost:8080/auth/login
-2. Aceptar términos y condiciones
-3. Ingresar:
-   - **Cédula**: `1234567890`
-   - **Código Dactilar**: `ABC123`
-   - **CAPTCHA**: (el que aparece en pantalla)
-4. Clic en "Iniciar Sesión"
-5. Aparecerá pantalla de Clave Secreta
-6. Ingresar: `admin_secret_2026`
-7. Acceso a `/admin`
-
-#### Como Analista:
-
-1-4. Igual que admin, pero con cédula `0987654321`
-5-6. Clave secreta: `analyst_secret_2026` 7. Acceso a `/staff/casos`
-
-#### Como Denunciante:
-
-1-4. Igual, pero con cualquier otra cédula (ej: `9999999999`) 5. No solicita clave secreta 6. Verificación biométrica (subir cualquier foto) 7. Acceso a formulario de denuncia
-
----
-
-## ☁️ Configuración AWS (MFA con Email OTP)
-
-### Servicios AWS Utilizados
-
-El proyecto utiliza los siguientes servicios de AWS para autenticación MFA:
-
-| Servicio                | Propósito                                  | Región    |
-| ----------------------- | ------------------------------------------ | --------- |
-| **AWS SES**             | Envío de códigos OTP por email             | us-east-1 |
-| **AWS Secrets Manager** | Almacenamiento de claves secretas de staff | us-east-1 |
-| **AWS IAM**             | Gestión de permisos y usuarios             | Global    |
-
-### Flujo de Autenticación MFA
-
-```
-1. Usuario Staff/Admin ingresa credenciales
-   ↓
-2. Verifica cédula + código dactilar (Registro Civil)
-   ↓
-3. Verifica clave secreta (AWS Secrets Manager)
-   ↓
-4. Envía código OTP de 6 dígitos (AWS SES)
-   ↓
-5. Usuario ingresa código OTP
-   ↓
-6. Acceso autorizado con authMethod: UNIFIED_ZTA_MFA
-```
-
-### Configuración de Credenciales AWS
-
-#### Opción 1: Variables de Entorno (Recomendado para desarrollo)
-
-```bash
-# En Windows PowerShell:
-$env:AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-$env:AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-$env:AWS_REGION="us-east-1"
-
-# En Linux/Mac:
-export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-export AWS_REGION="us-east-1"
-```
-
-#### Opción 2: AWS CLI (Más seguro)
-
-```bash
-aws configure
-# Ingresar: Access Key ID, Secret Access Key, Region (us-east-1), Output (json)
-```
-
-#### Verificar Configuración
-
-```bash
-aws sts get-caller-identity
-# Debe mostrar: Account ID, User ARN
-```
-
-### Configuración AWS SES
-
-#### Emails Verificados
-
-Los siguientes emails están verificados en AWS SES para envío de OTP:
-
-| Email                           | Staff              | Estado        |
-| ------------------------------- | ------------------ | ------------- |
-| `stalin.yungan@epn.edu.ec`      | stalin.yungan      | ✅ Verificado |
-| `mario.aisalla@epn.edu.ec`      | sebastian.aisalla  | ✅ Verificado |
-| `francis.velastegui@epn.edu.ec` | francis.velastegui | ✅ Verificado |
-| `marlon.vinueza@epn.edu.ec`     | marlon.vinueza     | ✅ Verificado |
-| `no-reply@vozsegura.com`        | (Remitente)        | ✅ Verificado |
-
-#### Verificar Nuevo Email en SES
-
-```bash
-aws ses verify-email-identity --email-address nuevo-email@epn.edu.ec --region us-east-1
-```
-
-### Configuración AWS Secrets Manager
-
-#### Secretos Configurados
-
-| Secret Name                   | Staff              | Cédula     |
-| ----------------------------- | ------------------ | ---------- |
-| `STAFF_SECRET_KEY_1728848274` | stalin.yungan      | 1728848274 |
-| `STAFF_SECRET_KEY_1726383514` | sebastian.aisalla  | 1726383514 |
-| `STAFF_SECRET_KEY_1754644415` | francis.velastegui | 1754644415 |
-| `STAFF_SECRET_KEY_1753848637` | marlon.vinueza     | 1753848637 |
-
-⚠️ **IMPORTANTE**: Estas claves NO deben borrarse de AWS Secrets Manager. Si se eliminan, los usuarios perderán acceso al sistema.
-
-#### Crear Nuevo Secreto
-
-```bash
-aws secretsmanager create-secret \
-    --name "STAFF_SECRET_KEY_NUEVA_CEDULA" \
-    --secret-string "clave_secreta_segura" \
-    --region us-east-1
-```
-
-### Usuarios Staff Configurados
-
-| Cédula     | Username           | Rol     | Email                         | Secret AWS                  |
-| ---------- | ------------------ | ------- | ----------------------------- | --------------------------- |
-| 1728848274 | stalin.yungan      | ADMIN   | stalin.yungan@epn.edu.ec      | STAFF_SECRET_KEY_1728848274 |
-| 1726383514 | sebastian.aisalla  | ADMIN   | mario.aisalla@epn.edu.ec      | STAFF_SECRET_KEY_1726383514 |
-| 1754644415 | francis.velastegui | ANALYST | francis.velastegui@epn.edu.ec | STAFF_SECRET_KEY_1754644415 |
-| 1753848637 | marlon.vinueza     | ANALYST | marlon.vinueza@epn.edu.ec     | STAFF_SECRET_KEY_1753848637 |
-
-### Troubleshooting AWS
-
-#### Error: "Email not verified"
-
-```bash
-# Verificar email en SES
-aws ses verify-email-identity --email-address email@ejemplo.com --region us-east-1
-# El usuario recibirá un email de confirmación
-```
-
-#### Error: "Access Denied"
-
-```bash
-# Verificar permisos del usuario IAM
-aws iam list-attached-user-policies --user-name tu-usuario
-```
-
-#### Error: "Secret not found"
-
-```bash
-# Listar secretos disponibles
-aws secretsmanager list-secrets --region us-east-1
+voz-segura/
+├── src/main/
+│   ├── java/com/vozsegura/vozsegura/
+│   │   ├── client/          # Integraciones externas
+│   │   ├── config/          # Configuración Spring + Zero Trust
+│   │   ├── controller/      # Controladores REST/MVC
+│   │   ├── domain/entity/   # Entidades JPA
+│   │   ├── dto/             # DTOs y Forms
+│   │   ├── repo/            # Repositories
+│   │   ├── security/        # Cifrado y validación HMAC
+│   │   └── service/         # Lógica de negocio
+│   │       └── migration/   # Migraciones automáticas PII
+│   └── resources/
+│       ├── db/migration/    # Flyway (ejecución automática)
+│       ├── static/          # CSS, JS, imágenes
+│       ├── templates/       # Thymeleaf
+│       └── application.yml
+├── gateway/                 # Spring Cloud Gateway
+│   └── src/main/
+│       ├── java/com/vozsegura/gateway/
+│       │   └── filter/      # JWT + HMAC
+│       └── resources/
+│           └── application.yml
+├── .env.example             # Plantilla de variables
+├── docker-compose.yml
+├── pom.xml
+└── README.md               # Este archivo
 ```
 
 ---
 
-## 🚪 API Gateway ZTA
+## 🔧 Comandos Útiles
 
-### Implementación
+### Maven
 
-El `ApiGatewayFilter` intercepta **TODAS** las peticiones y aplica:
+```bash
+# Compilar
+./mvnw clean compile
 
-#### 1. Validación de Autenticación
+# Ejecutar tests
+./mvnw test
 
-```java
-// Verifica que el usuario tenga sesión autenticada
-if (session == null || session.getAttribute("authenticated") == null) {
-    // BLOCKED
-}
+# Package
+./mvnw package
+
+# Ver estado de migraciones
+./mvnw flyway:info
 ```
 
-#### 2. Verificación de Autorización (RBAC)
+### Docker
 
-```java
-// Control de Acceso Basado en Roles
-switch (userType) {
-    case "ADMIN":    return true;  // Acceso total
-    case "ANALYST":  return !isAdminPath;  // No acceso a admin
-    case "DENUNCIANTE": return isDenunciaPath;  // Solo /denuncia
-}
+```bash
+# Construir e iniciar
+docker-compose up --build
+
+# Detener
+docker-compose down
+
+# Ver logs
+docker-compose logs -f core
+docker-compose logs -f gateway
 ```
-
-#### 3. Validación de Método de Autenticación
-
-```java
-// Staff/Admin DEBEN usar autenticación ZTA completa
-if (isStaff && authMethod != "UNIFIED_ZTA") {
-    // BLOCKED
-}
-```
-
-#### 4. Headers de Seguridad
-
-```java
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Strict-Transport-Security: max-age=31536000
-Content-Security-Policy: default-src 'self'
-```
-
-### Logs de Auditoría
-
-Todos los accesos se registran:
-
-```
-[API GATEWAY ZTA] GET /staff/casos | Session: abc123 | IP: 192.168.1.100
-[API GATEWAY ZTA] ALLOWED - ANALYST accessing /staff/casos
-```
-
----
-
-## 🌐 Endpoints y Rutas
-
-### Públicas (No requieren autenticación)
-
-| Ruta                  | Descripción                        |
-| --------------------- | ---------------------------------- |
-| `/auth/login`         | Login unificado (punto de entrada) |
-| `/auth/unified-login` | Procesar login POST                |
-| `/css/**`, `/js/**`   | Recursos estáticos                 |
-
-### Requieren Autenticación
-
-| Ruta                  | Rol            | Descripción             |
-| --------------------- | -------------- | ----------------------- |
-| `/auth/secret-key`    | Staff/Admin    | Pantalla clave secreta  |
-| `/denuncia/biometric` | Denunciante    | Verificación biométrica |
-| `/denuncia/submit`    | Denunciante    | Enviar denuncia         |
-| `/staff/casos`        | Analyst, Admin | Listado denuncias       |
-| `/admin`              | Admin          | Panel administración    |
-
----
-
-## 🛡️ Seguridad
-
-### Cifrado
-
-- **Algoritmo**: AES-256-GCM
-- **Modo**: Galois/Counter Mode (autenticado)
-- **Scope**: Denuncias y evidencias
-- **Gestión**: Variables de entorno (dev) / AWS (prod)
-
-### Identity Vault
-
-```
-Identidad Real → SHA-256 Hash → Identity Vault
-                       ↓
-              (nunca se almacena)
-
-Denuncia → Linked to → Hash (no a identidad real)
-```
-
-### Autenticación Multifactor
-
-1. **Factor 1**: Cédula + Código Dactilar (Registro Civil)
-2. **Factor 2 (Denunciante)**: Biometría facial
-3. **Factor 2 (Staff/Admin)**: Clave secreta AWS
-
-### Headers de Seguridad
-
-Implementados en API Gateway:
-
-- Content Security Policy (CSP)
-- X-Frame-Options: DENY
-- X-Content-Type-Options: nosniff
-- Strict-Transport-Security (HSTS)
-
-### Auditoría
-
-Todos los eventos se registran en `audit_event`:
-
-- Login attempts
-- Accesos a recursos
-- Cambios de estado
-- Derivaciones
-- Revelaciones de identidad
-
----
-
-## 📜 Términos y Condiciones
-
-### Puntos Clave
-
-1. **Legitimidad de Datos**: Todo dato debe ser verídico
-2. **Uso Responsable**: Evidencias solo para fines legítimos
-3. **Contacto Posible**: Entidad receptora puede solicitar contacto
-4. **Anonimato Garantizado**: Salvo orden judicial
-5. **Revelación Excepcional**: Solo con aprobación de Comité de Ética
-6. **Protección Legal**: Ley de Datos Personales Ecuador 2026
-
-### Aceptación Obligatoria
-
-El checkbox de términos **DEBE** estar marcado para habilitar el botón de login.
 
 ---
 
 ## 🐛 Troubleshooting
 
-### La aplicación inicia pero no puedo acceder a /auth/login
-
-**Síntoma:** El API Gateway bloquea todas las peticiones
-
-**Solución:** Esto es normal si intentas acceder sin aceptar términos. Verifica los logs:
-
-```
-[API GATEWAY ZTA] GET /auth/login | Session: XXX | IP: XXX
+### Error: "JWT_SECRET not found"
+```bash
+# Solución: Agregar a .env
+JWT_SECRET=$(openssl rand -base64 32)
 ```
 
-Si ves "BLOCKED", verifica que:
-
-1. La ruta `/auth/` esté en la lista de rutas públicas
-2. El navegador no tenga cache antiguo (Ctrl + F5)
-3. Revisa los logs de la aplicación para más detalles
-
-### Puerto 8080 ya en uso
-
-```powershell
-# Ver qué proceso usa el puerto
-netstat -ano | findstr :8080
-
-# Matar el proceso
-taskkill /PID <PID> /F
+### Error: "VOZSEGURA_GATEWAY_SHARED_SECRET not configured"
+```bash
+# Solución: Generar y agregar a .env (MISMO en Gateway y Core)
+openssl rand -base64 32
 ```
 
-### Error: "Could not resolve placeholder 'SUPABASE_DB_URL'"
+### Error: "Database connection failed"
+```bash
+# Verificar credenciales Supabase
+echo $SUPABASE_DB_URL
 
-- **Causa:** El archivo `.env` no existe o está mal ubicado
-- **Solución:** Asegúrate de que `.env` esté en la **raíz del proyecto** (mismo nivel que `pom.xml`)
-
-### Error: "Connection refused"
-
-- Verifica que las credenciales en `.env` sean correctas
-- Asegúrate de tener conexión a internet
-- Verifica que la URL de Supabase sea correcta (debe incluir `?sslmode=require`)
-
-### Error: "Flyway validation failed"
-
-- La base de datos ya tiene las migraciones aplicadas
-- Esto es normal, la app continuará normalmente
-
-### Las variables de entorno no se cargan
-
-- Verifica que el archivo `.env` no tenga espacios extra en las líneas
-- No uses comillas en los valores: `PASSWORD=abc123` (✅) vs `PASSWORD="abc123"` (❌)
-- Reinicia el IDE después de crear el archivo `.env`
-
-### CAPTCHA inválido
-
-El CAPTCHA es único por sesión y se regenera en cada carga de página.
-
-- Copiar el código exactamente como aparece
-- Si da error, recarga la página para obtener uno nuevo
-- Los espacios o mayúsculas/minúsculas importan
-
-### Error al procesar autenticación
-
-**Síntomas:**
-
-- Vuelve al login después de enviar
-- Mensaje "Error al procesar la autenticación"
-
-**Causas comunes:**
-
-1. **CAPTCHA incorrecto**: El código debe coincidir exactamente
-2. **Sesión expirada**: Recarga la página para nueva sesión
-3. **Servicios mock no funcionan**: Revisa los logs para detalles
-
-**Solución:**
-
-```powershell
-# Ver logs detallados
-mvn spring-boot:run
-
-# Buscar líneas con [UNIFIED AUTH]
+# Probar conexión
+psql "$SUPABASE_DB_URL" -U "$SUPABASE_DB_USERNAME"
 ```
 
-Los logs mostrarán:
-
+### Error: "Invalid gateway signature"
+```bash
+# Verificar que shared secret es el MISMO
+grep VOZSEGURA_GATEWAY_SHARED_SECRET .env
 ```
-[UNIFIED AUTH] Processing login for cedula: XXXXXXXXXX
-[UNIFIED AUTH] Verifying identity...
-[UNIFIED AUTH] Identity verified: CITIZEN-XXXXXXXXXX
-[UNIFIED AUTH] User type: DENUNCIANTE
-```
-
-### Clave secreta incorrecta
-
-**Valores mock para desarrollo:**
-
-- Admin: `admin_secret_2026`
-- Analista: `analyst_secret_2026`
 
 ---
 
-## 📞 Soporte
+## 📋 Flujos del Sistema
 
-Para más información sobre arquitectura del sistema, consulta [ARQUITECTURA.md](ARQUITECTURA.md)
+### Flujo de Denuncia
+
+1. Usuario accede a `/denuncia`
+2. Verificación biométrica DIDIT
+3. Validación contra Registro Civil
+4. Aceptación de términos y condiciones
+5. Formulario de denuncia (máx 4000 caracteres)
+6. Upload de evidencias (PDF/DOCX/JPG/PNG)
+7. **Cifrado automático** de texto y archivos
+8. Generación de tracking ID (UUID)
+9. Almacenamiento en `denuncias.complaint`
+10. Retorno de código de seguimiento
+
+### Flujo de Análisis (Staff)
+
+1. Login con biometría + clave secreta + OTP
+2. Lista de casos en estado PENDING
+3. Visualización de caso (**descifrado automático**)
+4. Clasificación (tipo, prioridad)
+5. Derivación automática según reglas
+6. Actualización de estado
+7. Registro en auditoría
+
+---
+
+## 🚀 Despliegue a Producción
+
+### 1. Preparación
+
+```bash
+# Compilar para producción
+./mvnw clean package -Pprod
+
+# Crear backup de BD Supabase
+pg_dump "$SUPABASE_DB_URL" > backup_$(date +%Y%m%d).sql
+```
+
+### 2. Variables de Entorno
+
+```bash
+# Producción usa AWS Secrets Manager
+export SPRING_PROFILES_ACTIVE=prod
+export AWS_REGION=us-east-1
+```
+
+### 3. Ejecutar
+
+```bash
+# Core
+java -jar target/voz-segura-2.0.jar --spring.profiles.active=prod
+
+# Gateway
+java -jar gateway/target/gateway-2.0.jar --spring.profiles.active=prod
+```
+
+### 4. Docker (Recomendado)
+
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+---
+
+## 📊 Monitoreo
+
+### Health Checks
+
+```bash
+# Gateway
+curl http://localhost:8080/actuator/health
+
+# Core
+curl http://localhost:8082/actuator/health
+```
 
 ### Logs
 
-Los logs se muestran en consola. Para guardarlos:
+```bash
+# Core
+tail -f logs/core-dev.log
 
-```powershell
-mvn spring-boot:run > logs.txt 2>&1
+# Gateway
+tail -f gateway/logs/gateway.log
+
+# Filtrar errores
+grep ERROR logs/core-dev.log
 ```
 
 ---
 
-## 📄 Licencia
+## 📝 Licencia
 
-MIT License - 2026
-
----
-
-## 🏆 Desarrollado con
-
-- Spring Boot 3.3.4
-- PostgreSQL 16
-- Java 21
-- Thymeleaf
-- Flyway
-- BCrypt
-- AES-256-GCM
+Propiedad del Gobierno de Ecuador - Uso Gubernamental Exclusivo
 
 ---
 
-**Voz Segura - Plataforma Segura de Denuncias Anónimas**  
-**Zero Trust Architecture - 2026**  
-**¡Protegiendo tu identidad, protegiendo tu voz!** 🛡️
+## 👥 Equipo
+
+- **Arquitectura y Desarrollo:** Equipo Voz Segura
+- **Auditoría de Seguridad:** Enero 2026
+- **Stack:** Java 21 + Spring Boot 3 + Supabase PostgreSQL
+
+---
+
+## 🔄 Changelog
+
+### v2.0 (Enero 2026)
+- ✅ Zero Trust Architecture implementada
+- ✅ Cifrado automático de PII en BD (Flyway automático)
+- ✅ Migraciones automáticas al iniciar
+- ✅ Validación HMAC Gateway ↔ Core
+- ✅ Integración completa con Supabase PostgreSQL
+- ✅ AWS SES para OTP
+- ✅ DIDIT biometría
+- ✅ Auditoría de seguridad completa
+
+### v1.0 (Noviembre 2025)
+- Primera versión funcional
+
+---
+
+**Última actualización:** Enero 21, 2026  
+**Versión:** 2.0  
+**Estado:** ✅ Producción Ready
