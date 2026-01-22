@@ -3,6 +3,7 @@ package com.vozsegura.vozsegura.service;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import com.vozsegura.vozsegura.client.CivilRegistryClient;
@@ -54,6 +55,7 @@ import com.vozsegura.vozsegura.repo.StaffUserRepository;
  * @see StaffUserRepository
  */
 @Service
+@Slf4j
 public class UnifiedAuthService {
 
     private final CivilRegistryClient civilRegistryClient;

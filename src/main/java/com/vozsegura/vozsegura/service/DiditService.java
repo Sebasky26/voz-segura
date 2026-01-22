@@ -65,9 +65,10 @@ import java.util.Optional;
  * @author Voz Segura Team
  * @since 2026-01
  */
-@Slf4j
 @Service
 public class DiditService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DiditService.class);
 
     @Value("${didit.api-key}")
     private String apiKey;
