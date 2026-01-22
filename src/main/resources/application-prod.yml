@@ -2,14 +2,6 @@
 spring:
   main:
     allow-bean-definition-overriding: true
-# =============================================================================
-# CONFIGURACIÓN DE PRODUCCIÓN - VOZ SEGURA
-# =============================================================================
-# Este perfil utiliza AWS Secrets Manager para todas las credenciales
-# Cumple con el nodo "DB Secretos" del diagrama de arquitectura
-# =============================================================================
-
-spring:
   datasource:
     # Las credenciales se cargan dinámicamente desde AWS Secrets Manager
     # Ver: AwsDatabaseConfig.java

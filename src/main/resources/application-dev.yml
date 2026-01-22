@@ -37,7 +37,6 @@ spring:
         jdbc:
           batch_size: 0
           use_scrollable_resultset: false
-          use_get_generated_keys: false
         # Desactivar caché de queries
         query:
           plan_cache_max_size: 64
