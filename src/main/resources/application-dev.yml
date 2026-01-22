@@ -1,5 +1,8 @@
 spring:
   datasource:
+    spring:
+      main:
+        allow-bean-definition-overriding: true
     # Configuración de Supabase desde .env
     # CRÍTICO: PgBouncer en modo transacción no soporta prepared statements
     url: ${SUPABASE_DB_URL}
@@ -26,10 +29,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: false  # SEGURIDAD: Desactivado - expone PII
+    show-sql: false # SEGURIDAD: Desactivado - expone PII
     properties:
       hibernate:
-        format_sql: false  # SEGURIDAD: Desactivado
+        format_sql: false # SEGURIDAD: Desactivado
         # CRÍTICO: Desactivar completamente prepared statements en Hibernate
         jdbc:
           batch_size: 0
@@ -114,13 +117,13 @@ server:
 logging:
   level:
     root: INFO
-    com.vozsegura.vozsegura: INFO  # SEGURIDAD: INFO solamente
+    com.vozsegura.vozsegura: INFO # SEGURIDAD: INFO solamente
     com.vozsegura.vozsegura.service.DiditService: INFO
-    org.springframework.security: WARN  # SEGURIDAD: NO DEBUG - expone tokens
-    org.springframework.web: INFO  # SEGURIDAD: NO DEBUG - expone request bodies
-    org.hibernate.SQL: OFF  # SEGURIDAD: Desactivado - expone PII
+    org.springframework.security: WARN # SEGURIDAD: NO DEBUG - expone tokens
+    org.springframework.web: INFO # SEGURIDAD: NO DEBUG - expone request bodies
+    org.hibernate.SQL: OFF # SEGURIDAD: Desactivado - expone PII
     org.hibernate.type.descriptor.sql.BasicBinder: OFF
-    org.springframework.web.client: WARN  # NO DEBUG - expone headers HTTP
+    org.springframework.web.client: WARN # NO DEBUG - expone headers HTTP
   file:
     name: logs/voz-segura-dev.log
   pattern:

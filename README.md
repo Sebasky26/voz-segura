@@ -1,7 +1,39 @@
 # VOZ SEGURA - Plataforma de Denuncias Anónimas
 
+## 🚀 Ejecución Local y Despliegue
+
+### Requisitos
+
+- Tener Java 17 y Maven instalados
+- Tener el archivo `.env` completo en la raíz del proyecto (no se sube a git)
+- PowerShell habilitado (Windows)
+
+### Ejecución local de ambos módulos
+
+1. Abre dos terminales en la raíz del proyecto.
+2. En el primer terminal (core):
+   ```powershell
+   cd "d:\Octavo Semestre\Desarrollo Seguro\Project End\voz-segura"
+   .\run-local.ps1
+   ```
+3. En el segundo terminal (gateway):
+   ```powershell
+   cd "d:\Octavo Semestre\Desarrollo Seguro\Project End\voz-segura\gateway"
+   .\run-local.ps1
+   ```
+
+Ambos scripts cargan automáticamente las variables del `.env` y activan el perfil `dev` para desarrollo local.
+
+### Despliegue en producción
+
+- Para Render u otros entornos, define las variables de entorno necesarias en el panel de configuración del servicio.
+- El perfil activo se puede sobreescribir con la variable `SPRING_PROFILES_ACTIVE` según el entorno (`prod`, `dev`, etc).
+
+---
+
 **Versión:** 2.0  
 **Fecha:** Enero 2026
+
 ---
 
 ## Descripción del Proyecto
@@ -74,33 +106,37 @@
 ## 💻 Tecnologías Utilizadas
 
 ### Backend Core
-| Tecnología | Versión | Propósito | Detalles de Implementación |
-|------------|---------|-----------|----------------------------|
-| **Java** | 21 LTS | Lenguaje principal | JDK con soporte hasta 2029 |
-| **Spring Boot** | 3.4.0 | Framework de aplicación | Auto-configuración, embedded server |
-| **Spring Security** | 6.x | Autenticación y autorización | BCrypt, JWT validation, CSRF protection |
-| **Spring Cloud Gateway** | 4.x | API Gateway reactivo | WebFlux, filtros de autenticación |
-| **Spring Data JPA** | 3.x | Persistencia ORM | Hibernate + PostgreSQL optimizations |
-| **Spring Validation** | 3.x | Validación de DTOs | Jakarta Bean Validation |
+
+| Tecnología               | Versión | Propósito                    | Detalles de Implementación              |
+| ------------------------ | ------- | ---------------------------- | --------------------------------------- |
+| **Java**                 | 21 LTS  | Lenguaje principal           | JDK con soporte hasta 2029              |
+| **Spring Boot**          | 3.4.0   | Framework de aplicación      | Auto-configuración, embedded server     |
+| **Spring Security**      | 6.x     | Autenticación y autorización | BCrypt, JWT validation, CSRF protection |
+| **Spring Cloud Gateway** | 4.x     | API Gateway reactivo         | WebFlux, filtros de autenticación       |
+| **Spring Data JPA**      | 3.x     | Persistencia ORM             | Hibernate + PostgreSQL optimizations    |
+| **Spring Validation**    | 3.x     | Validación de DTOs           | Jakarta Bean Validation                 |
 
 ### Seguridad y Criptografía
-| Tecnología | Versión | Propósito | Implementación |
-|------------|---------|-----------|----------------|
-| **JWT (jjwt)** | 0.12.3 | Tokens de sesión | HS256, 24h expiración, claims: cedula/userType/apiKey |
-| **BCrypt** | Spring Security | Hash de contraseñas | Strength 10 (2^10 = 1024 rounds) |
-| **AES-256-GCM** | Java Crypto | Cifrado de PII | IV 12 bytes, tag 128 bits, AEAD |
-| **HMAC-SHA256** | Java Crypto | Firma Zero Trust | Gateway-Core validation, TTL 60s |
-| **SHA-256** | Java Security | Hash de identidades | Irreversible, usado para anonimato |
+
+| Tecnología      | Versión         | Propósito           | Implementación                                        |
+| --------------- | --------------- | ------------------- | ----------------------------------------------------- |
+| **JWT (jjwt)**  | 0.12.3          | Tokens de sesión    | HS256, 24h expiración, claims: cedula/userType/apiKey |
+| **BCrypt**      | Spring Security | Hash de contraseñas | Strength 10 (2^10 = 1024 rounds)                      |
+| **AES-256-GCM** | Java Crypto     | Cifrado de PII      | IV 12 bytes, tag 128 bits, AEAD                       |
+| **HMAC-SHA256** | Java Crypto     | Firma Zero Trust    | Gateway-Core validation, TTL 60s                      |
+| **SHA-256**     | Java Security   | Hash de identidades | Irreversible, usado para anonimato                    |
 
 ### Base de Datos
-| Componente | Propósito | Configuración |
-|------------|-----------|---------------|
-| **Supabase PostgreSQL** | BD principal | Versión 17, 6 schemas separados |
-| **Flyway** | Migraciones automáticas | V1-V32, baseline-on-migrate enabled |
-| **PgBouncer** | Connection pooling | Modo transacción, prepareThreshold=0 |
-| **HikariCP** | Pool de conexiones | Pool size: 3 (dev), 10 (prod) |
+
+| Componente              | Propósito               | Configuración                        |
+| ----------------------- | ----------------------- | ------------------------------------ |
+| **Supabase PostgreSQL** | BD principal            | Versión 17, 6 schemas separados      |
+| **Flyway**              | Migraciones automáticas | V1-V32, baseline-on-migrate enabled  |
+| **PgBouncer**           | Connection pooling      | Modo transacción, prepareThreshold=0 |
+| **HikariCP**            | Pool de conexiones      | Pool size: 3 (dev), 10 (prod)        |
 
 #### Schemas de Base de Datos:
+
 1. **`registro_civil`**: Personas verificadas (PII cifrado)
 2. **`staff`**: Usuarios Admin/Analyst (PII cifrado)
 3. **`denuncias`**: Denuncias (texto cifrado AES-256-GCM)
@@ -109,60 +145,70 @@
 6. **`reglas_derivacion`**: Reglas de clasificación automática
 
 ### Integraciones Externas
-| Servicio | Propósito | Configuración | Seguridad |
-|----------|-----------|---------------|-----------|
-| **DIDIT API v3** | Verificación biométrica facial | API Key desde .env | Webhook HMAC validation |
-| **Registro Civil (Ecuador)** | Validación de identidad | API REST con OAuth | Credenciales en AWS SM |
-| **AWS SES** | Envío de OTP por email | Region: us-east-1 | IAM credentials, rate limit |
-| **AWS Secrets Manager** | Gestión de secretos (prod) | KMS encryption | IAM Role, cache 2h |
-| **Cloudflare Turnstile** | CAPTCHA anti-bot | Site Key + Secret Key | Validación server-side |
+
+| Servicio                     | Propósito                      | Configuración         | Seguridad                   |
+| ---------------------------- | ------------------------------ | --------------------- | --------------------------- |
+| **DIDIT API v3**             | Verificación biométrica facial | API Key desde .env    | Webhook HMAC validation     |
+| **Registro Civil (Ecuador)** | Validación de identidad        | API REST con OAuth    | Credenciales en AWS SM      |
+| **AWS SES**                  | Envío de OTP por email         | Region: us-east-1     | IAM credentials, rate limit |
+| **AWS Secrets Manager**      | Gestión de secretos (prod)     | KMS encryption        | IAM Role, cache 2h          |
+| **Cloudflare Turnstile**     | CAPTCHA anti-bot               | Site Key + Secret Key | Validación server-side      |
 
 ### Frontend y UI
-| Tecnología | Propósito |
-|------------|-----------|
-| **Thymeleaf** | Motor de templates server-side |
-| **CSS Custom** | Estilos personalizados (main.css) |
-| **JavaScript Vanilla** | Validaciones client-side (sin frameworks) |
-| **Cloudflare Turnstile** | CAPTCHA en formularios públicos |
+
+| Tecnología               | Propósito                                 |
+| ------------------------ | ----------------------------------------- |
+| **Thymeleaf**            | Motor de templates server-side            |
+| **CSS Custom**           | Estilos personalizados (main.css)         |
+| **JavaScript Vanilla**   | Validaciones client-side (sin frameworks) |
+| **Cloudflare Turnstile** | CAPTCHA en formularios públicos           |
 
 ### DevOps y Deployment
-| Herramienta | Propósito |
-|-------------|-----------|
-| **Maven** | Gestión de dependencias y build |
-| **Docker** | Containerización (Dockerfile + docker-compose.yml) |
-| **GitHub Actions** | CI/CD (opcional) |
-| **AWS EC2** | Hosting de producción (recomendado) |
+
+| Herramienta        | Propósito                                          |
+| ------------------ | -------------------------------------------------- |
+| **Maven**          | Gestión de dependencias y build                    |
+| **Docker**         | Containerización (Dockerfile + docker-compose.yml) |
+| **GitHub Actions** | CI/CD (opcional)                                   |
+| **AWS EC2**        | Hosting de producción (recomendado)                |
 
 ### Observabilidad y Monitoreo
-| Componente | Propósito | Configuración |
-|------------|-----------|---------------|
-| **Logback** | Logging framework | Configurado en logback-spring.xml |
-| **SLF4J + Lombok** | Logging API | `@Slf4j` annotation en clases |
-| **Spring Actuator** | Health checks | `/actuator/health` endpoint |
-| **AWS CloudWatch** | Logs centralizados (prod) | Logs exportados desde EC2 |
+
+| Componente          | Propósito                 | Configuración                     |
+| ------------------- | ------------------------- | --------------------------------- |
+| **Logback**         | Logging framework         | Configurado en logback-spring.xml |
+| **SLF4J + Lombok**  | Logging API               | `@Slf4j` annotation en clases     |
+| **Spring Actuator** | Health checks             | `/actuator/health` endpoint       |
+| **AWS CloudWatch**  | Logs centralizados (prod) | Logs exportados desde EC2         |
 
 ---
 
 ## 📊 Esquemas de Base de Datos
 
 ### 1. `registro_civil` - Identidades
+
 - **`personas`**: Ciudadanos verificados (PII cifrado con AES-256-GCM)
 - **`didit_verification`**: Registros de verificación biométrica
 
 ### 2. `staff` - Personal del Sistema
+
 - **`staff_user`**: Usuarios Admin/Analista (PII cifrado)
 
 ### 3. `denuncias` - Denuncias
+
 - **`denuncia`**: Denuncias con texto cifrado
 - **`complaint_status_log`**: Historial de cambios
 
 ### 4. `evidencias` - Archivos Adjuntos
+
 - **`evidencia`**: Archivos PDF/DOCX/IMG cifrados
 
 ### 5. `logs` - Auditoría
+
 - **`evento_auditoria`**: Registro de todas las acciones (sin PII)
 
 ### 6. `reglas_derivacion` - Configuración
+
 - **`derivation_rule`**: Reglas de derivación automática
 - **`destination_entity`**: Entidades destino
 - **`configuracion`**: Configuración del sistema
@@ -238,6 +284,7 @@ DIDIT_API_URL=https://verification.didit.me
 3. Las migraciones Flyway se ejecutan **automáticamente** al iniciar la aplicación
 
 **Migraciones automáticas:**
+
 - V1 a V27: Estructura de BD
 - V28: Agregar columnas PII cifradas
 - V29: Migración de datos existentes (si hay)
@@ -268,6 +315,7 @@ DIDIT_API_URL=https://verification.didit.me
 cd gateway
 ../mvnw spring-boot:run
 ```
+
 ---
 
 ## 🔧 Comandos Útiles
@@ -293,12 +341,14 @@ cd gateway
 ## 🐛 Troubleshooting
 
 ### Error: "JWT_SECRET not found"
+
 ```bash
 # Solución: Agregar a .env
 JWT_SECRET=$(openssl rand -base64 32)
 ```
 
 ### Error: "Database connection failed"
+
 ```bash
 # Verificar credenciales Supabase
 echo $SUPABASE_DB_URL
@@ -308,12 +358,14 @@ psql "$SUPABASE_DB_URL" -U "$SUPABASE_DB_USERNAME"
 ```
 
 ### Error: "Invalid gateway signature"
+
 ```bash
 # El Core solo acepta peticiones del Gateway
 # Accede a http://localhost:8080 (NO a :8082)
 ```
 
 ### Error en migraciones Flyway
+
 ```bash
 # Las migraciones son automáticas
 # Si falla, revisar logs en logs/core-dev.log
@@ -354,13 +406,16 @@ tail -f logs/core-dev.log
 ### 🛡️ Arquitectura Zero Trust Implementada
 
 #### 1. **API Gateway (Puerto 8080)**
+
 **Responsabilidades:**
+
 - Validación de JWT (firma HS256, expiración 24h)
 - Generación de firma HMAC-SHA256 para peticiones al Core
 - Rate limiting (30 req/min por IP)
 - CORS y headers de seguridad
 
 **Clase Principal:** `JwtAuthenticationGatewayFilterFactory`
+
 - Extrae claims del JWT (cedula, userType, apiKey)
 - Genera timestamp + HMAC signature
 - Agrega headers: `X-User-Cedula`, `X-User-Type`, `X-Gateway-Signature`, `X-Request-Timestamp`
@@ -374,13 +429,16 @@ String signature = Base64.encode(mac.doFinal(message.getBytes()));
 ```
 
 #### 2. **Core Service (Puerto 8082)**
+
 **Responsabilidades:**
+
 - Validación de firma HMAC del Gateway (Zero Trust)
 - Anti-replay: TTL 60 segundos en timestamp
 - Cifrado/descifrado de PII con AES-256-GCM
 - Lógica de negocio y persistencia
 
 **Clase Principal:** `ZeroTrustGatewayFilter` + `GatewayRequestValidator`
+
 - Valida firma HMAC contra clave compartida
 - Compara con timing-attack safe (`MessageDigest.isEqual`)
 - Rechaza peticiones directas al Core (sin pasar por Gateway)
@@ -389,26 +447,30 @@ String signature = Base64.encode(mac.doFinal(message.getBytes()));
 // Validación Zero Trust
 String expectedSignature = generateHmacSignature(timestamp, method, path, cedula, userType);
 if (!MessageDigest.isEqual(
-    expectedSignature.getBytes(), 
+    expectedSignature.getBytes(),
     gatewaySignature.getBytes())) {
     response.sendError(403, "Invalid gateway signature");
 }
 ```
 
 #### 3. **Cifrado de Datos (AES-256-GCM)**
+
 **Clase Principal:** `AesGcmEncryptionService`
+
 - **Algoritmo:** AES-256-GCM (AEAD - Authenticated Encryption with Associated Data)
 - **IV:** 12 bytes aleatorios por operación (`SecureRandom`)
 - **Tag:** 128 bits de autenticación (detecta manipulación)
 - **Clave:** 256 bits desde AWS Secrets Manager o variable de entorno
 
 **Flujo de Cifrado:**
+
 ```
 Texto Plain → IV Aleatorio → AES-GCM → Tag Auth → Base64 → BD
                  (12 bytes)   (256-bit)  (128 bits)
 ```
 
 **Implementación:**
+
 ```java
 // Cifrado
 byte[] iv = new byte[12];
@@ -421,13 +483,16 @@ return Base64.encode(IV + ciphertext + tag);
 ```
 
 **Datos Cifrados:**
+
 - Texto completo de denuncias
 - Archivos adjuntos (evidencias)
 - PII en columnas `*_encrypted` de BD: nombres, emails, cédulas
 - Notas de analistas (opcional)
 
 #### 4. **Validación de Archivos**
+
 **Clase Principal:** `FileValidationService`
+
 - **Whitelist MIME types:** PDF, JPEG, PNG, DOCX, MP4
 - **Validación de magic bytes** (firma real del archivo, no spoofeable)
 - **Path traversal bloqueado:** `..`, `/`, `\`
@@ -453,13 +518,16 @@ boolean isValidEvidence(MultipartFile file) {
 ```
 
 #### 5. **Auditoría Sin PII**
+
 **Clase Principal:** `AuditService`
+
 - Username hasheado con SHA-256 (8 caracteres): `USR-Xy7kP0Qz`
 - Sin cédulas, tokens, contraseñas en logs
 - Timestamp con timezone offset (UTC)
 - Detalles truncados a 500 caracteres
 
 **Eventos Auditados:**
+
 - `LOGIN`: Acceso al sistema
 - `LOGOUT`: Cierre de sesión
 - `CREATE`: Creación de denuncia/usuario
@@ -468,6 +536,8 @@ boolean isValidEvidence(MultipartFile file) {
 - `ACCESS`: Acceso a recurso (visualización)
 - `REVEAL`: Solicitud de revelación de identidad
 - `ERROR`: Error del sistema
+
 ---
+
 **Última actualización:** Enero 21, 2026  
 **Versión:** 2.0

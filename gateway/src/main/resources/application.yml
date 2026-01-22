@@ -23,27 +23,19 @@ vozsegura:
     # Generar con: openssl rand -base64 32
     shared-secret: ${VOZSEGURA_GATEWAY_SHARED_SECRET}
 
+# Bloque spring único y correctamente anidado
 spring:
   application:
     name: voz-segura-gateway
-  
-  # ============================================
-  # Logging Configuration
-  # ============================================
   output:
     ansi:
       enabled: always
-  
-  # ============================================
-  # Cloud Gateway Configuration
-  # ============================================
   cloud:
     gateway:
       # Filtros globales
       default-filters:
         # Eliminar headers duplicados de Access-Control
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
-        
         # Agregar headers de seguridad global
         - AddResponseHeader=X-Content-Type-Options,nosniff
         - AddResponseHeader=X-Frame-Options,DENY
@@ -53,12 +45,10 @@ spring:
         - AddResponseHeader=Access-Control-Allow-Origin,*
         - AddResponseHeader=Access-Control-Allow-Methods,GET;POST;PUT;DELETE;PATCH;OPTIONS
         - AddResponseHeader=Access-Control-Allow-Headers,Content-Type;Authorization;X-Api-Key;X-User-Cedula;X-User-Type
-
       # Timeouts
       httpclient:
         connect-timeout: 5000
         response-timeout: 10000ms
-
       # Estadísticas
       metrics:
         enabled: true
@@ -71,40 +61,12 @@ jwt:
   # NO tiene valor por defecto - la app fallará si no está configurado
   # Generar con: openssl rand -base64 32
   secret: ${JWT_SECRET}
-  expiration: 86400000  # 24 horas en milisegundos
+  expiration: 86400000 # 24 horas en milisegundos
 
 # ============================================
 # Supabase Configuration - OBLIGATORIO desde variables de entorno
 # ============================================
-supabase:
-  # CRÍTICO: NO exponer URLs de proyectos en el código
-  project-url: ${SUPABASE_PROJECT_URL}
-  anon-key: ${SUPABASE_ANON_KEY}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
 
-# ============================================
-# Logging - SEGURO
-# ============================================
-logging:
-  level:
-    root: INFO
-    com.vozsegura.gateway: INFO
-    org.springframework.cloud.gateway: INFO
-    org.springframework.security: WARN
-    reactor.netty: WARN
-    com.vozsegura.gateway.config: DEBUG
-    com.vozsegura.gateway.filter: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %logger{36} - %msg%n"
-  file:
-    name: logs/gateway.log
-    max-size: 10MB
-    max-history: 30
-
-# ============================================
-# Management (Actuator)
-# ============================================
 management:
   endpoints:
     web:

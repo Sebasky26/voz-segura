@@ -1,3 +1,7 @@
+# Permite beans duplicados (como 'dataSource') en producción
+spring:
+  main:
+    allow-bean-definition-overriding: true
 # =============================================================================
 # CONFIGURACIÓN DE PRODUCCIÓN - VOZ SEGURA
 # =============================================================================
