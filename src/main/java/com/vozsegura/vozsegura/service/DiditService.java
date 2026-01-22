@@ -133,17 +133,13 @@ public class DiditService {
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
 
-            if (response != null) {
-                String sessionId = (String) response.get("session_id");
-                // SEGURIDAD: NO loggear URL completa (contiene session token en path)
-                log.info("Didit session created - ID: {}", maskSessionId(sessionId));
-            } else {
-                log.warn("Didit returned null response");
+            if (response == null) {
+                throw new RuntimeException("Didit returned null response");
             }
             return response;
 
         } catch (Exception e) {
-            log.error("Error creating Didit session. Workflow: {}", workflowId, e);
+            log.error("Error creating Didit session", e);
             throw new RuntimeException("Error creando sesión de verificación con Didit: " + e.getMessage(), e);
         }
     }
@@ -169,13 +165,11 @@ public class DiditService {
             boolean isValid = computedSignature.equals(signature);
             
             if (!isValid) {
-                log.warn("Webhook signature verification failed. Expected: {}, Got: {}", 
-                        computedSignature, signature);
-            } else {
-                log.info("Webhook signature verified successfully");
+                log.warn("Webhook signature mismatch. Expected: {}, Got: {}", expectedSignature, providedSignature);
+                return false;
             }
             
-            return isValid;
+            return true;
         } catch (Exception e) {
             log.error("Error verifying webhook signature", e);
             return false;
@@ -211,35 +205,25 @@ public class DiditService {
     @Transactional
     public DiditVerification processWebhookPayload(String payload, String ipAddress) {
         try {
-            log.info("Starting webhook payload processing...");
             DiditWebhookPayload webhookData = objectMapper.readValue(payload, DiditWebhookPayload.class);
-            
-            log.info("Parsed webhook data. SessionId: {}, WebhookType: {}", 
-                    webhookData.getSessionId(), webhookData.getWebhookType());
 
             // Obtener el status - puede estar en el nivel raíz o en decision
             String webhookStatus = webhookData.getStatus();
             if (webhookStatus == null && webhookData.getDecision() != null) {
                 webhookStatus = webhookData.getDecision().getStatus();
-                log.info("Status extracted from decision: {}", webhookStatus);
-            } else {
-                log.info("Status from root level: {}", webhookStatus);
             }
 
             // Solo procesar si el status es "Approved"
             if (webhookStatus == null || !webhookStatus.equals("Approved")) {
-                log.info("Ignoring webhook with status: {}. Only processing 'Approved' verifications.", webhookStatus);
                 return null;
             }
 
             // Mapear el status de Didit al enum de la base de datos
             // Didit envía "Approved" pero la BD espera "VERIFIED", "FAILED", o "PENDING"
             String status = "VERIFIED";  // Mapping: Approved → VERIFIED
-            log.info("Mapped webhook status 'Approved' to database value '{}'", status);
 
             // Intentar obtener document_data del nivel raíz
             DiditWebhookPayload.DocumentData docData = webhookData.getDocumentData();
-            log.info("DocumentData from root: {}", docData != null ? "Found" : "Not found");
 
             // Si no, intentar desde decision.id_verifications
             if (docData == null && webhookData.getDecision() != null && 
@@ -247,9 +231,7 @@ public class DiditService {
                 !webhookData.getDecision().getIdVerifications().isEmpty()) {
                 
                 DiditWebhookPayload.Decision.IdVerification idVerif = webhookData.getDecision().getIdVerifications().get(0);
-                log.info("Found IdVerification in decision. PersonalNumber: {}, Name: {}", 
-                        idVerif.getPersonalNumber(), idVerif.getFullName());
-                
+
                 // Convertir IdVerification a DocumentData
                 docData = new DiditWebhookPayload.DocumentData();
                 docData.setPersonalNumber(idVerif.getPersonalNumber());
@@ -257,13 +239,10 @@ public class DiditService {
                 docData.setLastName(idVerif.getLastName());
                 docData.setFullName(idVerif.getFullName() != null ? idVerif.getFullName() : 
                     (idVerif.getFirstName() + " " + idVerif.getLastName()));
-                
-                log.info("Converted to DocumentData: {} - {}", docData.getPersonalNumber(), docData.getFullName());
             }
 
             // Verificar que tenemos los datos del documento
             if (docData == null) {
-                log.warn("Webhook payload approved but without document_data");
                 throw new IllegalArgumentException("El payload del webhook no contiene datos del documento");
             }
 
@@ -274,9 +253,7 @@ public class DiditService {
             if (existingVerification.isPresent()) {
                 // Actualizar registro existente
                 verification = existingVerification.get();
-                log.info("User already exists in database. Updating verification. Old sessionId: {}, New sessionId: {}", 
-                        verification.getDiditSessionId(), webhookData.getSessionId());
-                
+
                 // Actualizar solo campos necesarios
                 verification.setDiditSessionId(webhookData.getSessionId());
                 verification.setVerificationStatus(status);
@@ -300,19 +277,15 @@ public class DiditService {
                 if (persona.isPresent()) {
                     verification.setIdRegistro(persona.get().getIdRegistro());
                 } else {
-                    log.error("Persona not found for document in Didit webhook. Cannot create verification without id_registro.");
+                    log.error("Persona not found for document in Didit webhook");
                     throw new IllegalArgumentException("No existe persona registrada con la cédula proporcionada por Didit");
                 }
             }
 
-            DiditVerification saved = diditVerificationRepository.save(verification);
-            
-            log.info("Didit verification saved to database. Status: {}", saved.getVerificationStatus());
-            
-            return saved;
+            return diditVerificationRepository.save(verification);
 
         } catch (Exception e) {
-            log.error("Error processing Didit webhook payload: {}", e.getMessage(), e);
+            log.error("Error processing Didit webhook payload", e);
             throw new RuntimeException("Error procesando payload de Didit", e);
         }
     }

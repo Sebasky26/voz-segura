@@ -71,13 +71,11 @@ public class ZeroTrustGatewayFilter implements Filter {
                 long diff = Math.abs(now - requestTime);
 
                 if (diff > 300000) { // 5 minutos
-                    log.warn("Zero Trust validation failed: Timestamp expired");
                     httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                                           "Request timestamp expired");
                     return;
                 }
             } catch (NumberFormatException e) {
-                log.warn("Zero Trust validation failed: Invalid timestamp");
                 httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid timestamp");
                 return;
             }
@@ -96,7 +94,6 @@ public class ZeroTrustGatewayFilter implements Filter {
                 expectedSignature.getBytes(StandardCharsets.UTF_8),
                 gatewaySignature.getBytes(StandardCharsets.UTF_8)
             )) {
-                log.error("Zero Trust validation failed: Invalid signature");
                 httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                                       "Invalid gateway signature");
                 return;
@@ -122,7 +119,6 @@ public class ZeroTrustGatewayFilter implements Filter {
         }
 
         // Si ninguna validación pasó → rechazar
-        log.warn("Zero Trust validation failed: No valid credentials or session");
         httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
                               "Access denied: requests must come through API Gateway (http://localhost:8080)");
         return;
@@ -192,12 +188,11 @@ public class ZeroTrustGatewayFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
-        log.info("🛡️ Zero Trust Gateway Filter initialized");
-        log.info("Protected routes will require valid Gateway signature");
+        // Filter initialized
     }
 
     @Override
     public void destroy() {
-        log.info("🛡️ Zero Trust Gateway Filter destroyed");
+        // Filter destroyed
     }
 }

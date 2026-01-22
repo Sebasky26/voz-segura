@@ -239,7 +239,6 @@ public class UnifiedAuthController {
             Map<String, Object> response = diditService.createVerificationSession(sessionId);
             
             if (response == null || !response.containsKey("session_id") || !response.containsKey("url")) {
-                String errorMsg = "Respuesta inválida de Didit: " + (response != null ? response.toString() : "null");
                 redirectAttributes.addFlashAttribute("error", "Error: respuesta inválida de Didit");
                 return "redirect:/auth/login";
             }
@@ -249,9 +248,6 @@ public class UnifiedAuthController {
             
             // Guardar session_id en la sesión HTTP para luego validar el webhook
             session.setAttribute("diditSessionId", diditSessionId);
-            
-            // SEGURIDAD: NO loggear URLs completas ni session IDs (contienen tokens)
-            log.info("Didit verification session created");
 
             // Redirigir a Didit
             return "redirect:" + verificationUrl;
@@ -280,43 +276,31 @@ public class UnifiedAuthController {
             // Obtener el session_id del parámetro o de la sesión
             String diditSessionId = sessionIdParam != null ? sessionIdParam : (String) session.getAttribute("diditSessionId");
             
-            log.info("handleDiditCallback - sessionIdParam: {}, sessionAttribute: {}, final diditSessionId: {}", 
-                    sessionIdParam, session.getAttribute("diditSessionId"), diditSessionId);
-            
             if (diditSessionId == null || diditSessionId.isBlank()) {
-                log.warn("No diditSessionId found. sessionIdParam={}, sessionAttr={}", 
-                        sessionIdParam, session.getAttribute("diditSessionId"));
                 redirectAttributes.addFlashAttribute("error", "Sesión de verificación no encontrada.");
                 return "redirect:/auth/login";
             }
             
-            log.info("Verify callback for session: {}", diditSessionId);
-            
             // IMPORTANTE: Esperar a que el webhook POST de Didit entregue los datos
             // El webhook tarda algunos milisegundos en llegar
-            log.info("Waiting for webhook POST from Didit for sessionId: {}", diditSessionId);
-            
             Optional<DiditVerification> verificationOpt = Optional.empty();
             int maxAttempts = 20; // 20 intentos × 250ms = 5 segundos máximo
             
             for (int i = 0; i < maxAttempts; i++) {
                 verificationOpt = diditService.getVerificationBySessionId(diditSessionId);
                 if (verificationOpt.isPresent()) {
-                    log.info("Webhook data received on attempt {}/{}", i + 1, maxAttempts);
                     break;
                 }
                 
                 try {
                     Thread.sleep(250); // Esperar 250ms antes del siguiente intento
                 } catch (InterruptedException e) {
-                    log.warn("Interrupted while waiting for webhook: {}", e.getMessage());
                     Thread.currentThread().interrupt();
                     break;
                 }
             }
             
             if (verificationOpt.isEmpty()) {
-                log.error("Webhook data not received after {} attempts (5 seconds) for session: {}", maxAttempts, diditSessionId);
                 redirectAttributes.addFlashAttribute("error", "La verificación no fue exitosa. Por favor intente nuevamente.");
                 return "redirect:/auth/login";
             }
@@ -362,7 +346,6 @@ public class UnifiedAuthController {
                     staffRedirectUrl = "/denuncia/form";
                 } else {
                     // Cédula no encontrada en ninguna tabla
-                    log.warn("Document not found in system");
                     redirectAttributes.addFlashAttribute("error", "Cédula no registrada en el sistema. Por favor intente nuevamente.");
                     return "redirect:/auth/login";
                 }
