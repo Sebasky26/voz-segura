@@ -86,10 +86,11 @@ import lombok.extern.slf4j.Slf4j;
  * @author Voz Segura Team
  * @since 2026-01
  */
-@Slf4j
 @Controller
 @RequestMapping("/auth")
 public class UnifiedAuthController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UnifiedAuthController.class);
 
     private final UnifiedAuthService unifiedAuthService;
     private final CloudflareTurnstileService turnstileService;

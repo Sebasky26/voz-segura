@@ -1,12 +1,11 @@
 package com.vozsegura.vozsegura.service;
 
-import com.vozsegura.vozsegura.domain.entity.TermsAcceptance;
-import com.vozsegura.vozsegura.repo.TermsAcceptanceRepository;
+// ...existing code...
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+// ...existing code...
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
+// ...existing code...
+// ...existing code...
 
 /**
  * Servicio para gestión y auditoría de aceptación de términos y condiciones.
@@ -36,34 +35,8 @@ import java.util.UUID;
 @Service
 public class TermsService {
 
-    private final TermsAcceptanceRepository termsAcceptanceRepository;
+    // Métodos de aceptación de términos eliminados porque la funcionalidad y tabla ya no existen
 
-    public TermsService(TermsAcceptanceRepository termsAcceptanceRepository) {
-        this.termsAcceptanceRepository = termsAcceptanceRepository;
-    }
-
-    /**
-     * Registra la aceptación de términos.
-     *
-     * @return token de sesión para vincular con el flujo
-     */
-    @Transactional
-    public String recordAcceptance() {
-        String sessionToken = UUID.randomUUID().toString();
-
-        TermsAcceptance acceptance = new TermsAcceptance();
-        acceptance.setSessionToken(sessionToken);
-        acceptance.setAcceptedAt(OffsetDateTime.now());
-        termsAcceptanceRepository.save(acceptance);
-
-        return sessionToken;
-    }
-
-    /**
-     * Verifica si un token de sesión tiene términos aceptados.
-     */
-    public boolean hasAccepted(String sessionToken) {
-        return termsAcceptanceRepository.findBySessionToken(sessionToken).isPresent();
-    }
+    // Método hasAccepted eliminado porque ya no hay funcionalidad
 }
 
