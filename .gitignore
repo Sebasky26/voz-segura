@@ -34,6 +34,14 @@ out/
 .env.*.local
 *.env
 
+# Passwords y credenciales temporales
+PASSWORDS_TEMPORALES.md
+PASSWORDS_*.md
+*_passwords.txt
+fix_usuario_*.sql
+*PasswordHashGenerator.java
+GenHash.java
+
 # Archivos de credenciales AWS
 .aws/
 credentials

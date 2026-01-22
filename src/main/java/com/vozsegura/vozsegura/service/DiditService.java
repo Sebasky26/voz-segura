@@ -165,7 +165,7 @@ public class DiditService {
             boolean isValid = computedSignature.equals(signature);
             
             if (!isValid) {
-                log.warn("Webhook signature mismatch. Expected: {}, Got: {}", expectedSignature, providedSignature);
+                log.warn("Webhook signature mismatch. Expected: {}, Got: {}", computedSignature, signature);
                 return false;
             }
             

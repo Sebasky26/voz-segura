@@ -278,7 +278,7 @@ public class AwsSesOtpClient implements OtpClient {
                     .build();
 
             SendEmailResponse response = sesClient.sendEmail(request);
-            log.info("[AWS SES] Email sent successfully - MessageId: {}", response.messageId());
+            log.debug("[AWS SES] Email sent successfully - MessageId: {}", response.messageId());
             return true;
 
         } catch (SesException e) {

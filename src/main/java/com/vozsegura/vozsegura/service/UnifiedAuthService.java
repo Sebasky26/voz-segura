@@ -2,6 +2,7 @@ package com.vozsegura.vozsegura.service;
 
 import java.util.Optional;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
@@ -195,14 +196,13 @@ public class UnifiedAuthService {
      */
     public boolean validateSecretKey(StaffUser staffUser, String secretKey) {
         if (staffUser == null) {
-            log.warn("SECURITY: validateSecretKey called with null staffUser");
             return false;
         }
 
         String passwordHash = staffUser.getPasswordHash();
+        String userHash = hashUserId(staffUser.getUsername()); // Hash para logs seguros
 
         if (passwordHash == null || passwordHash.isEmpty()) {
-            log.warn("SECURITY: User {} has no password hash configured", staffUser.getUsername());
             return false;
         }
         
@@ -211,20 +211,31 @@ public class UnifiedAuthService {
             try {
                 boolean isValid = BCrypt.checkpw(secretKey, passwordHash);
                 if (!isValid) {
-                    log.warn("SECURITY: Invalid password attempt for user {}", staffUser.getUsername());
+                    log.warn("SECURITY: Invalid password attempt for user [{}]", userHash);
                 }
                 return isValid;
             } catch (IllegalArgumentException e) {
-                log.error("SECURITY: BCrypt validation error for user {}: {}",
-                         staffUser.getUsername(), e.getMessage());
                 return false;
             }
         }
         
         // Si el hash NO es BCrypt válido, rechazar
-        log.error("SECURITY: User {} has invalid password hash format (not BCrypt). Password reset required.",
-                 staffUser.getUsername());
         return false;
+    }
+
+    /**
+     * Genera un hash corto del username para logs seguros (sin exponer PII).
+     * Formato: USR-[8 chars base64]
+     */
+    private String hashUserId(String username) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(username.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String b64 = java.util.Base64.getEncoder().encodeToString(hash);
+            return "USR-" + b64.substring(0, 8).replaceAll("[+/=]", "X");
+        } catch (Exception e) {
+            return "USR-" + username.hashCode();
+        }
     }
 
     /**

@@ -143,18 +143,18 @@ public class AdminController {
         }
 
         try {
-            log.info("Loading admin panel for session: {}", session.getId());
-            
+            log.debug("Loading admin panel");
+
             long totalRules = derivationService.findAllRules().size();
             long activeRules = derivationService.findActiveRules().size();
 
             model.addAttribute("totalRules", totalRules);
             model.addAttribute("activeRules", activeRules);
 
-            log.info("Admin panel loaded successfully - Total rules: {}, Active rules: {}", totalRules, activeRules);
+            log.debug("Admin panel loaded successfully - Total rules: {}, Active rules: {}", totalRules, activeRules);
             return "admin/panel";
         } catch (Exception e) {
-            log.error("Error loading admin panel for session: {}", session.getId(), e);
+            log.error("Error loading admin panel", e);
             model.addAttribute("errorMessage", "Error al cargar el panel. Por favor intenta nuevamente.");
             return "error/generic-error";
         }
