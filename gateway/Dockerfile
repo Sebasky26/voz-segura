@@ -11,8 +11,8 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copiar el jar generado
-COPY --from=build /app/gateway/target/*.jar app.jar
+# Copiar el fat jar generado por Spring Boot
+COPY --from=build /app/gateway/target/voz-segura-gateway-0.0.1-SNAPSHOT.jar app.jar
 
 # Exponer el puerto del Gateway (estándar 8080)
 EXPOSE 8080

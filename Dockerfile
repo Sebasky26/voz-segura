@@ -10,8 +10,9 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copiar el jar generado (asumiendo que solo se genera uno)
-COPY --from=build /app/target/*.jar app.jar
+
+# Copiar el fat jar generado por Spring Boot
+COPY --from=build /app/target/voz-segura-core-0.0.1-SNAPSHOT.jar app.jar
 
 # Exponer el puerto del Core (según DIDIT_INTEGRATION.md es 8082)
 EXPOSE 8082
