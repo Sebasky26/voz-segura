@@ -41,6 +41,26 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            
+            <!-- ================= SECURITY FIX: Jackson DoS vulnerability ================= -->
+            <!-- Fixes SNYK-JAVA-COMFASTERXMLJACKSONCORE-7569538 (CVE jackson-core DoS) -->
+            <!-- Introduced by: jjwt-jackson@0.12.3 → jackson-core@2.12.7 (vulnerable) -->
+            <!-- Fixed by: Forcing jackson-core@2.15.2 (secure) -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.15.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.15.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.15.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

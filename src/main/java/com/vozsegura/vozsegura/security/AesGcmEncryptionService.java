@@ -52,7 +52,9 @@ import java.util.Base64;
 @Service
 public class AesGcmEncryptionService implements EncryptionService {
 
-    private static final String ALGO = "AES/GCM/NoPadding";
+    /** Algoritmo de cifrado (configurable, default: AES/GCM/NoPadding = estándar) */
+    @Value("${encryption.algorithm:AES/GCM/NoPadding}")
+    private String algorithm;
     
     /** IV length en bytes (configurable, default: 12 bytes = estándar AES-GCM) */
     @Value("${encryption.gcm.iv-length:12}")
@@ -90,7 +92,7 @@ public class AesGcmEncryptionService implements EncryptionService {
             byte[] iv = new byte[ivLengthBytes];
             secureRandom.nextBytes(iv);
 
-            Cipher cipher = Cipher.getInstance(ALGO);
+            Cipher cipher = Cipher.getInstance(algorithm);
             GCMParameterSpec spec = new GCMParameterSpec(tagLengthBits, iv);
             cipher.init(Cipher.ENCRYPT_MODE, loadKey(), spec);
             byte[] cipherText = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
@@ -114,7 +116,7 @@ public class AesGcmEncryptionService implements EncryptionService {
             byte[] cipherBytes = new byte[buffer.remaining()];
             buffer.get(cipherBytes);
 
-            Cipher cipher = Cipher.getInstance(ALGO);
+            Cipher cipher = Cipher.getInstance(algorithm);
             GCMParameterSpec spec = new GCMParameterSpec(tagLengthBits, iv);
             cipher.init(Cipher.DECRYPT_MODE, loadKey(), spec);
             byte[] plain = cipher.doFinal(cipherBytes);
