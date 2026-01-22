@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
@@ -51,6 +53,7 @@ import software.amazon.awssdk.services.ses.model.SesException;
  * @author Voz Segura Team
  * @version 1.0
  */
+@Slf4j
 @Component
 @Primary
 @Profile({"dev", "default", "aws", "prod"})
@@ -143,12 +146,12 @@ public class AwsSesOtpClient implements OtpClient {
      */
     @PostConstruct
     public void init() {
-        System.out.println("============================================");
-        System.out.println(" AWS SES OTP CLIENT - INITIALIZING");
-        System.out.println(" Region: " + awsRegion);
-        System.out.println(" From Email: " + maskEmail(fromEmail));
-        System.out.println(" Security: ENABLED (SecureRandom, Rate Limit, TTL)");
-        System.out.println("============================================");
+        log.info("============================================");
+        log.info(" AWS SES OTP CLIENT - INITIALIZING");
+        log.info(" Region: {}", awsRegion);
+        log.info(" From Email: {}", maskEmail(fromEmail));
+        log.info(" Security: ENABLED (SecureRandom, Rate Limit, TTL)");
+        log.info("============================================");
 
         try {
             // Intentar crear cliente con credenciales explícitas si están disponibles
@@ -158,21 +161,21 @@ public class AwsSesOtpClient implements OtpClient {
             // Si tenemos credenciales explícitas en properties/env, usarlas
             if (awsAccessKeyId != null && !awsAccessKeyId.isBlank() && 
                 awsSecretAccessKey != null && !awsSecretAccessKey.isBlank()) {
-                System.out.println("[AWS SES] Using explicit AWS credentials from environment");
+                log.info("[AWS SES] Using explicit AWS credentials from environment");
                 AwsBasicCredentials credentials = AwsBasicCredentials.create(
                         awsAccessKeyId,
                         awsSecretAccessKey
                 );
                 builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
             } else {
-                System.out.println("[AWS SES] Using default AWS credential chain");
+                log.info("[AWS SES] Using default AWS credential chain");
             }
             
             this.sesClient = builder.build();
-            System.out.println("[AWS SES] Client initialized successfully");
+            log.info("[AWS SES] Client initialized successfully");
         } catch (Exception e) {
-            System.err.println("[AWS SES] Failed to initialize: " + e.getMessage());
-            System.out.println("[AWS SES] Falling back to console mode for development");
+            log.error("[AWS SES] Failed to initialize: {}", e.getMessage());
+            log.warn("[AWS SES] Falling back to console mode for development");
         }
     }
 
@@ -184,7 +187,7 @@ public class AwsSesOtpClient implements OtpClient {
     public void cleanup() {
         if (sesClient != null) {
             sesClient.close();
-            System.out.println("[AWS SES] Client closed");
+            log.info("[AWS SES] Client closed");
         }
     }
 
@@ -201,7 +204,7 @@ public class AwsSesOtpClient implements OtpClient {
         // Rate limiting check
         RateLimitData rateLimit = rateLimits.computeIfAbsent(destination, k -> new RateLimitData());
         if (!rateLimit.puedeEnviar()) {
-            System.out.println("[OTP] RATE LIMIT: Demasiadas solicitudes para " + maskEmail(destination));
+            log.warn("[OTP] RATE LIMIT: Too many requests for {}", maskEmail(destination));
             // Retornamos null para indicar fallo sin revelar detalles
             return null;
         }
@@ -220,13 +223,13 @@ public class AwsSesOtpClient implements OtpClient {
         if (!enviado) {
             // SEGURIDAD: Si no se puede enviar, NO guardamos el token y retornamos null
             // NUNCA mostramos el código en logs - esto sería una vulnerabilidad crítica
-            System.err.println("[OTP] FALLO CRÍTICO: No se pudo enviar email a " + maskEmail(destination));
+            log.error("[OTP] CRITICAL FAILURE: Failed to send email to {}", maskEmail(destination));
             return null;
         }
 
         // Solo guardamos el token si el email se envio exitosamente
         tokensActivos.put(otpId, new TokenData(codigo, destination));
-        System.out.println("[OTP] Codigo enviado exitosamente a: " + maskEmail(destination));
+        log.info("[OTP] Code sent successfully to: {}", maskEmail(destination));
 
         return otpId;
     }
@@ -275,14 +278,14 @@ public class AwsSesOtpClient implements OtpClient {
                     .build();
 
             SendEmailResponse response = sesClient.sendEmail(request);
-            System.out.println("[AWS SES] Email enviado - MessageId: " + response.messageId());
+            log.info("[AWS SES] Email sent successfully - MessageId: {}", response.messageId());
             return true;
 
         } catch (SesException e) {
-            System.err.println("[AWS SES] Error enviando email: " + e.awsErrorDetails().errorMessage());
+            log.error("[AWS SES] Error sending email: {}", e.awsErrorDetails().errorMessage());
             return false;
         } catch (Exception e) {
-            System.err.println("[AWS SES] Error inesperado: " + e.getMessage());
+            log.error("[AWS SES] Unexpected error: {}", e.getMessage());
             return false;
         }
     }
@@ -351,27 +354,27 @@ public class AwsSesOtpClient implements OtpClient {
         
         // Token no existe - no revelar información
         if (token == null) {
-            System.out.println("[OTP] Verificación fallida: Token no encontrado");
+            log.warn("[OTP] Verification failed: Token not found");
             return false;
         }
 
         // Token ya usado (anti-replay)
         if (token.usado) {
-            System.out.println("[OTP] ALERTA: Intento de reutilizar token para " + maskEmail(token.destino));
+            log.warn("[OTP] ALERT: Attempt to reuse token for {}", maskEmail(token.destino));
             tokensActivos.remove(otpId);
             return false;
         }
 
         // Token expirado
         if (token.estaExpirado()) {
-            System.out.println("[OTP] Token expirado para: " + maskEmail(token.destino));
+            log.warn("[OTP] Token expired for: {}", maskEmail(token.destino));
             tokensActivos.remove(otpId);
             return false;
         }
 
         // Bloqueado por intentos fallidos
         if (token.estaBloqueado()) {
-            System.out.println("[OTP] ALERTA: Token bloqueado por intentos fallidos - " + maskEmail(token.destino));
+            log.warn("[OTP] ALERT: Token blocked by failed attempts - {}", maskEmail(token.destino));
             tokensActivos.remove(otpId);
             return false;
         }
@@ -380,15 +383,15 @@ public class AwsSesOtpClient implements OtpClient {
         if (token.codigo.equals(code)) {
             token.usado = true;
             tokensActivos.remove(otpId);
-            System.out.println("[OTP] Verificacion exitosa para: " + maskEmail(token.destino));
+            log.info("[OTP] Verification successful for: {}", maskEmail(token.destino));
             return true;
         } else {
             token.intentosFallidos++;
-            System.out.println("[OTP] Codigo incorrecto. Intento " + token.intentosFallidos + "/" + MAX_INTENTOS);
-            
+            log.warn("[OTP] Incorrect code. Attempt {}/{}", token.intentosFallidos, MAX_INTENTOS);
+
             if (token.estaBloqueado()) {
                 tokensActivos.remove(otpId);
-                System.out.println("[OTP] Token eliminado por máximo de intentos");
+                log.warn("[OTP] Token removed due to maximum attempts");
             }
             return false;
         }

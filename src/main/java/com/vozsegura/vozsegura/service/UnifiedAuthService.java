@@ -53,6 +53,7 @@ import com.vozsegura.vozsegura.repo.StaffUserRepository;
  * @see OtpClient
  * @see StaffUserRepository
  */
+@Slf4j
 @Service
 public class UnifiedAuthService {
 
@@ -162,57 +163,68 @@ public class UnifiedAuthService {
      * Verifica que el secretKey (contraseña) ingresado coincida con el password_hash
      * almacenado en base de datos. Usa BCrypt para comparación criptográfica segura.
      * 
-     * Seguridad:
-     * - Soporta BCrypt versiones $2a$ (antigua) y $2b$ (recomendada)
+     * Seguridad REFORZADA (v2.1):
+     * - SOLO acepta hashes BCrypt válidos ($2a$ o $2b$)
      * - Usa BCrypt.checkpw() para comparación resistente a timing attacks
-     * - Nunca almacena contraseña en plain text en producción
-     * - Caso especial: marcador "NOT_USED_AWS_SECRET" es bypass temporal
-     * 
-     * Casos especiales:
-     * - staffUser es null → retorna false (usuario no existe)
-     * - passwordHash es null o vacío → retorna false (contraseña no configurada)
-     * - passwordHash == "NOT_USED_AWS_SECRET" → retorna true (usuario sin contraseña)
-     * - passwordHash comienza con $2a$ o $2b$ → usa BCrypt.checkpw()
-     * - Otro caso → comparación texto plano (compatibilidad legacy, NO usar en prod)
-     * 
+     * - Logging detallado de intentos fallidos para auditoría
+     * - Rechaza cualquier hash que NO sea BCrypt (requiere reset de password)
+     * - NO permite bypasses ni texto plano
+     *
+     * Casos de validación:
+     * - staffUser es null → retorna false + log warning
+     * - passwordHash es null o vacío → retorna false + log warning
+     * - passwordHash NO es BCrypt ($2a$/$2b$) → retorna false + log error
+     * - passwordHash es BCrypt válido → valida con BCrypt.checkpw()
+     *
      * @param staffUser entidad StaffUser del usuario a validar (nullable)
      * @param secretKey contraseña en plain text ingresada por usuario
-     * @return true si contraseña es válida
-     *         false si usuario no existe, sin contraseña, o contraseña incorrecta
-     * 
+     * @return true si contraseña es válida (BCrypt match)
+     *         false en cualquier otro caso (usuario no existe, sin contraseña, formato inválido, password incorrecto)
+     *
+     * @throws IllegalArgumentException si BCrypt hash está corrupto
+     *
      * Ejemplo uso:
      * <pre>
      * boolean isValid = unifiedAuthService.validateSecretKey(staffUser, "mi_pass_123");
      * if (!isValid) {
-     *     throw new SecurityException("Contraseña incorrecta");
+     *     throw new SecurityException("Contraseña incorrecta o formato inválido");
      * }
      * </pre>
+     *
+     * Nota: Si un usuario tiene un hash inválido (no BCrypt), debe realizar reset de password.
      */
     public boolean validateSecretKey(StaffUser staffUser, String secretKey) {
         if (staffUser == null) {
+            log.warn("SECURITY: validateSecretKey called with null staffUser");
             return false;
         }
 
         String passwordHash = staffUser.getPasswordHash();
 
         if (passwordHash == null || passwordHash.isEmpty()) {
+            log.warn("SECURITY: User {} has no password hash configured", staffUser.getUsername());
             return false;
         }
         
-        // Si el hash es el marcador "NOT_USED_AWS_SECRET", permitir cualquier input
-        // (es un bypass temporal para usuarios sin clave asignada)
-        if ("NOT_USED_AWS_SECRET".equals(passwordHash)) {
-            System.out.println("✅ User has NOT_USED_AWS_SECRET marker, allowing verification");
-            return true;
-        }
-        
-        // Si es un hash BCrypt válido (comienza con $2a$ o $2b$), usar BCrypt
+        // Validación SOLO con BCrypt (hash válido $2a$ o $2b$)
         if (passwordHash.startsWith("$2a$") || passwordHash.startsWith("$2b$")) {
-            return BCrypt.checkpw(secretKey, passwordHash);
+            try {
+                boolean isValid = BCrypt.checkpw(secretKey, passwordHash);
+                if (!isValid) {
+                    log.warn("SECURITY: Invalid password attempt for user {}", staffUser.getUsername());
+                }
+                return isValid;
+            } catch (IllegalArgumentException e) {
+                log.error("SECURITY: BCrypt validation error for user {}: {}",
+                         staffUser.getUsername(), e.getMessage());
+                return false;
+            }
         }
         
-        // Si es texto plano (compatibilidad)
-        return passwordHash.equals(secretKey);
+        // Si el hash NO es BCrypt válido, rechazar
+        log.error("SECURITY: User {} has invalid password hash format (not BCrypt). Password reset required.",
+                 staffUser.getUsername());
+        return false;
     }
 
     /**

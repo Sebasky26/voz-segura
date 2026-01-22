@@ -194,12 +194,12 @@ public class AdminController {
             model.addAttribute("severities", systemConfigService.getSeveritiesList());
             model.addAttribute("entidades", entidades);
         } catch (Exception e) {
+            log.error("Error loading derivation rules", e);
             model.addAttribute("error", "Error al cargar reglas: " + e.getMessage());
             model.addAttribute("rules", java.util.Collections.emptyList());
             model.addAttribute("entidades", java.util.Collections.emptyList());
             model.addAttribute("complaintTypes", java.util.Collections.emptyList());
             model.addAttribute("severities", java.util.Collections.emptyList());
-            e.printStackTrace();
         }
 
         return "admin/reglas";

@@ -1,30 +1,26 @@
-# 🔐 VOZ SEGURA - Plataforma de Denuncias Anónimas
+# VOZ SEGURA - Plataforma de Denuncias Anónimas
 
 **Versión:** 2.0  
-**Fecha:** Enero 2026  
-**Arquitectura:** Zero Trust Architecture (ZTA)  
-**Base de Datos:** Supabase PostgreSQL  
-**Estado de Seguridad:** ✅ Auditado - Enero 2026
-
+**Fecha:** Enero 2026
 ---
 
-## 📖 Descripción del Proyecto
+## Descripción del Proyecto
 
 **Voz Segura** es una plataforma gubernamental de denuncias anónimas desarrollada bajo principios de **Zero Trust Architecture**, diseñada para garantizar la máxima seguridad y privacidad de los denunciantes en Ecuador.
 
-### 🎯 Características Principales
+### Características Principales
 
-- ✅ **Verificación Biométrica con DIDIT v3:** Autenticación facial contra Registro Civil
-- 🔐 **Cifrado de Extremo a Extremo:** AES-256-GCM para denuncias y evidencias
-- 👤 **Anonimato Total:** Identity Vault separa identidad real de denuncias
-- 🛡️ **Zero Trust:** Validación HMAC-SHA256 entre Gateway y Core con anti-replay
-- 📱 **MFA para Staff:** Autenticación de dos factores con OTP por email (AWS SES)
-- 🔒 **PII Cifrado en BD:** Datos sensibles cifrados automáticamente con AES-256-GCM
-- 📊 **Auditoría Completa:** Todos los accesos registrados sin exposición de PII
-- ☁️ **Cloud Native:** Supabase PostgreSQL, AWS SES, Cloudflare Turnstile
-- 🛡️ **Validación de Archivos:** Magic bytes + whitelist (PDF, DOCX, JPG, PNG)
-- ⚡ **Rate Limiting:** Protección anti-brute-force
-- 🔍 **Headers de Seguridad:** CSP, XSS protection, anti-clickjacking
+- **Verificación Biométrica con DIDIT v3:** Autenticación facial contra Registro Civil
+- **Cifrado de Extremo a Extremo:** AES-256-GCM para denuncias y evidencias
+- **Anonimato Total:** Identity Vault separa identidad real de denuncias
+- **Zero Trust:** Validación HMAC-SHA256 entre Gateway y Core con anti-replay
+- **MFA para Staff:** Autenticación de dos factores con OTP por email (AWS SES)
+- **PII Cifrado en BD:** Datos sensibles cifrados automáticamente con AES-256-GCM
+- **Auditoría Completa:** Todos los accesos registrados sin exposición de PII
+- **Cloud Native:** Supabase PostgreSQL, AWS SES, Cloudflare Turnstile
+- **Validación de Archivos:** Magic bytes + whitelist (PDF, DOCX, JPG, PNG)
+- **Rate Limiting:** Protección anti-brute-force
+- **Headers de Seguridad:** CSP, XSS protection, anti-clickjacking
 
 ---
 
@@ -77,30 +73,73 @@
 
 ## 💻 Tecnologías Utilizadas
 
-### Backend
-- **Java 21** - LTS
-- **Spring Boot 3.4.0** - Framework principal
-- **Spring Security** - Autenticación y autorización
-- **Spring Cloud Gateway** - API Gateway
-- **Spring Data JPA** - Persistencia
-- **Flyway** - Migraciones automáticas
+### Backend Core
+| Tecnología | Versión | Propósito | Detalles de Implementación |
+|------------|---------|-----------|----------------------------|
+| **Java** | 21 LTS | Lenguaje principal | JDK con soporte hasta 2029 |
+| **Spring Boot** | 3.4.0 | Framework de aplicación | Auto-configuración, embedded server |
+| **Spring Security** | 6.x | Autenticación y autorización | BCrypt, JWT validation, CSRF protection |
+| **Spring Cloud Gateway** | 4.x | API Gateway reactivo | WebFlux, filtros de autenticación |
+| **Spring Data JPA** | 3.x | Persistencia ORM | Hibernate + PostgreSQL optimizations |
+| **Spring Validation** | 3.x | Validación de DTOs | Jakarta Bean Validation |
 
-### Seguridad
-- **JWT (jjwt 0.12.3)** - Tokens de sesión
-- **BCrypt** - Hashing de contraseñas
-- **AES-256-GCM** - Cifrado de PII
-- **HMAC-SHA256** - Validación Zero Trust
-- **Cloudflare Turnstile** - Anti-bot
+### Seguridad y Criptografía
+| Tecnología | Versión | Propósito | Implementación |
+|------------|---------|-----------|----------------|
+| **JWT (jjwt)** | 0.12.3 | Tokens de sesión | HS256, 24h expiración, claims: cedula/userType/apiKey |
+| **BCrypt** | Spring Security | Hash de contraseñas | Strength 10 (2^10 = 1024 rounds) |
+| **AES-256-GCM** | Java Crypto | Cifrado de PII | IV 12 bytes, tag 128 bits, AEAD |
+| **HMAC-SHA256** | Java Crypto | Firma Zero Trust | Gateway-Core validation, TTL 60s |
+| **SHA-256** | Java Security | Hash de identidades | Irreversible, usado para anonimato |
 
 ### Base de Datos
-- **Supabase PostgreSQL 17** - Base de datos principal
-- **PgBouncer** - Connection pooling
-- **6 Schemas:** registro_civil, staff, denuncias, evidencias, logs, reglas_derivacion
+| Componente | Propósito | Configuración |
+|------------|-----------|---------------|
+| **Supabase PostgreSQL** | BD principal | Versión 17, 6 schemas separados |
+| **Flyway** | Migraciones automáticas | V1-V32, baseline-on-migrate enabled |
+| **PgBouncer** | Connection pooling | Modo transacción, prepareThreshold=0 |
+| **HikariCP** | Pool de conexiones | Pool size: 3 (dev), 10 (prod) |
 
-### Integraciones
-- **DIDIT API v3** - Verificación biométrica
-- **AWS SES** - Envío de emails OTP
-- **Cloudflare Turnstile** - CAPTCHA
+#### Schemas de Base de Datos:
+1. **`registro_civil`**: Personas verificadas (PII cifrado)
+2. **`staff`**: Usuarios Admin/Analyst (PII cifrado)
+3. **`denuncias`**: Denuncias (texto cifrado AES-256-GCM)
+4. **`evidencias`**: Archivos adjuntos (cifrados)
+5. **`logs`**: Auditoría (sin PII, username hasheado)
+6. **`reglas_derivacion`**: Reglas de clasificación automática
+
+### Integraciones Externas
+| Servicio | Propósito | Configuración | Seguridad |
+|----------|-----------|---------------|-----------|
+| **DIDIT API v3** | Verificación biométrica facial | API Key desde .env | Webhook HMAC validation |
+| **Registro Civil (Ecuador)** | Validación de identidad | API REST con OAuth | Credenciales en AWS SM |
+| **AWS SES** | Envío de OTP por email | Region: us-east-1 | IAM credentials, rate limit |
+| **AWS Secrets Manager** | Gestión de secretos (prod) | KMS encryption | IAM Role, cache 2h |
+| **Cloudflare Turnstile** | CAPTCHA anti-bot | Site Key + Secret Key | Validación server-side |
+
+### Frontend y UI
+| Tecnología | Propósito |
+|------------|-----------|
+| **Thymeleaf** | Motor de templates server-side |
+| **CSS Custom** | Estilos personalizados (main.css) |
+| **JavaScript Vanilla** | Validaciones client-side (sin frameworks) |
+| **Cloudflare Turnstile** | CAPTCHA en formularios públicos |
+
+### DevOps y Deployment
+| Herramienta | Propósito |
+|-------------|-----------|
+| **Maven** | Gestión de dependencias y build |
+| **Docker** | Containerización (Dockerfile + docker-compose.yml) |
+| **GitHub Actions** | CI/CD (opcional) |
+| **AWS EC2** | Hosting de producción (recomendado) |
+
+### Observabilidad y Monitoreo
+| Componente | Propósito | Configuración |
+|------------|-----------|---------------|
+| **Logback** | Logging framework | Configurado en logback-spring.xml |
+| **SLF4J + Lombok** | Logging API | `@Slf4j` annotation en clases |
+| **Spring Actuator** | Health checks | `/actuator/health` endpoint |
+| **AWS CloudWatch** | Logs centralizados (prod) | Logs exportados desde EC2 |
 
 ---
 
@@ -229,19 +268,6 @@ DIDIT_API_URL=https://verification.didit.me
 cd gateway
 ../mvnw spring-boot:run
 ```
-
-#### Opción 2: Docker Compose
-
-```bash
-docker-compose up --build
-```
-
-### Acceso a la Aplicación
-
-- **URL Principal:** http://localhost:8080
-- **Gateway:** http://localhost:8080
-- **Core (interno):** http://localhost:8082 (no accesible directamente)
-
 ---
 
 ## 🔧 Comandos Útiles
@@ -260,55 +286,6 @@ docker-compose up --build
 
 # Limpiar y compilar
 ./mvnw clean install
-```
-
-### Docker
-
-```bash
-# Construir e iniciar
-docker-compose up --build
-
-# Detener
-docker-compose down
-
-# Ver logs
-docker-compose logs -f core
-docker-compose logs -f gateway
-```
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-voz-segura/
-├── src/main/
-│   ├── java/com/vozsegura/vozsegura/
-│   │   ├── client/          # Integraciones externas
-│   │   ├── config/          # Configuración Spring + Zero Trust
-│   │   ├── controller/      # Controladores REST/MVC
-│   │   ├── domain/entity/   # Entidades JPA
-│   │   ├── dto/             # DTOs y Forms
-│   │   ├── repo/            # Repositories
-│   │   ├── security/        # Cifrado y validación HMAC
-│   │   └── service/         # Lógica de negocio
-│   └── resources/
-│       ├── db/migration/    # Flyway (ejecución automática)
-│       ├── static/          # CSS, JS, imágenes
-│       ├── templates/       # Thymeleaf
-│       ├── application.yml
-│       └── application-dev.yml
-├── gateway/                 # Spring Cloud Gateway
-│   └── src/main/
-│       ├── java/com/vozsegura/gateway/
-│       └── resources/
-│           └── application.yml
-├── logs/                    # Logs (en .gitignore)
-├── .env.example             # Plantilla de variables
-├── .gitignore
-├── docker-compose.yml
-├── pom.xml
-└── README.md
 ```
 
 ---
@@ -374,125 +351,123 @@ tail -f logs/core-dev.log
 
 ## 🔒 Seguridad
 
-### Cifrado
-- **AES-256-GCM**: PII en BD
-- **BCrypt strength 10**: Contraseñas
-- **JWT HS256**: Tokens de sesión
-- **SHA-256**: Hashing de identificadores
+### 🛡️ Arquitectura Zero Trust Implementada
 
-### Validación
-- **Magic bytes**: Archivos adjuntos
-- **Turnstile**: Anti-bot
-- **Rate limiting**: Anti-brute-force
-- **HMAC-SHA256**: Zero Trust Gateway-Core
+#### 1. **API Gateway (Puerto 8080)**
+**Responsabilidades:**
+- Validación de JWT (firma HS256, expiración 24h)
+- Generación de firma HMAC-SHA256 para peticiones al Core
+- Rate limiting (30 req/min por IP)
+- CORS y headers de seguridad
 
-### Headers de Seguridad
-- Content Security Policy (CSP)
-- X-Frame-Options: DENY
-- X-XSS-Protection
-- Strict-Transport-Security
-- X-Content-Type-Options: nosniff
+**Clase Principal:** `JwtAuthenticationGatewayFilterFactory`
+- Extrae claims del JWT (cedula, userType, apiKey)
+- Genera timestamp + HMAC signature
+- Agrega headers: `X-User-Cedula`, `X-User-Type`, `X-Gateway-Signature`, `X-Request-Timestamp`
 
-### Logs Seguros
-- ✅ Sin exposición de PII
-- ✅ Sin datos de sesión
-- ✅ Sin credenciales
-- ✅ Solo errores críticos
-
----
-
-## 🚀 Despliegue a Producción
-
-### 1. Compilar para producción
-
-```bash
-./mvnw clean package -Pprod
+```java
+// Generación de firma HMAC
+String message = timestamp + ":" + method + ":" + path + ":" + cedula + ":" + userType;
+Mac mac = Mac.getInstance("HmacSHA256");
+mac.init(new SecretKeySpec(sharedSecret.getBytes(), "HmacSHA256"));
+String signature = Base64.encode(mac.doFinal(message.getBytes()));
 ```
 
-### 2. Ejecutar
+#### 2. **Core Service (Puerto 8082)**
+**Responsabilidades:**
+- Validación de firma HMAC del Gateway (Zero Trust)
+- Anti-replay: TTL 60 segundos en timestamp
+- Cifrado/descifrado de PII con AES-256-GCM
+- Lógica de negocio y persistencia
 
-```bash
-# Core
-java -jar target/voz-segura-2.0.jar --spring.profiles.active=prod
+**Clase Principal:** `ZeroTrustGatewayFilter` + `GatewayRequestValidator`
+- Valida firma HMAC contra clave compartida
+- Compara con timing-attack safe (`MessageDigest.isEqual`)
+- Rechaza peticiones directas al Core (sin pasar por Gateway)
 
-# Gateway
-java -jar gateway/target/gateway-2.0.jar --spring.profiles.active=prod
+```java
+// Validación Zero Trust
+String expectedSignature = generateHmacSignature(timestamp, method, path, cedula, userType);
+if (!MessageDigest.isEqual(
+    expectedSignature.getBytes(), 
+    gatewaySignature.getBytes())) {
+    response.sendError(403, "Invalid gateway signature");
+}
 ```
 
-### 3. Docker (Recomendado)
+#### 3. **Cifrado de Datos (AES-256-GCM)**
+**Clase Principal:** `AesGcmEncryptionService`
+- **Algoritmo:** AES-256-GCM (AEAD - Authenticated Encryption with Associated Data)
+- **IV:** 12 bytes aleatorios por operación (`SecureRandom`)
+- **Tag:** 128 bits de autenticación (detecta manipulación)
+- **Clave:** 256 bits desde AWS Secrets Manager o variable de entorno
 
-```bash
-docker-compose -f docker-compose.yml up -d
+**Flujo de Cifrado:**
+```
+Texto Plain → IV Aleatorio → AES-GCM → Tag Auth → Base64 → BD
+                 (12 bytes)   (256-bit)  (128 bits)
 ```
 
----
-
-## 📊 Monitoreo
-
-### Health Checks
-
-```bash
-# Gateway
-curl http://localhost:8080/actuator/health
-
-# Core
-curl http://localhost:8082/actuator/health
+**Implementación:**
+```java
+// Cifrado
+byte[] iv = new byte[12];
+secureRandom.nextBytes(iv);  // IV aleatorio
+Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+GCMParameterSpec spec = new GCMParameterSpec(128, iv);
+cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+byte[] ciphertext = cipher.doFinal(plaintext.getBytes());
+return Base64.encode(IV + ciphertext + tag);
 ```
 
-### Logs
+**Datos Cifrados:**
+- Texto completo de denuncias
+- Archivos adjuntos (evidencias)
+- PII en columnas `*_encrypted` de BD: nombres, emails, cédulas
+- Notas de analistas (opcional)
 
-```bash
-# Core
-tail -f logs/core-dev.log
+#### 4. **Validación de Archivos**
+**Clase Principal:** `FileValidationService`
+- **Whitelist MIME types:** PDF, JPEG, PNG, DOCX, MP4
+- **Validación de magic bytes** (firma real del archivo, no spoofeable)
+- **Path traversal bloqueado:** `..`, `/`, `\`
+- **Tamaño máximo:** 25 MB por archivo
 
-# Filtrar errores
-grep ERROR logs/core-dev.log
+**Magic Bytes Validados:**
+| Formato | Magic Bytes | Offset |
+|---------|-------------|--------|
+| PDF | `%PDF` (0x25504446) | 0 |
+| JPEG | `FFD8FF` | 0 |
+| PNG | `89504E47` | 0 |
+| DOCX | `PK` (0x504B) | 0 |
+| MP4 | `ftyp` | 4-7 |
+
+```java
+// Validación exhaustiva
+boolean isValidEvidence(MultipartFile file) {
+    return isValidSize(file) &&           // Max 25MB
+           isAllowedMimeType(file) &&     // Whitelist MIME
+           isAllowedFileName(file) &&     // Path traversal blocked
+           isValidMagicBytes(file);       // Firma real del archivo
+}
 ```
 
+#### 5. **Auditoría Sin PII**
+**Clase Principal:** `AuditService`
+- Username hasheado con SHA-256 (8 caracteres): `USR-Xy7kP0Qz`
+- Sin cédulas, tokens, contraseñas en logs
+- Timestamp con timezone offset (UTC)
+- Detalles truncados a 500 caracteres
+
+**Eventos Auditados:**
+- `LOGIN`: Acceso al sistema
+- `LOGOUT`: Cierre de sesión
+- `CREATE`: Creación de denuncia/usuario
+- `UPDATE`: Actualización de estado/clasificación
+- `DELETE`: Eliminación (soft-delete)
+- `ACCESS`: Acceso a recurso (visualización)
+- `REVEAL`: Solicitud de revelación de identidad
+- `ERROR`: Error del sistema
 ---
-
-## 🗑️ Archivos Removibles
-
-Los siguientes archivos **NO** son necesarios para ejecutar la aplicación:
-
-- `mvnw`, `mvnw.cmd`, `mvnwDebug`, `mvnwDebug.cmd` - Solo si usas Maven instalado localmente
-- `logs/*.log` - Archivos temporales (se regeneran automáticamente)
-- `.idea/` - IDE IntelliJ IDEA (en .gitignore)
-
----
-
-## 📝 Licencia
-
-Propiedad del Gobierno de Ecuador - Uso Gubernamental Exclusivo
-
----
-
-## 👥 Equipo
-
-- **Arquitectura y Desarrollo:** Equipo Voz Segura
-- **Auditoría de Seguridad:** Enero 2026
-- **Stack:** Java 21 + Spring Boot 3 + Supabase PostgreSQL
-
----
-
-## 🔄 Changelog
-
-### v2.0 (Enero 2026) - **Auditoría de Seguridad Completa**
-- ✅ **Zero Trust Architecture** implementada
-- ✅ **Cifrado automático de PII** en BD
-- ✅ **Migraciones automáticas** Flyway
-- ✅ **Logs seguros** sin exposición de datos
-- ✅ **Integración Supabase PostgreSQL**
-- ✅ **AWS SES** para MFA via OTP
-- ✅ **DIDIT v3** verificación biométrica
-- ✅ **Documentación consolidada**
-
-### v1.0 (Noviembre 2025)
-- Primera versión funcional
-
----
-
 **Última actualización:** Enero 21, 2026  
-**Versión:** 2.0  
-**Estado:** ✅ Producción Ready  
-**Auditoría:** ✅ Completada - Enero 2026
+**Versión:** 2.0
