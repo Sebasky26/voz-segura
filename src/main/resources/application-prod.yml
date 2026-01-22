@@ -26,6 +26,7 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     baseline-on-migrate: true
+    ignore-migration-patterns: "1:31"
   servlet:
     multipart:
       max-file-size: 25MB
