@@ -53,8 +53,14 @@ import java.util.Base64;
 public class AesGcmEncryptionService implements EncryptionService {
 
     private static final String ALGO = "AES/GCM/NoPadding";
-    private static final int IV_LENGTH_BYTES = 12;
-    private static final int TAG_LENGTH_BITS = 128;
+    
+    /** IV length en bytes (configurable, default: 12 bytes = estándar AES-GCM) */
+    @Value("${encryption.gcm.iv-length:12}")
+    private int ivLengthBytes;
+    
+    /** Tag length en bits (configurable, default: 128 bits = estándar AES-GCM) */
+    @Value("${encryption.gcm.tag-length:128}")
+    private int tagLengthBits;
 
     private final SecretsManagerClient secretsManagerClient;
     private final String secretName;
@@ -81,11 +87,11 @@ public class AesGcmEncryptionService implements EncryptionService {
     @Override
     public String encryptToBase64(String plaintext) {
         try {
-            byte[] iv = new byte[IV_LENGTH_BYTES];
+            byte[] iv = new byte[ivLengthBytes];
             secureRandom.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGO);
-            GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH_BITS, iv);
+            GCMParameterSpec spec = new GCMParameterSpec(tagLengthBits, iv);
             cipher.init(Cipher.ENCRYPT_MODE, loadKey(), spec);
             byte[] cipherText = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
 
@@ -103,13 +109,13 @@ public class AesGcmEncryptionService implements EncryptionService {
         try {
             byte[] all = Base64.getDecoder().decode(ciphertextBase64);
             ByteBuffer buffer = ByteBuffer.wrap(all);
-            byte[] iv = new byte[IV_LENGTH_BYTES];
+            byte[] iv = new byte[ivLengthBytes];
             buffer.get(iv);
             byte[] cipherBytes = new byte[buffer.remaining()];
             buffer.get(cipherBytes);
 
             Cipher cipher = Cipher.getInstance(ALGO);
-            GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH_BITS, iv);
+            GCMParameterSpec spec = new GCMParameterSpec(tagLengthBits, iv);
             cipher.init(Cipher.DECRYPT_MODE, loadKey(), spec);
             byte[] plain = cipher.doFinal(cipherBytes);
             return new String(plain, StandardCharsets.UTF_8);

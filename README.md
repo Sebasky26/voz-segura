@@ -3,7 +3,8 @@
 **Versión:** 2.0  
 **Fecha:** Enero 2026  
 **Arquitectura:** Zero Trust Architecture (ZTA)  
-**Base de Datos:** Supabase PostgreSQL
+**Base de Datos:** Supabase PostgreSQL  
+**Estado de Seguridad:** ✅ Auditado - Enero 2026
 
 ---
 
@@ -13,14 +14,17 @@
 
 ### 🎯 Características Principales
 
-- ✅ **Verificación Biométrica con DIDIT:** Autenticación facial contra Registro Civil del Ecuador
+- ✅ **Verificación Biométrica con DIDIT v3:** Autenticación facial contra Registro Civil de Ecuador
 - 🔐 **Cifrado de Extremo a Extremo:** AES-256-GCM para todas las denuncias y evidencias
 - 👤 **Anonimato Total:** Identity Vault separa identidad real de las denuncias
-- 🛡️ **Zero Trust:** Validación HMAC-SHA256 entre Gateway y Core
+- 🛡️ **Zero Trust:** Validación HMAC-SHA256 entre Gateway y Core con anti-replay
 - 📱 **MFA para Staff:** Autenticación de dos factores con OTP por email (AWS SES)
-- 🔒 **PII Cifrado en BD:** Datos sensibles cifrados automáticamente al guardar
-- 📊 **Auditoría Completa:** Todos los accesos registrados
+- 🔒 **PII Cifrado en BD:** Datos sensibles cifrados automáticamente con AES-256-GCM
+- 📊 **Auditoría Completa:** Todos los accesos registrados sin exposición de datos sensibles
 - ☁️ **Cloud Native:** Supabase PostgreSQL, AWS SES, Cloudflare Turnstile
+- 🛡️ **Validación de Archivos:** Magic bytes + whitelist estricta (PDF, DOCX, JPG, PNG)
+- ⚡ **Rate Limiting:** Protección anti-brute-force con ventanas deslizantes
+- 🔍 **Headers de Seguridad:** CSP, XSS protection, anti-clickjacking
 
 ---
 
@@ -64,19 +68,27 @@
 ### Zero Trust Architecture
 
 ```
-Usuario → JWT válido → Gateway
+Usuario → JWT válido → Gateway (puerto 8080)
                          ↓
           Firma HMAC: SHA256(timestamp:method:path:user:type)
+          Anti-replay: TTL 5 minutos
                          ↓
           Headers: X-Gateway-Signature
-                   X-Request-Timestamp (60s TTL)
-                   X-User-Cedula
+                   X-Request-Timestamp (TTL 60s)
+                   X-User-Cedula (masked en logs)
                    X-User-Type
                          ↓
-                      Core
+                      Core (puerto 8082)
                          ↓
-          Valida HMAC → Si inválido: 401 Unauthorized
+          Valida HMAC → Si inválido: 403 Forbidden
                       → Si válido: Procesa petición
+          
+🔒 Características de Seguridad:
+- Clave compartida 256-bit entre Gateway y Core
+- Timestamps con TTL para prevenir replay attacks
+- Comparación constante en tiempo (anti-timing attack)
+- Rate limiting: 30 requests/minuto por IP
+- Logs seguros: enmascaramiento de datos PII
 ```
 
 ### Flujo de Autenticación
@@ -274,42 +286,112 @@ docker-compose up --build
 
 ---
 
-## 🔒 Seguridad Implementada
+## 🔒 Análisis de Seguridad Completo
 
-### 1. Zero Trust Architecture
-- **Validación HMAC:** Gateway → Core con firma HMAC-SHA256
-- **Anti-replay:** Timestamps con TTL de 60 segundos
-- **Headers inmutables:** Imposible falsificar peticiones
+### ✅ **FORTALEZAS DE SEGURIDAD IMPLEMENTADAS**
 
-### 2. Cifrado de Datos (Automático)
-- **PII en BD:** AES-256-GCM (cédulas, nombres, emails)
-- **Denuncias:** AES-256-GCM en columna `encrypted_text`
-- **Evidencias:** AES-256-GCM para archivos binarios
-- **Claves:** AWS Secrets Manager (producción) o variables de entorno
+#### 1. **Arquitectura Zero Trust**
+- ✅ Validación HMAC-SHA256 Gateway ↔ Core con clave compartida
+- ✅ Anti-replay attacks: timestamps con TTL de 60 segundos
+- ✅ Comparaciones constantes en tiempo (anti-timing attacks)
+- ✅ Headers inmutables: imposible falsificar peticiones
 
-### 3. Autenticación y Autorización
-- **JWT:** Tokens firmados con HS256, expiración 24h
-- **MFA:** OTP por email con AWS SES (5 min TTL)
-- **BCrypt:** Hashing de contraseñas con strength 10
-- **Roles:** ADMIN, ANALYST, DENUNCIANTE
+#### 2. **Cifrado y Protección de Datos**
+- ✅ **AES-256-GCM** (AEAD): Cifrado autenticado con detección de manipulación
+- ✅ **BCrypt strength 10**: Hashing resistente de contraseñas
+- ✅ **JWT HS256**: Tokens firmados con expiración 24h
+- ✅ **SHA-256**: Hashing de cédulas para anonimización
+- ✅ **IV aleatorio**: 12 bytes por encriptación (nunca reutilizado)
 
-### 4. Validación de Archivos
-- **Magic bytes:** Verificación de tipo real
-- **Whitelist:** Solo PDF, DOCX, JPG, PNG
-- **Límites:** 25MB por archivo, 30MB por request
-- **Anti-malware:** Sin macros en DOCX
+#### 3. **Validación de Archivos**
+- ✅ **Magic bytes verification**: Validación real vs MIME declarado
+- ✅ **Whitelist estricta**: Solo PDF, DOCX, JPG, PNG (máx 25MB)
+- ✅ **Path traversal protection**: Sanitización de nombres
+- ✅ **Eliminación de riesgos**: NO permite DOC (macros) ni ejecutables
 
-### 5. Headers de Seguridad
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `Strict-Transport-Security: max-age=31536000`
-- `Content-Security-Policy` configurado
-- `X-XSS-Protection: 1; mode=block`
+#### 4. **Rate Limiting y Anti-Abuse**
+- ✅ **Ventanas deslizantes**: 30 intentos/60 segundos por IP/usuario
+- ✅ **Thread-safe**: ConcurrentHashMap + sincronización
+- ✅ **Endpoints protegidos**: Login, OTP, admin panel
 
-### 6. Rate Limiting
-- Login: 5 intentos/minuto por IP
-- OTP: 3 intentos/5 minutos
-- Tracking: 10 consultas/hora por IP
+#### 5. **Headers de Seguridad Web**
+- ✅ **CSP**: Content Security Policy contra XSS
+- ✅ **X-Frame-Options: DENY**: Anti-clickjacking
+- ✅ **X-XSS-Protection**: Activada
+- ✅ **Strict-Transport-Security**: HTTPS obligatorio
+- ✅ **X-Content-Type-Options: nosniff**: Anti-MIME sniffing
+
+### ⚠️ **VULNERABILIDADES Y ÁREAS DE MEJORA**
+
+#### 1. **Configuración y Bypass de Seguridad**
+🔴 **CRÍTICO**: `NOT_USED_AWS_SECRET` bypass en `UnifiedAuthService.validateSecretKey()`:
+```java
+if ("NOT_USED_AWS_SECRET".equals(passwordHash)) {
+    return true; // ⚠️ Permite cualquier contraseña
+}
+```
+**Riesgo**: Acceso no autorizado si un usuario tiene este marcador  
+**Solución**: Eliminar en producción, forzar contraseñas reales
+
+#### 2. **Configuración Hardcodeada**
+🟡 **MEDIO**: Valores no configurables en:
+- `InMemoryRateLimiter`: MAX_ATTEMPTS=30, WINDOW_SECONDS=60
+- `ZeroTrustGatewayFilter`: TTL=300000 (5 min) 
+- `FileValidationService`: MAX_SIZE=25MB
+- `AesGcmEncryptionService`: IV_LENGTH=12, TAG_LENGTH=128
+
+**Riesgo**: Inflexibilidad para ajustar según amenazas  
+**Solución**: Mover a `application.yml` o base de datos
+
+#### 3. **Exposición de Datos en Logs**
+🟡 **MEDIO**: Logs con información parcialmente sensible:
+```java
+log.warn("❌ Validación fallida: Firma no coincide (Path: {}, User: {})",
+         path, maskCedula(userCedula)); // ⚠️ Aún muestra primeros/últimos dígitos
+```
+**Riesgo**: Correlación de identidades  
+**Solución**: Hash completo de identificadores en logs
+
+#### 4. **Validación de Entrada Incompleta**
+🟡 **MEDIO**: Algunos endpoints no validan completamente:
+- Longitudes máximas de campos
+- Caracteres especiales en entradas de usuario
+- Validación numérica estricta
+
+**Riesgo**: Injection attacks, buffer overflow  
+**Solución**: Validación exhaustiva con Bean Validation
+
+### 📊 **EVALUACIÓN DE SEGURIDAD POR COMPONENTE**
+
+| Componente | Seguridad | Observaciones |
+|------------|-----------|---------------|
+| **Gateway JWT Validation** | 🟢 EXCELENTE | HMAC correcto, validación completa |
+| **Zero Trust Filter** | 🟢 EXCELENTE | Implementación robusta |
+| **AES-GCM Encryption** | 🟢 EXCELENTE | Algoritmo moderno, IV aleatorio |
+| **File Validation** | 🟢 EXCELENTE | Magic bytes + whitelist |
+| **Rate Limiter** | 🟢 BUENO | Thread-safe, pero hardcodeado |
+| **Password Security** | 🟡 REGULAR | BCrypt bien, pero bypass crítico |
+| **Logging Security** | 🟡 REGULAR | Máscaras parciales |
+| **Input Validation** | 🟡 REGULAR | Básica, necesita mejoras |
+
+### 🔧 **RECOMENDACIONES PRIORITARIAS**
+
+#### **CRÍTICAS (Implementar YA)**
+1. **Eliminar bypass de contraseñas**: Remover `NOT_USED_AWS_SECRET`
+2. **Configurar producción**: Usar AWS Secrets Manager para todas las claves
+3. **Validar configuración**: Fail-fast si faltan variables críticas
+
+#### **IMPORTANTES (Próximas semanas)**
+1. **Hacer configurables límites hardcodeados**
+2. **Mejorar masking de logs**: SHA-256 completo de IDs
+3. **Validación estricta de entrada**: Bean Validation exhaustiva
+4. **Auditoría de permisos**: Review de roles y accesos
+
+#### **RECOMENDADAS (Siguientes meses)**
+1. **Implementar Redis Rate Limiter** para clusterización
+2. **Agregar alertas de seguridad** para intentos maliciosos
+3. **Security headers adicionales**: Permissions Policy
+4. **Tests de penetración** automatizados
 
 ---
 
@@ -520,15 +602,20 @@ Propiedad del Gobierno de Ecuador - Uso Gubernamental Exclusivo
 
 ## 🔄 Changelog
 
-### v2.0 (Enero 2026)
-- ✅ Zero Trust Architecture implementada
-- ✅ Cifrado automático de PII en BD (Flyway automático)
-- ✅ Migraciones automáticas al iniciar
-- ✅ Validación HMAC Gateway ↔ Core
-- ✅ Integración completa con Supabase PostgreSQL
-- ✅ AWS SES para OTP
-- ✅ DIDIT biometría
-- ✅ Auditoría de seguridad completa
+### v2.0 (Enero 2026) - **Auditoría de Seguridad Completa**
+- ✅ **Zero Trust Architecture** implementada y validada
+- ✅ **Cifrado automático de PII** en BD (Flyway automático)
+- ✅ **Migraciones automáticas** al iniciar aplicación
+- ✅ **Validación HMAC** Gateway ↔ Core con anti-replay
+- ✅ **Integración completa** con Supabase PostgreSQL
+- ✅ **AWS SES** para MFA via OTP
+- ✅ **DIDIT v3** verificación biométrica
+- ✅ **Headers de seguridad** completos (CSP, XSS, HSTS)
+- ✅ **Validación de archivos** con magic bytes
+- ✅ **Rate limiting** anti-brute-force
+- ✅ **Logs seguros** con masking de PII
+- ⚠️ **Vulnerabilidades documentadas** (bypass contraseñas, config hardcodeada)
+- 📋 **Plan de remediación** definido
 
 ### v1.0 (Noviembre 2025)
 - Primera versión funcional
@@ -537,4 +624,6 @@ Propiedad del Gobierno de Ecuador - Uso Gubernamental Exclusivo
 
 **Última actualización:** Enero 21, 2026  
 **Versión:** 2.0  
-**Estado:** ✅ Producción Ready
+**Estado:** ✅ Producción Ready (con plan de remediación de seguridad)  
+**Auditoría:** ✅ Completada - Enero 2026  
+**Próxima revisión:** Abril 2026
