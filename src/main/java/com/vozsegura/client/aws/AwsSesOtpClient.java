@@ -146,12 +146,12 @@ public class AwsSesOtpClient implements OtpClient {
      */
     @PostConstruct
     public void init() {
-        log.info("============================================");
-        log.info(" AWS SES OTP CLIENT - INITIALIZING");
-        log.info(" Region: {}", awsRegion);
-        log.info(" From Email: {}", maskEmail(fromEmail));
-        log.info(" Security: ENABLED (SecureRandom, Rate Limit, TTL)");
-        log.info("============================================");
+        log.debug("============================================");
+        log.debug(" AWS SES OTP CLIENT - INITIALIZING");
+        log.debug(" Region: {}", awsRegion);
+        log.debug(" From Email: {}", maskEmail(fromEmail));
+        log.debug(" Security: ENABLED (SecureRandom, Rate Limit, TTL)");
+        log.debug("============================================");
 
         try {
             // Intentar crear cliente con credenciales explícitas si están disponibles
@@ -161,18 +161,18 @@ public class AwsSesOtpClient implements OtpClient {
             // Si tenemos credenciales explícitas en properties/env, usarlas
             if (awsAccessKeyId != null && !awsAccessKeyId.isBlank() && 
                 awsSecretAccessKey != null && !awsSecretAccessKey.isBlank()) {
-                log.info("[AWS SES] Using explicit AWS credentials from environment");
+                log.debug("[AWS SES] Using explicit AWS credentials from environment");
                 AwsBasicCredentials credentials = AwsBasicCredentials.create(
                         awsAccessKeyId,
                         awsSecretAccessKey
                 );
                 builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
             } else {
-                log.info("[AWS SES] Using default AWS credential chain");
+                log.debug("[AWS SES] Using default AWS credential chain");
             }
             
             this.sesClient = builder.build();
-            log.info("[AWS SES] Client initialized successfully");
+            log.debug("[AWS SES] Client initialized successfully");
         } catch (Exception e) {
             log.error("[AWS SES] Failed to initialize: {}", e.getMessage());
             log.warn("[AWS SES] Falling back to console mode for development");
@@ -184,10 +184,10 @@ public class AwsSesOtpClient implements OtpClient {
      * Libera recursos y conexiones a AWS.
      */
     @PreDestroy
-    public void cleanup() {
+    public void close() {
         if (sesClient != null) {
             sesClient.close();
-            log.info("[AWS SES] Client closed");
+            log.debug("[AWS SES] Client closed");
         }
     }
 
@@ -277,7 +277,7 @@ public class AwsSesOtpClient implements OtpClient {
                     .build();
 
             SendEmailResponse response = sesClient.sendEmail(request);
-            log.info("[AWS SES] Email sent successfully - MessageId: {}", response.messageId());
+            log.debug("[AWS SES] Email sent successfully - MessageId: {}", response.messageId());
             return true;
 
         } catch (SesException e) {

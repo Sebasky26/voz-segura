@@ -206,9 +206,10 @@ public class DerivationService {
         }
 
         // ✅ Matching correcto: policy + priority_order + especificidad
+        // Nota: Usamos priority (no severity) porque es lo que se guarda al clasificar
         List<DerivationRule> candidates = ruleRepository.findMatchingRulesForPolicy(
                 activePolicy.getId(),
-                complaint.getSeverity(),
+                complaint.getPriority(),  // Cambiado de getSeverity() a getPriority()
                 complaint.getComplaintType()
         );
 
@@ -233,8 +234,19 @@ public class DerivationService {
     }
 
     private Long fallbackDestinationId() {
-        return destinationEntityRepository.findByCode("DEFAULT")
+        // Primero intentar encontrar la entidad DEFAULT
+        Optional<DestinationEntity> defaultEntity = destinationEntityRepository.findByCode("DEFAULT")
+                .filter(DestinationEntity::isActive);
+
+        if (defaultEntity.isPresent()) {
+            return defaultEntity.get().getId();
+        }
+
+        // Si no hay DEFAULT, usar la primera entidad activa disponible
+        return destinationEntityRepository.findAll()
+                .stream()
                 .filter(DestinationEntity::isActive)
+                .findFirst()
                 .map(DestinationEntity::getId)
                 .orElse(null);
     }
@@ -248,7 +260,7 @@ public class DerivationService {
 
         if (destinationId == null) {
             complaint.setStatus("REQUIRES_REVIEW");
-            complaint.setPriority("MANUAL_REVIEW_PENDING");
+            complaint.setPriority("MANUAL_REVIEW");
             complaint.setUpdatedAt(OffsetDateTime.now());
             complaintRepository.save(complaint);
 

@@ -45,17 +45,21 @@
             <div class="vs-grid vs-grid--3cols">
                 <div class="vs-form__group">
                     <label class="vs-form__label">Estado</label>
-                    <p th:text="${statusLabel ?: complaint.status}">PENDING</p>
+                    <p th:text="${systemConfigService.translateStatus(complaint.status)}">PENDING</p>
                 </div>
 
                 <div class="vs-form__group">
                     <label class="vs-form__label">Prioridad</label>
-                    <p th:text="${priorityLabel ?: complaint.priority ?: 'Sin asignar'}">MEDIUM</p>
+                    <p th:if="${complaint.priority != null}"
+                       th:text="${systemConfigService.translateSeverity(complaint.priority)}">MEDIUM</p>
+                    <p th:unless="${complaint.priority != null}" class="vs-text-muted">Sin asignar</p>
                 </div>
 
                 <div class="vs-form__group">
                     <label class="vs-form__label">Tipo</label>
-                    <p th:text="${complaintTypeLabel ?: complaint.complaintType ?: 'Sin clasificar'}">-</p>
+                    <p th:if="${complaint.complaintType != null}"
+                       th:text="${systemConfigService.translateComplaintType(complaint.complaintType)}">-</p>
+                    <p th:unless="${complaint.complaintType != null}" class="vs-text-muted">Sin clasificar</p>
                 </div>
             </div>
         </div>
@@ -69,15 +73,23 @@
             <div class="vs-grid vs-grid--2cols">
                 <div class="vs-form__group">
                     <label class="vs-form__label">Nombre</label>
-                    <p th:text="${complaint.companyName}">Empresa</p>
+                    <p th:text="${companyName}">Empresa</p>
                 </div>
                 <div class="vs-form__group">
                     <label class="vs-form__label">Contacto</label>
-                    <p th:text="${complaint.companyContact}">contacto</p>
+                    <p th:text="${companyContact}">contacto</p>
                 </div>
                 <div class="vs-form__group vs-grid--full">
                     <label class="vs-form__label">Dirección</label>
-                    <p th:text="${complaint.companyAddress}">Dirección</p>
+                    <p th:text="${companyAddress}">Dirección</p>
+                </div>
+                <div class="vs-form__group" th:if="${companyEmail != null && !companyEmail.isEmpty()}">
+                    <label class="vs-form__label">Email</label>
+                    <p th:text="${companyEmail}">email@example.com</p>
+                </div>
+                <div class="vs-form__group" th:if="${companyPhone != null && !companyPhone.isEmpty()}">
+                    <label class="vs-form__label">Teléfono</label>
+                    <p th:text="${companyPhone}">0999999999</p>
                 </div>
             </div>
         </div>
@@ -103,9 +115,9 @@
                     </thead>
                     <tbody>
                     <tr th:each="ev : ${evidences}">
-                        <td th:text="${ev.fileName}">archivo</td>
-                        <td th:text="${ev.contentType}">tipo</td>
-                        <td th:text="${ev.sizeBytes / 1024 + ' KB'}">100 KB</td>
+                        <td th:text="${decryptedFileNames.get(ev.id)}">archivo.pdf</td>
+                        <td th:text="${ev.contentType}">application/pdf</td>
+                        <td th:text="${#numbers.formatDecimal(ev.sizeBytes / 1024.0, 1, 2) + ' KB'}">100.00 KB</td>
                         <td>
                             <a th:href="@{/staff/evidencias/{id}(id=${ev.id})}"
                                target="_blank"
@@ -114,7 +126,7 @@
                             </a>
                             <a th:href="@{/staff/evidencias/{id}(id=${ev.id})}"
                                download
-                               th:download="${ev.fileName}"
+                               th:download="${decryptedFileNames.get(ev.id)}"
                                class="vs-button vs-button--sm vs-button--outline">
                                 Descargar
                             </a>
@@ -125,9 +137,9 @@
             </div>
         </div>
 
-        <div th:if="${complaint.analystNotes}" class="vs-section vs-mb-6">
+        <div th:if="${analystNotes != null && !analystNotes.isEmpty()}" class="vs-section vs-mb-6">
             <h3 class="vs-section__title">Notas del analista</h3>
-            <div class="vs-textarea-readonly" th:text="${complaint.analystNotes}"></div>
+            <div class="vs-textarea-readonly" th:text="${analystNotes}"></div>
         </div>
 
         <!-- Sección de Clasificación (solo si no está finalizado) -->
@@ -164,7 +176,7 @@
                     <label class="vs-form__label" for="analystNotes">Notas internas (opcional)</label>
                     <textarea id="analystNotes" name="analystNotes" class="vs-textarea" rows="2"
                               placeholder="Notas internas visibles solo para analistas..."
-                              th:text="${complaint.analystNotes}"></textarea>
+                              th:text="${analystNotes}"></textarea>
                 </div>
 
                 <div class="vs-mt-4">

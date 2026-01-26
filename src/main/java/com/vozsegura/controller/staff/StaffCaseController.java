@@ -111,13 +111,38 @@ public class StaffCaseController {
             // Descifrar texto principal (solo en memoria)
             String decryptedText = complaintService.decryptComplaintText(complaint.getEncryptedText());
 
+            // Descifrar datos de empresa (solo en memoria para mostrar al analista)
+            String companyName = encryptionService.decryptFromBase64(complaint.getCompanyNameEncrypted());
+            String companyContact = encryptionService.decryptFromBase64(complaint.getCompanyContactEncrypted());
+            String companyAddress = encryptionService.decryptFromBase64(complaint.getCompanyAddressEncrypted());
+            String companyEmail = complaint.getCompanyEmailEncrypted() != null
+                ? encryptionService.decryptFromBase64(complaint.getCompanyEmailEncrypted()) : "";
+            String companyPhone = complaint.getCompanyPhoneEncrypted() != null
+                ? encryptionService.decryptFromBase64(complaint.getCompanyPhoneEncrypted()) : "";
+
+            // Descifrar notas del analista (si existen)
+            String analystNotes = "";
+            if (complaint.getAnalystNotesEncrypted() != null && !complaint.getAnalystNotesEncrypted().isEmpty()) {
+                try {
+                    analystNotes = encryptionService.decryptFromBase64(complaint.getAnalystNotesEncrypted());
+                } catch (Exception e) {
+                    analystNotes = "[Error al descifrar notas]";
+                }
+            }
+
             // Evidencias
             List<Evidence> evidences = evidenceRepository.findByComplaintId(complaint.getId());
 
-            // Labels UI (valores estaticos)
-            String statusLabel = complaint.getStatus();
-            String priorityLabel = complaint.getPriority();
-            String complaintTypeLabel = complaint.getComplaintType();
+            // Desencriptar nombres de archivos de evidencias (solo en memoria)
+            java.util.Map<Long, String> decryptedFileNames = new java.util.HashMap<>();
+            for (Evidence ev : evidences) {
+                try {
+                    String decryptedFileName = encryptionService.decryptFromBase64(ev.getFileNameEncrypted());
+                    decryptedFileNames.put(ev.getId(), decryptedFileName);
+                } catch (Exception e) {
+                    decryptedFileNames.put(ev.getId(), "[Error al descifrar nombre]");
+                }
+            }
 
             // Auditoria: acceso a caso
             String username = getUsername(session);
@@ -127,20 +152,23 @@ public class StaffCaseController {
             auditService.logEvent(role, username, "CASE_VIEWED", trackingId, "Acceso a detalle de caso");
 
             model.addAttribute("complaint", complaint);
-            model.addAttribute("statusLabel", statusLabel);
-            model.addAttribute("priorityLabel", priorityLabel);
-            model.addAttribute("complaintTypeLabel", complaintTypeLabel);
             model.addAttribute("decryptedText", decryptedText);
+            model.addAttribute("companyName", companyName);
+            model.addAttribute("companyContact", companyContact);
+            model.addAttribute("companyAddress", companyAddress);
+            model.addAttribute("companyEmail", companyEmail);
+            model.addAttribute("companyPhone", companyPhone);
+            model.addAttribute("analystNotes", analystNotes);
             model.addAttribute("evidences", evidences);
-            model.addAttribute("complaintTypes", new String[]{
-                "HARASSMENT", "DISCRIMINATION", "FRAUD", "CORRUPTION", "ABUSE", "OTHER"
-            });
-            model.addAttribute("priorities", new String[]{"LOW", "MEDIUM", "HIGH", "CRITICAL"});
+            model.addAttribute("decryptedFileNames", decryptedFileNames);
+            model.addAttribute("systemConfigService", systemConfigService);
+            model.addAttribute("complaintTypes", systemConfigService.getComplaintTypesAsArray());
+            model.addAttribute("priorities", systemConfigService.getPrioritiesAsArray());
 
             return "staff/caso-detalle";
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al cargar el caso.");
+            redirectAttributes.addFlashAttribute("error", "Error al cargar el caso: " + e.getMessage());
             return "redirect:/staff/casos";
         }
     }

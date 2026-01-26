@@ -303,7 +303,7 @@ public class UnifiedAuthController {
                 return "redirect:/verification/inicio";
             }
 
-            log.info("verify-callback: Verification found, checking role");
+            log.debug("verify-callback: Verification found, checking role");
 
             // Determinar rol: si existe en staff, es staff; si no, es denunciante
             Optional<StaffUser> staffUserOpt = staffUserRepository.findByCedulaHashIdx(documentHash);
@@ -317,7 +317,7 @@ public class UnifiedAuthController {
                 StaffUser staffUser = staffUserOpt.get();
                 userRole = staffUser.getRole();
 
-                log.info("verify-callback: User is STAFF with role: {}", userRole);
+                log.debug("verify-callback: User is STAFF with role: {}", userRole);
 
                 // Guardar en sesión para flujo de clave secreta
                 session.setAttribute("staffCedulaHash", documentHash);
@@ -336,7 +336,7 @@ public class UnifiedAuthController {
 
             } else {
                 // Es DENUNCIANTE
-                log.info("verify-callback: User is DENUNCIANTE");
+                log.debug("verify-callback: User is DENUNCIANTE");
                 userRole = ROLE_DENUNCIANTE;
 
                 // Guardar en sesión para flujo de denuncia
@@ -681,7 +681,7 @@ public class UnifiedAuthController {
             // ÉXITO: Resetear contador de intentos
             session.removeAttribute("secretKeyAttempts");
 
-            log.info("verify-secret: Secret key validated successfully");
+            log.debug("verify-secret: Secret key validated successfully");
 
             // Auditar éxito (no debe interrumpir el flujo si falla)
             try {
