@@ -4,126 +4,203 @@
 LAYOUT_WITH_LEGEND()
 LAYOUT_TOP_DOWN()
 
-title Diagrama de Componentes C4 - Voz Segura (Arquitectura Real)
+title Diagrama de Componentes C4 - Voz Segura (Arquitectura Implementada 2026)
 
 ' ============================================
 ' CONTENEDOR 1: API GATEWAY (Puerto 8080)
 ' ============================================
-Container_Boundary(gateway, "API Gateway - Spring Cloud Gateway") {
-    Component(jwt_filter, "JwtAuthenticationGatewayFilterFactory", "GatewayFilterFactory", "Valida JWT y genera firma HMAC-SHA256")
-    Component(apikey_filter, "ApiKeyValidationFilter", "WebFilter", "Valida X-Api-Key para rutas admin/staff")
-    Component(audit_filter, "AuditLoggingFilter", "WebFilter", "Registra peticiones para auditoría")
-    Component(route_locator, "RouteLocator", "Spring Cloud Gateway", "Enruta peticiones al Core (8082)")
+Container_Boundary(gateway, "API Gateway - Spring Cloud Gateway (Puerto 8080)") {
+    Component(route_security, "RouteSecurityConfig", "@Component", "Define rutas públicas vs protegidas")
+    Component(jwt_filter, "JwtAuthenticationGatewayFilterFactory", "@Component", "Valida JWT (HS256) y genera HMAC-SHA256")
+    Component(route_locator, "GatewayConfig", "@Configuration", "Enruta /admin, /staff → Core:8082")
 }
 
 ' ============================================
-' CONTENEDOR 2: CORE APPLICATION
+' CONTENEDOR 2: CORE APPLICATION (Puerto 8082)
 ' ============================================
 Container_Boundary(core, "Core Application - Spring Boot (Puerto 8082)") {
-    ' === CAPA DE SEGURIDAD ===
-    Component(zero_trust_filter, "ZeroTrustGatewayFilter", "Servlet Filter", "Valida firma HMAC-SHA256 del Gateway")
-    Component(api_gateway_filter, "ApiGatewayFilter", "Servlet Filter", "Autorización por ruta según userType")
-    Component(gateway_validator, "GatewayRequestValidator", "@Component", "Valida HMAC timing-safe")
+    ' === CAPA DE SEGURIDAD (Filtros) ===
+    Component(zero_trust_filter, "ZeroTrustGatewayFilter", "@Component @Order(1)", "Valida HMAC-SHA256 del Gateway (timing-safe)")
+    Component(api_gateway_filter, "ApiGatewayFilter", "@Component @Order(2)", "Autoriza por userType: ADMIN/ANALYST/DENUNCIANTE")
+    Component(security_config, "SecurityConfig", "@Configuration", "Spring Security + CSRF + sesiones HTTP")
 
     ' === CONTROLLERS ===
-    Component(auth_controller, "UnifiedAuthController", "@Controller", "Login MFA completo")
-    Component(denuncia_controller, "DenunciaController", "@Controller", "Denuncias anónimas")
-    Component(staff_controller, "StaffCaseController", "@Controller", "Gestión casos")
-    Component(admin_controller, "AdminController", "@Controller", "Panel admin")
-    Component(webhook_controller, "WebhookController", "@RestController", "Callback DIDIT")
+    Component(auth_controller, "UnifiedAuthController", "@Controller /auth", "MFA 5 pasos: Didit→Clave→OTP→JWT")
+    Component(webhook_controller, "WebhookController", "@RestController /webhooks", "Callback Didit webhook")
+    Component(denuncia_controller, "DenunciaController", "@Controller /denuncia", "Denuncias anónimas + Turnstile")
+    Component(staff_controller, "StaffCaseController", "@Controller /staff", "Gestión casos (listar/clasificar/derivar)")
+    Component(admin_controller, "AdminController", "@Controller /admin", "Panel admin: reglas/analistas/logs")
+    Component(seguimiento_controller, "SeguimientoController", "@Controller /seguimiento", "Tracking público de denuncias")
 
-    ' === SERVICES ===
-    Component(unified_auth, "UnifiedAuthService", "@Service", "Orquesta MFA 5 pasos")
-    Component(otp_client, "AwsSesOtpClient", "@Component", "Envía OTP por email")
-    Component(complaint_service, "ComplaintService", "@Service", "CRUD denuncias cifradas")
-    Component(derivation_service, "DerivationService", "@Service", "Derivación automática")
-    Component(audit_service, "AuditService", "@Service", "Auditoría sin PII")
-    Component(didit_service, "DiditService", "@Service", "Integración DIDIT")
-    Component(captcha_service, "CloudflareTurnstileService", "@Service", "Validación CAPTCHA")
-    Component(encryption_service, "EncryptionService", "@Component", "AES-256-GCM")
-    Component(config_service, "SystemConfigService", "@Service", "Configuración dinámica")
+    ' === SERVICES (Capa de Negocio) ===
+    Component(unified_auth_service, "UnifiedAuthService", "@Service", "Orquesta MFA 5 pasos completo")
+    Component(complaint_service, "ComplaintService", "@Service", "CRUD denuncias cifradas + derivación")
+    Component(derivation_service, "DerivationService", "@Service", "Matching reglas + derivación automática")
+    Component(didit_service, "DiditService", "@Service", "API Didit v3 (biometría)")
+    Component(otp_service, "AwsSesOtpClient", "@Component", "Envío OTP por AWS SES")
+    Component(turnstile_service, "CloudflareTurnstileService", "@Service", "Validación CAPTCHA Turnstile")
+    Component(audit_service, "AuditService", "@Service", "Logs sin PII (GDPR)")
+    Component(config_service, "SystemConfigService", "@Service", "Config dinámica desde BD")
 
-    ' === REPOSITORIES ===
-    Component(complaint_repo, "ComplaintRepository", "JpaRepository", "BD denuncias")
-    Component(staff_repo, "StaffUserRepository", "JpaRepository", "BD staff")
-    Component(persona_repo, "PersonaRepository", "JpaRepository", "BD personas")
-    Component(audit_repo, "AuditRepository", "JpaRepository", "BD logs")
+    ' === SERVICIOS DE SEGURIDAD ===
+    Component(encryption_service, "EncryptionService", "@Component", "AES-256-GCM (IV 12 bytes, tag 128 bits)")
+    Component(crypto_service, "CryptoService", "@Service", "Hashing SHA-256 + salt")
+    Component(file_validation, "FileValidationService", "@Service", "Valida magic bytes + whitelist MIME")
+    Component(jwt_provider, "JwtTokenProvider", "@Service", "Genera JWT HS256 (24h TTL)")
+    Component(gateway_validator, "GatewayRequestValidator", "@Component", "Valida HMAC desde Gateway")
 }
 
 ' === BASE DE DATOS ===
-ContainerDb(supabase, "Supabase PostgreSQL", "PostgreSQL 17", "6 schemas cifrados")
+ContainerDb(postgresql, "PostgreSQL 17", "Base de Datos", "7 schemas: denuncias, evidencias, logs, reglas_derivacion, staff, registro_civil, public")
 
 ' === SISTEMAS EXTERNOS ===
-System_Ext(didit_api, "DIDIT API v3", "Verificación biométrica")
-System_Ext(aws_ses, "AWS SES", "Email OTP")
-System_Ext(cloudflare_api, "Cloudflare Turnstile", "CAPTCHA")
+System_Ext(didit_api, "DIDIT API v3", "Verificación biométrica de identidad")
+System_Ext(aws_ses, "AWS SES", "Envío de OTPs por email")
+System_Ext(cloudflare_turnstile, "Cloudflare Turnstile", "CAPTCHA invisible/visible")
 
-' === FLUJO GATEWAY → CORE ===
-Rel(apikey_filter, jwt_filter, "Si API Key OK")
-Rel(jwt_filter, audit_filter, "Si JWT válido")
-Rel(audit_filter, route_locator, "Registra petición")
-Rel(route_locator, zero_trust_filter, "Enruta con HMAC", "HTTP")
+' ============================================
+' RELACIONES: GATEWAY → CORE
+' ============================================
+Rel(route_security, jwt_filter, "Define rutas protegidas")
+Rel(jwt_filter, route_locator, "Si JWT válido, genera HMAC")
+Rel(route_locator, zero_trust_filter, "Enruta con headers firmados", "HTTP + HMAC")
 
-' === FLUJO FILTROS CORE ===
-Rel(zero_trust_filter, gateway_validator, "Valida HMAC")
-Rel(zero_trust_filter, api_gateway_filter, "Si firma válida")
-Rel(api_gateway_filter, auth_controller, "/auth")
-Rel(api_gateway_filter, denuncia_controller, "/denuncia")
-Rel(api_gateway_filter, staff_controller, "/staff")
-Rel(api_gateway_filter, admin_controller, "/admin")
-Rel(api_gateway_filter, webhook_controller, "/webhooks")
+' ============================================
+' RELACIONES: FILTROS CORE (Cadena de seguridad)
+' ============================================
+Rel(zero_trust_filter, api_gateway_filter, "Si HMAC válido")
+Rel(api_gateway_filter, security_config, "Consulta autorización")
 
-' === CONTROLLERS → SERVICES ===
-Rel(auth_controller, unified_auth, "Ejecuta MFA")
+' ============================================
+' RELACIONES: FILTROS → CONTROLLERS
+' ============================================
+Rel(api_gateway_filter, auth_controller, "Ruta: /auth/**")
+Rel(api_gateway_filter, webhook_controller, "Ruta: /webhooks/**")
+Rel(api_gateway_filter, denuncia_controller, "Ruta: /denuncia/**")
+Rel(api_gateway_filter, staff_controller, "Ruta: /staff/** (ANALYST/ADMIN)")
+Rel(api_gateway_filter, admin_controller, "Ruta: /admin/** (ADMIN)")
+Rel(api_gateway_filter, seguimiento_controller, "Ruta: /seguimiento/**")
+
+' ============================================
+' RELACIONES: CONTROLLERS → SERVICES
+' ============================================
+Rel(auth_controller, unified_auth_service, "Ejecuta flujo MFA")
+Rel(auth_controller, didit_service, "Inicia sesión Didit")
+Rel(auth_controller, otp_service, "Envía OTP")
+
+Rel(webhook_controller, didit_service, "Procesa webhook")
+
 Rel(denuncia_controller, complaint_service, "Crea denuncia")
+Rel(denuncia_controller, turnstile_service, "Valida CAPTCHA")
 Rel(denuncia_controller, didit_service, "Verifica identidad")
-Rel(denuncia_controller, captcha_service, "Valida CAPTCHA")
+
 Rel(staff_controller, complaint_service, "CRUD casos")
-Rel(staff_controller, derivation_service, "Deriva")
-Rel(admin_controller, config_service, "Config")
-Rel(webhook_controller, didit_service, "Webhook")
+Rel(staff_controller, derivation_service, "Deriva denuncia")
 
-' === SERVICES → SERVICES ===
-Rel(unified_auth, otp_client, "OTP")
-Rel(unified_auth, staff_repo, "Auth")
-Rel(complaint_service, encryption_service, "Cifra")
-Rel(complaint_service, complaint_repo, "BD")
-Rel(complaint_service, audit_service, "Log")
-Rel(didit_service, persona_repo, "Vincula")
-Rel(derivation_service, complaint_repo, "Update")
-Rel(audit_service, audit_repo, "Log")
+Rel(admin_controller, derivation_service, "CRUD reglas")
+Rel(admin_controller, config_service, "Config sistema")
 
-' === REPOS → BD ===
-Rel(complaint_repo, supabase, "JDBC")
-Rel(staff_repo, supabase, "JDBC")
-Rel(persona_repo, supabase, "JDBC")
-Rel(audit_repo, supabase, "JDBC")
+Rel(seguimiento_controller, complaint_service, "Consulta estado")
 
-' === EXTERNAS ===
-Rel(didit_service, didit_api, "API")
-Rel(otp_client, aws_ses, "SDK")
-Rel(captcha_service, cloudflare_api, "API")
+' ============================================
+' RELACIONES: SERVICES → SERVICES
+' ============================================
+Rel(unified_auth_service, audit_service, "Log eventos auth")
+Rel(unified_auth_service, otp_service, "Genera y envía OTP")
 
+Rel(complaint_service, encryption_service, "Cifra/descifra contenido")
+Rel(complaint_service, audit_service, "Log eventos denuncias")
+Rel(complaint_service, file_validation, "Valida archivos subidos")
+
+Rel(derivation_service, audit_service, "Log derivaciones")
+
+Rel(didit_service, crypto_service, "Hash cédula")
+
+Rel(auth_controller, jwt_provider, "Genera JWT tras MFA")
+
+' ============================================
+' RELACIONES: SERVICES → BD (Spring Data JPA)
+' ============================================
+Rel(unified_auth_service, postgresql, "StaffUserRepository", "JPA → schema=staff")
+Rel(complaint_service, postgresql, "ComplaintRepository + EvidenceRepository", "JPA → schemas=denuncias,evidencias")
+Rel(derivation_service, postgresql, "DerivationRuleRepository + DestinationEntityRepository", "JPA → schema=reglas_derivacion")
+Rel(didit_service, postgresql, "PersonaRepository + DiditVerificationRepository", "JPA → schema=registro_civil")
+Rel(audit_service, postgresql, "AuditEventRepository", "JPA → schema=logs")
+Rel(config_service, postgresql, "SystemConfigRepository", "JPA → schema=public")
+
+' ============================================
+' RELACIONES: SERVICIOS → EXTERNOS
+' ============================================
+Rel(didit_service, didit_api, "API REST v3", "HTTPS")
+Rel(otp_service, aws_ses, "AWS SDK v2", "HTTPS")
+Rel(turnstile_service, cloudflare_turnstile, "API REST", "HTTPS")
+
+' ============================================
+' NOTAS EXPLICATIVAS
+' ============================================
 note right of jwt_filter
-  **JWT Filter:**
+  **JWT Filter (Gateway):**
   • Valida JWT (HS256)
-  • Extrae: cedula, userType
-  • Genera HMAC-SHA256
-  • Agrega headers Zero Trust
+  • Extrae: cedula, userType, apiKey
+  • Genera HMAC-SHA256 signature
+  • Headers: X-User-Cedula, X-User-Type,
+    X-Gateway-Signature, X-Request-Timestamp
+  • TTL: 60 segundos (anti-replay)
 end note
 
 note right of zero_trust_filter
-  **Zero Trust:**
+  **Zero Trust Filter (Core):**
   • Valida HMAC-SHA256
-  • TTL: 60 segundos
   • Timing-safe comparison
+  • Rechaza requests sin firma válida
+  • Permite rutas públicas:
+    /auth/**, /webhooks/**, /denuncia/**,
+    /seguimiento/**, /error, /css/**, /js/**
 end note
 
 note bottom of encryption_service
-  **AES-256-GCM:**
-  • IV: 12 bytes
+  **Cifrado AES-256-GCM:**
+  • IV: 12 bytes (aleatorio)
   • Tag: 128 bits AEAD
-  • Key desde Secrets Manager
+  • Key desde env: VOZ_ENCRYPTION_KEY
+  • Formato: Base64(IV + ciphertext + tag)
+  • Campos cifrados: complaint text,
+    analyst notes, PII (email, phone)
+end note
+
+note bottom of derivation_service
+  **Motor de Derivación:**
+  1. Recibe denuncia clasificada
+     (severity + complaintType)
+  2. Query SQL con matching:
+     - severity = LOW/MEDIUM/HIGH/CRITICAL
+     - complaintType = FRAUD/HARASSMENT/etc
+  3. Ordena por especificidad:
+     - Ambos criterios (prioridad 3)
+     - Solo severity (prioridad 2)
+     - Solo type (prioridad 1)
+     - Wildcard (prioridad 0)
+  4. Selecciona primera regla activa
+  5. Deriva a DestinationEntity
+  6. Fallback: ID=1 si no hay match
+end note
+
+note bottom of postgresql
+  **Schemas PostgreSQL:**
+  • denuncias (tabla: denuncia)
+  • evidencias (tabla: evidencia)
+  • logs (tabla: evento_auditoria)
+  • reglas_derivacion (tablas: regla_derivacion,
+    entidad_destino, politica_derivacion)
+  • staff (tabla: staff_user)
+  • registro_civil (tablas: identity_vault,
+    personas, didit_verification)
+  • public (tabla: system_config)
+
+  **Cifrado:**
+  • Columnas *_encrypted: AES-256-GCM
+  • Columnas *_hash: SHA-256 + salt
+  • PII NUNCA en texto plano
 end note
 
 @enduml

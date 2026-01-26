@@ -370,22 +370,29 @@ public class ComplaintService {
      * Tipos de denuncia:
      * - LABOR_RIGHTS, HARASSMENT, DISCRIMINATION, SAFETY, FRAUD, OTHER
      * 
-     * Prioridad:
+     * Prioridad/Severidad:
      * - LOW, MEDIUM, HIGH, CRITICAL
      * 
-     * La clasificación determina la derivación automática
-     * (se aplican reglas de DerivationRule en BD).
-     * 
+     * IMPORTANTE: La prioridad se guarda en el campo 'severity' porque ese es
+     * el campo que se usa para el matching de reglas de derivación.
+     *
      * @param trackingId ID de denuncia
      * @param complaintType tipo de denuncia
-     * @param priority prioridad asignada
+     * @param priority prioridad asignada (se guardará en severity)
+     * @param analystNotes notas del analista
      * @param analystUsername analista que clasifica (para auditoría)
      */
     public void classifyComplaint(String trackingId, String complaintType, String priority,
                                    String analystNotes, String analystUsername) {
         complaintRepository.findByTrackingId(trackingId).ifPresent(complaint -> {
             complaint.setComplaintType(complaintType);
+
+            // CRÍTICO: Guardar la prioridad en severity (campo usado para matching de reglas)
+            complaint.setSeverity(priority);
+
+            // También guardar en priority por compatibilidad
             complaint.setPriority(priority);
+
             if (analystNotes != null && !analystNotes.isBlank()) {
                 complaint.setAnalystNotesEncrypted(encryptionService.encryptToBase64(analystNotes));
             }

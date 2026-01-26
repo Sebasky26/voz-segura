@@ -199,20 +199,19 @@ public class DerivationService {
     // =========================
 
     public Long findDestinationIdForComplaint(Complaint complaint) {
-        // Validar que la denuncia tenga priority y complaintType configurados
-        if (complaint.getPriority() == null || complaint.getComplaintType() == null) {
-            log.warn("Complaint [{}] missing priority or type, using fallback", complaint.getTrackingId());
+        // Validar que la denuncia tenga severity y complaintType configurados
+        if (complaint.getSeverity() == null || complaint.getComplaintType() == null) {
+            log.warn("Complaint [{}] missing severity or type, using fallback", complaint.getTrackingId());
             return fallbackDestinationId();
         }
 
         log.info("=== MATCHING RULES FOR COMPLAINT [{}] ===", complaint.getTrackingId());
-        log.info("Complaint priority: {}", complaint.getPriority());
+        log.info("Complaint severity: {}", complaint.getSeverity());
         log.info("Complaint type: {}", complaint.getComplaintType());
 
-        // Buscar reglas que coincidan con priority y complaintType
-        // Nota: El campo severityMatch en la BD se usa para almacenar la priority (HIGH, MEDIUM, LOW, CRITICAL)
+        // Buscar reglas que coincidan con severity y complaintType
         List<DerivationRule> candidates = ruleRepository.findMatchingRules(
-                complaint.getPriority(),      // Usamos priority, no severity
+                complaint.getSeverity(),      // CRÍTICO: Usar severity (campo que contiene LOW/MEDIUM/HIGH/CRITICAL)
                 complaint.getComplaintType()
         );
 
