@@ -4,12 +4,12 @@
 LAYOUT_WITH_LEGEND()
 LAYOUT_TOP_DOWN()
 
-title Diagrama de Componentes C4 - Voz Segura (Arquitectura Implementada 2026)
+title Diagrama de Componentes C4 - Voz Segura
 
 ' ============================================
 ' CONTENEDOR 1: API GATEWAY (Puerto 8080)
 ' ============================================
-Container_Boundary(gateway, "API Gateway - Spring Cloud Gateway (Puerto 8080)") {
+Container_Boundary(gateway, "API Gateway") {
     Component(route_security, "RouteSecurityConfig", "@Component", "Define rutas públicas vs protegidas")
     Component(jwt_filter, "JwtAuthenticationGatewayFilterFactory", "@Component", "Valida JWT (HS256) y genera HMAC-SHA256")
     Component(route_locator, "GatewayConfig", "@Configuration", "Enruta /admin, /staff → Core:8082")
@@ -18,11 +18,11 @@ Container_Boundary(gateway, "API Gateway - Spring Cloud Gateway (Puerto 8080)") 
 ' ============================================
 ' CONTENEDOR 2: CORE APPLICATION (Puerto 8082)
 ' ============================================
-Container_Boundary(core, "Core Application - Spring Boot (Puerto 8082)") {
+Container_Boundary(core, "Core Application") {
     ' === CAPA DE SEGURIDAD (Filtros) ===
     Component(zero_trust_filter, "ZeroTrustGatewayFilter", "@Component @Order(1)", "Valida HMAC-SHA256 del Gateway (timing-safe)")
     Component(api_gateway_filter, "ApiGatewayFilter", "@Component @Order(2)", "Autoriza por userType: ADMIN/ANALYST/DENUNCIANTE")
-    Component(security_config, "SecurityConfig", "@Configuration", "Spring Security + CSRF + sesiones HTTP")
+    Component(security_config, "SecurityConfig", "@Configuration", "Spring Security + CSRF + sesiones HTTP + UserDetailsService")
 
     ' === CONTROLLERS ===
     Component(auth_controller, "UnifiedAuthController", "@Controller /auth", "MFA 5 pasos: Didit→Clave→OTP→JWT")
@@ -43,11 +43,21 @@ Container_Boundary(core, "Core Application - Spring Boot (Puerto 8082)") {
     Component(config_service, "SystemConfigService", "@Service", "Config dinámica desde BD")
 
     ' === SERVICIOS DE SEGURIDAD ===
-    Component(encryption_service, "EncryptionService", "@Component", "AES-256-GCM (IV 12 bytes, tag 128 bits)")
+    Component(encryption_service, "AesGcmEncryptionService", "@Service", "AES-256-GCM (IV 12 bytes, tag 128 bits)")
     Component(crypto_service, "CryptoService", "@Service", "Hashing SHA-256 + salt")
     Component(file_validation, "FileValidationService", "@Service", "Valida magic bytes + whitelist MIME")
     Component(jwt_provider, "JwtTokenProvider", "@Service", "Genera JWT HS256 (24h TTL)")
-    Component(gateway_validator, "GatewayRequestValidator", "@Component", "Valida HMAC desde Gateway")
+
+    ' === REPOSITORIES (Spring Data JPA) ===
+    Component(staff_user_repo, "StaffUserRepository", "@Repository", "JPA → staff.staff_user")
+    Component(complaint_repo, "ComplaintRepository", "@Repository", "JPA → denuncias.denuncia")
+    Component(evidence_repo, "EvidenceRepository", "@Repository", "JPA → evidencias.evidencia")
+    Component(derivation_rule_repo, "DerivationRuleRepository", "@Repository", "JPA → reglas_derivacion.regla_derivacion")
+    Component(destination_entity_repo, "DestinationEntityRepository", "@Repository", "JPA → reglas_derivacion.entidad_destino")
+    Component(persona_repo, "PersonaRepository", "@Repository", "JPA → registro_civil.personas")
+    Component(didit_verification_repo, "DiditVerificationRepository", "@Repository", "JPA → registro_civil.didit_verification")
+    Component(audit_event_repo, "AuditEventRepository", "@Repository", "JPA → logs.evento_auditoria")
+    Component(system_config_repo, "SystemConfigRepository", "@Repository", "JPA → reglas_derivacion.configuracion")
 }
 
 ' === BASE DE DATOS ===
@@ -105,28 +115,55 @@ Rel(seguimiento_controller, complaint_service, "Consulta estado")
 ' ============================================
 ' RELACIONES: SERVICES → SERVICES
 ' ============================================
-Rel(unified_auth_service, audit_service, "Log eventos auth")
-Rel(unified_auth_service, otp_service, "Genera y envía OTP")
-
-Rel(complaint_service, encryption_service, "Cifra/descifra contenido")
-Rel(complaint_service, audit_service, "Log eventos denuncias")
-Rel(complaint_service, file_validation, "Valida archivos subidos")
-
-Rel(derivation_service, audit_service, "Log derivaciones")
-
-Rel(didit_service, crypto_service, "Hash cédula")
-
-Rel(auth_controller, jwt_provider, "Genera JWT tras MFA")
+Rel(auth_controller, jwt_provider, "generateToken() tras MFA exitoso")
 
 ' ============================================
-' RELACIONES: SERVICES → BD (Spring Data JPA)
+' RELACIONES: REPOSITORIES → BASE DE DATOS
 ' ============================================
-Rel(unified_auth_service, postgresql, "StaffUserRepository", "JPA → schema=staff")
-Rel(complaint_service, postgresql, "ComplaintRepository + EvidenceRepository", "JPA → schemas=denuncias,evidencias")
-Rel(derivation_service, postgresql, "DerivationRuleRepository + DestinationEntityRepository", "JPA → schema=reglas_derivacion")
-Rel(didit_service, postgresql, "PersonaRepository + DiditVerificationRepository", "JPA → schema=registro_civil")
-Rel(audit_service, postgresql, "AuditEventRepository", "JPA → schema=logs")
-Rel(config_service, postgresql, "SystemConfigRepository", "JPA → schema=public")
+Rel(staff_user_repo, postgresql, "CRUD", "JPA → schema=staff")
+Rel(complaint_repo, postgresql, "CRUD", "JPA → schema=denuncias")
+Rel(evidence_repo, postgresql, "CRUD", "JPA → schema=evidencias")
+Rel(derivation_rule_repo, postgresql, "CRUD", "JPA → schema=reglas_derivacion")
+Rel(destination_entity_repo, postgresql, "CRUD", "JPA → schema=reglas_derivacion")
+Rel(persona_repo, postgresql, "CRUD", "JPA → schema=registro_civil")
+Rel(didit_verification_repo, postgresql, "CRUD", "JPA → schema=registro_civil")
+Rel(audit_event_repo, postgresql, "CRUD", "JPA → schema=logs")
+Rel(system_config_repo, postgresql, "CRUD", "JPA → schema=reglas_derivacion")
+
+' ============================================
+' RELACIONES: SERVICES → REPOSITORIES (Spring Data JPA)
+' ============================================
+Rel(unified_auth_service, staff_user_repo, "findByCedulaAndEnabledTrue()")
+Rel(unified_auth_service, otp_service, "sendOtp() + verifyOtp()")
+Rel(unified_auth_service, audit_service, "logEvent()")
+
+Rel(complaint_service, complaint_repo, "save() + findByTrackingId()")
+Rel(complaint_service, evidence_repo, "save() + findByComplaint()")
+Rel(complaint_service, persona_repo, "findByCedulaHash()")
+Rel(complaint_service, encryption_service, "encryptToBase64() + decryptFromBase64()")
+Rel(complaint_service, file_validation, "isValidEvidence()")
+Rel(complaint_service, audit_service, "logEvent()")
+
+Rel(derivation_service, derivation_rule_repo, "findMatchingRules() + findAllByOrderByNameAsc()")
+Rel(derivation_service, destination_entity_repo, "findById()")
+Rel(derivation_service, complaint_repo, "findById() + save()")
+Rel(derivation_service, audit_service, "logEvent()")
+
+Rel(didit_service, didit_verification_repo, "save() + findByDiditSessionId()")
+Rel(didit_service, persona_repo, "findByCedulaHash()")
+Rel(didit_service, crypto_service, "hashWithSalt()")
+
+Rel(audit_service, audit_event_repo, "save() + findAll()")
+
+Rel(config_service, system_config_repo, "findByConfigGroupAndActiveTrueOrderBySortOrderAsc()")
+
+Rel(security_config, staff_user_repo, "UserDetailsService bean")
+
+' ============================================
+' RELACIONES: CONTROLLERS → REPOSITORIES (acceso directo)
+' ============================================
+Rel(staff_controller, evidence_repo, "findByComplaintId() (acceso directo)")
+Rel(admin_controller, staff_user_repo, "findAll() (gestión analistas)")
 
 ' ============================================
 ' RELACIONES: SERVICIOS → EXTERNOS
@@ -136,71 +173,15 @@ Rel(otp_service, aws_ses, "AWS SDK v2", "HTTPS")
 Rel(turnstile_service, cloudflare_turnstile, "API REST", "HTTPS")
 
 ' ============================================
-' NOTAS EXPLICATIVAS
+' AJUSTES DE LAYOUT (Mejora estética)
 ' ============================================
-note right of jwt_filter
-  **JWT Filter (Gateway):**
-  • Valida JWT (HS256)
-  • Extrae: cedula, userType, apiKey
-  • Genera HMAC-SHA256 signature
-  • Headers: X-User-Cedula, X-User-Type,
-    X-Gateway-Signature, X-Request-Timestamp
-  • TTL: 60 segundos (anti-replay)
-end note
+' Acercar base de datos a los repositorios
+Lay_Distance(complaint_repo, postgresql, 1)
+Lay_Distance(staff_user_repo, postgresql, 1)
 
-note right of zero_trust_filter
-  **Zero Trust Filter (Core):**
-  • Valida HMAC-SHA256
-  • Timing-safe comparison
-  • Rechaza requests sin firma válida
-  • Permite rutas públicas:
-    /auth/**, /webhooks/**, /denuncia/**,
-    /seguimiento/**, /error, /css/**, /js/**
-end note
-
-note bottom of encryption_service
-  **Cifrado AES-256-GCM:**
-  • IV: 12 bytes (aleatorio)
-  • Tag: 128 bits AEAD
-  • Key desde env: VOZ_ENCRYPTION_KEY
-  • Formato: Base64(IV + ciphertext + tag)
-  • Campos cifrados: complaint text,
-    analyst notes, PII (email, phone)
-end note
-
-note bottom of derivation_service
-  **Motor de Derivación:**
-  1. Recibe denuncia clasificada
-     (severity + complaintType)
-  2. Query SQL con matching:
-     - severity = LOW/MEDIUM/HIGH/CRITICAL
-     - complaintType = FRAUD/HARASSMENT/etc
-  3. Ordena por especificidad:
-     - Ambos criterios (prioridad 3)
-     - Solo severity (prioridad 2)
-     - Solo type (prioridad 1)
-     - Wildcard (prioridad 0)
-  4. Selecciona primera regla activa
-  5. Deriva a DestinationEntity
-  6. Fallback: ID=1 si no hay match
-end note
-
-note bottom of postgresql
-  **Schemas PostgreSQL:**
-  • denuncias (tabla: denuncia)
-  • evidencias (tabla: evidencia)
-  • logs (tabla: evento_auditoria)
-  • reglas_derivacion (tablas: regla_derivacion,
-    entidad_destino, politica_derivacion)
-  • staff (tabla: staff_user)
-  • registro_civil (tablas: identity_vault,
-    personas, didit_verification)
-  • public (tabla: system_config)
-
-  **Cifrado:**
-  • Columnas *_encrypted: AES-256-GCM
-  • Columnas *_hash: SHA-256 + salt
-  • PII NUNCA en texto plano
-end note
+' Agrupar sistemas externos más cerca
+Lay_Distance(didit_service, didit_api, 1)
+Lay_Distance(otp_service, aws_ses, 1)
+Lay_Distance(turnstile_service, cloudflare_turnstile, 1)
 
 @enduml

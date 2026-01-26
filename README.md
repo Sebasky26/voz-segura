@@ -1,1982 +1,809 @@
-# VOZ SEGURA - Plataforma de Denuncias Anónimas
+# Voz Segura — README (análisis del proyecto)
 
-**Versión:** 2.0  
-**Fecha:** Enero 2026
----
 
-## Descripción del Proyecto
+## 1) Cómo ejecutar el proyecto completo
 
-**Voz Segura** es una plataforma gubernamental de denuncias anónimas desarrollada bajo principios de **Zero Trust Architecture**, diseñada para garantizar la máxima seguridad y privacidad de los denunciantes en Ecuador.
+El repo tiene **dos apps Spring Boot**:
 
-### Características Principales
+- **Core** (la aplicación principal): `./` (root) → corre en **:8082**
+- **Gateway** (API Gateway): `./gateway` → corre en **:8080**
 
-- **Verificación Biométrica con DIDIT v3:** Autenticación facial contra Registro Civil
-- **Cifrado de Extremo a Extremo:** AES-256-GCM para denuncias y evidencias
-- **Anonimato Total:** Identity Vault separa identidad real de denuncias
-- **Zero Trust:** Validación HMAC-SHA256 entre Gateway y Core con anti-replay
-- **MFA para Staff:** Autenticación de dos factores con OTP por email (AWS SES)
-- **PII Cifrado en BD:** Datos sensibles cifrados automáticamente con AES-256-GCM
-- **Auditoría Completa:** Todos los accesos registrados sin exposición de PII
-- **Cloud Native:** Supabase PostgreSQL, AWS SES, Cloudflare Turnstile
-- **Validación de Archivos:** Magic bytes + whitelist (PDF, DOCX, JPG, PNG)
-- **Rate Limiting:** Protección anti-brute-force
-- **Headers de Seguridad:** CSP, XSS protection, anti-clickjacking
+### Requisitos
+- Java (recomendado **17**)
+- Maven
+- Una base Postgres (en el proyecto se asume **Supabase Postgres**)
 
----
+### Paso a paso (modo local)
+1) Crea el archivo `.env` en la raíz (plantilla más abajo).
+2) Exporta variables de entorno (Linux/Mac):
+   ```bash
+   set -a
+   source .env
+   set +a
+   ```
+3) Levanta el **Core**:
+   ```bash
+   mvn -f pom.xml spring-boot:run
+   ```
+4) En otra terminal, levanta el **Gateway**:
+   ```bash
+   mvn -f gateway/pom.xml spring-boot:run
+   ```
 
-## 🏗️ Arquitectura del Sistema
+### URLs rápidas
+- Gateway (entrada principal): `http://localhost:8080`
+- Core (solo si lo abres directo): `http://localhost:8082`
 
-### Componentes Principales
+> Nota: si vas a usar **Didit** con webhooks, “localhost” no recibe webhooks desde afuera. En local normalmente se usa **ngrok** para exponer la URL pública y ponerla en `DIDIT_WEBHOOK_URL`.
 
-```
-┌─────────────┐
-│  USUARIO    │
-└──────┬──────┘
-       │ HTTPS
-       ↓
-┌─────────────────────────────────┐
-│   GATEWAY (Puerto 8080)         │
-│   - Validación JWT              │
-│   - Firma HMAC-SHA256           │
-│   - Rate Limiting               │
-│   - CORS/Security Headers       │
-└──────────┬──────────────────────┘
-           │ Zero Trust (HMAC)
-           ↓
-┌─────────────────────────────────┐
-│   CORE (Puerto 8082)            │
-│   - Validación HMAC             │
-│   - Lógica de Negocio           │
-│   - Cifrado/Descifrado PII      │
-│   - Flyway Migrations (Auto)    │
-└──────────┬──────────────────────┘
-           │
-           ↓
-┌─────────────────────────────────┐
-│   SUPABASE POSTGRESQL           │
-│   - Schemas: registro_civil,    │
-│     staff, denuncias,           │
-│     evidencias, logs            │
-│   - PII Cifrado en Reposo       │
-└─────────────────────────────────┘
-```
 
-### Zero Trust Architecture
+## 2) `.env` esencial (limpio y agrupado)
 
-- **Clave compartida** 256-bit entre Gateway y Core
-- **Timestamps** con TTL para prevenir replay attacks
-- **Comparación constante** en tiempo (anti-timing attack)
-- **Rate limiting:** 30 requests/minuto por IP
-- **Logs seguros:** Sin exposición de datos sensibles
+> Deja los valores según tu entorno. Aquí van solo las claves importantes (sin comentarios largos).
 
----
+```env
+#####################################
+# APP / PERFILES
+#####################################
+SPRING_PROFILES_ACTIVE=dev
 
-## 💻 Tecnologías Utilizadas
+#####################################
+# BASE DE DATOS (Supabase Postgres)
+#####################################
+SUPABASE_DB_URL=jdbc:postgresql://<host>:5432/<db>
+SUPABASE_DB_USERNAME=<user>
+SUPABASE_DB_PASSWORD=<password>
 
-### Backend Core
-| Tecnología | Versión | Propósito | Detalles de Implementación |
-|------------|---------|-----------|----------------------------|
-| **Java** | 21 LTS | Lenguaje principal | JDK con soporte hasta 2029 |
-| **Spring Boot** | 3.4.0 | Framework de aplicación | Auto-configuración, embedded server |
-| **Spring Security** | 6.x | Autenticación y autorización | BCrypt, JWT validation, CSRF protection |
-| **Spring Cloud Gateway** | 4.x | API Gateway reactivo | WebFlux, filtros de autenticación |
-| **Spring Data JPA** | 3.x | Persistencia ORM | Hibernate + PostgreSQL optimizations |
-| **Spring Validation** | 3.x | Validación de DTOs | Jakarta Bean Validation |
+#####################################
+# SUPABASE (opcional: claves del proyecto)
+#####################################
+SUPABASE_PROJECT_URL=https://<project>.supabase.co
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
-### Seguridad y Criptografía
-| Tecnología | Versión | Propósito | Implementación |
-|------------|---------|-----------|----------------|
-| **JWT (jjwt)** | 0.12.3 | Tokens de sesión | HS256, 24h expiración, claims: cedula/userType/apiKey |
-| **BCrypt** | Spring Security | Hash de contraseñas | Strength 10 (2^10 = 1024 rounds) |
-| **AES-256-GCM** | Java Crypto | Cifrado de PII | IV 12 bytes, tag 128 bits, AEAD |
-| **HMAC-SHA256** | Java Crypto | Firma Zero Trust | Gateway-Core validation, TTL 60s |
-| **SHA-256** | Java Security | Hash de identidades | Irreversible, usado para anonimato |
-
-### Base de Datos
-| Componente | Propósito | Configuración |
-|------------|-----------|---------------|
-| **Supabase PostgreSQL** | BD principal | Versión 17, 6 schemas separados |
-| **Flyway** | Migraciones automáticas | V1-V32, baseline-on-migrate enabled |
-| **PgBouncer** | Connection pooling | Modo transacción, prepareThreshold=0 |
-| **HikariCP** | Pool de conexiones | Pool size: 3 (dev), 10 (prod) |
-
-#### Schemas de Base de Datos:
-1. **`registro_civil`**: Personas verificadas (PII cifrado)
-2. **`staff`**: Usuarios Admin/Analyst (PII cifrado)
-3. **`denuncias`**: Denuncias (texto cifrado AES-256-GCM)
-4. **`evidencias`**: Archivos adjuntos (cifrados)
-5. **`logs`**: Auditoría (sin PII, username hasheado)
-6. **`reglas_derivacion`**: Reglas de clasificación automática
-
-### Integraciones Externas
-| Servicio | Propósito | Configuración | Seguridad |
-|----------|-----------|---------------|-----------|
-| **DIDIT API v3** | Verificación biométrica facial | API Key desde .env | Webhook HMAC validation |
-| **Registro Civil (Ecuador)** | Validación de identidad | API REST con OAuth | Credenciales en AWS SM |
-| **AWS SES** | Envío de OTP por email | Region: us-east-1 | IAM credentials, rate limit |
-| **AWS Secrets Manager** | Gestión de secretos (prod) | KMS encryption | IAM Role, cache 2h |
-| **Cloudflare Turnstile** | CAPTCHA anti-bot | Site Key + Secret Key | Validación server-side |
-
-### Frontend y UI
-| Tecnología | Propósito |
-|------------|-----------|
-| **Thymeleaf** | Motor de templates server-side |
-| **CSS Custom** | Estilos personalizados (main.css) |
-| **JavaScript Vanilla** | Validaciones client-side (sin frameworks) |
-| **Cloudflare Turnstile** | CAPTCHA en formularios públicos |
-
-### DevOps y Deployment
-| Herramienta | Propósito |
-|-------------|-----------|
-| **Maven** | Gestión de dependencias y build |
-| **Docker** | Containerización (Dockerfile + docker-compose.yml) |
-| **GitHub Actions** | CI/CD (opcional) |
-| **AWS EC2** | Hosting de producción (recomendado) |
-
-### Observabilidad y Monitoreo
-| Componente | Propósito | Configuración |
-|------------|-----------|---------------|
-| **Logback** | Logging framework | Configurado en logback-spring.xml |
-| **SLF4J + Lombok** | Logging API | `@Slf4j` annotation en clases |
-| **Spring Actuator** | Health checks | `/actuator/health` endpoint |
-| **AWS CloudWatch** | Logs centralizados (prod) | Logs exportados desde EC2 |
-
----
-
-## 📊 Esquemas de Base de Datos
-
-### 1. `registro_civil` - Identidades
-- **`personas`**: Ciudadanos verificados (PII cifrado con AES-256-GCM)
-- **`didit_verification`**: Registros de verificación biométrica
-
-### 2. `staff` - Personal del Sistema
-- **`staff_user`**: Usuarios Admin/Analista (PII cifrado)
-
-### 3. `denuncias` - Denuncias
-- **`denuncia`**: Denuncias con texto cifrado
-- **`complaint_status_log`**: Historial de cambios
-
-### 4. `evidencias` - Archivos Adjuntos
-- **`evidencia`**: Archivos PDF/DOCX/IMG cifrados
-
-### 5. `logs` - Auditoría
-- **`evento_auditoria`**: Registro de todas las acciones (sin PII)
-
-### 6. `reglas_derivacion` - Configuración
-- **`derivation_rule`**: Reglas de derivación automática
-- **`destination_entity`**: Entidades destino
-- **`configuracion`**: Configuración del sistema
-
----
-
-## 🚀 Instalación y Configuración
-
-### Requisitos Previos
-
-- **Java 21 JDK**
-- **Maven 3.8+**
-- Cuenta **Supabase** (PostgreSQL)
-- Cuenta **AWS** (SES)
-- Cuenta **Cloudflare** (Turnstile)
-- Cuenta **DIDIT** (Verificación biométrica)
-
-### 1. Clonar Repositorio
-
-```bash
-git clone https://github.com/tu-org/voz-segura.git
-cd voz-segura
-```
-
-### 2. Configurar Variables de Entorno
-
-```bash
-# Copiar plantilla
-cp .env.example .env
-
-# Editar .env con tus credenciales
-```
-
-**⚠️ IMPORTANTE: Desarrollo Local con Webhooks de Didit**
-
-Si vas a desarrollar localmente (localhost), los **webhooks de Didit NO funcionarán** porque Didit no puede enviar solicitudes HTTP a tu máquina local. Tienes dos opciones:
-
-**Opción 1: Usar ngrok (Recomendado para desarrollo)**
-```bash
-# 1. Instalar ngrok: https://ngrok.com/download
-
-# 2. Ejecutar el script incluido
-.\start-ngrok.bat  # Windows
-# O manualmente:
-ngrok http 8082
-
-# 3. Copiar la URL pública (ej: https://abc123.ngrok.io)
-
-# 4. Actualizar .env
-DIDIT_WEBHOOK_URL=https://abc123.ngrok.io/webhooks/didit
-```
-
-**Opción 2: La aplicación usará fallback automático**
-
-El código incluye fallback que consulta la API de Didit directamente si el webhook no llega. Sin embargo, esto puede fallar si la sesión expira.
-
-📖 **Para más detalles, consulta**: [`WEBHOOK_DEVELOPMENT_GUIDE.md`](WEBHOOK_DEVELOPMENT_GUIDE.md)
-
----
-
-**Variables Obligatorias en `.env`:**
-
-```bash
-# === SUPABASE (PostgreSQL) ===
-SUPABASE_DB_URL=jdbc:postgresql://aws-0-us-west-2.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
-SUPABASE_DB_USERNAME=postgres.tu-proyecto-id
-SUPABASE_DB_PASSWORD=tu-password
-SUPABASE_PROJECT_URL=https://tu-proyecto.supabase.co
-SUPABASE_ANON_KEY=tu-anon-key
-SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
-
-# === SEGURIDAD (Generar con: openssl rand -base64 32) ===
-JWT_SECRET=tu-jwt-secret-base64
+#####################################
+# JWT (login + cookies)
+#####################################
+JWT_SECRET=
 JWT_EXPIRATION=86400000
-VOZSEGURA_DATA_KEY_B64=tu-encryption-key-base64
-VOZSEGURA_GATEWAY_SHARED_SECRET=tu-shared-secret-base64
 
-# === AWS SES ===
-AWS_SES_FROM_EMAIL=noreply@tudominio.com
-AWS_ACCESS_KEY_ID=tu-access-key
-AWS_SECRET_ACCESS_KEY=tu-secret-key
+#####################################
+# ZTA / GATEWAY (firma interna)
+#####################################
+VOZSEGURA_GATEWAY_SHARED_SECRET=
+
+#####################################
+# CIFRADO PII (AES-GCM) / SECRET MANAGER
+#####################################
+VOZSEGURA_DATA_KEY_B64=
+
+#####################################
+# DIDIT (verificación de identidad)
+#####################################
+DIDIT_API_KEY=
+DIDIT_WEBHOOK_SECRET_KEY=
+DIDIT_WORKFLOW_ID=
+DIDIT_API_URL=https://api.didit.me
+DIDIT_WEBHOOK_URL=https://<tu-dominio>/webhooks/didit
+
+#####################################
+# CLOUDFLARE TURNSTILE (captcha)
+#####################################
+CLOUDFLARE_TURNSTILE_SITE_KEY=
+CLOUDFLARE_TURNSTILE_SECRET_KEY=
+
+#####################################
+# AWS (OTP por correo con SES)
+#####################################
 AWS_REGION=us-east-1
-
-# === CLOUDFLARE TURNSTILE ===
-CLOUDFLARE_SITE_KEY=tu-site-key
-CLOUDFLARE_SECRET_KEY=tu-secret-key
-
-# === DIDIT (Biometría) ===
-DIDIT_APP_ID=tu-app-id
-DIDIT_API_KEY=tu-api-key
-DIDIT_WEBHOOK_URL=https://tu-dominio.com/webhooks/didit
-DIDIT_WEBHOOK_SECRET_KEY=tu-webhook-secret
-DIDIT_WORKFLOW_ID=tu-workflow-id
-DIDIT_API_URL=https://verification.didit.me
-```
-
----
-
-## ⚙️ Variables de Entorno - Documentación Completa
-
-### 📂 Categorías de Variables
-
-#### 1. **Base de Datos (Supabase PostgreSQL)**
-
-| Variable | Descripción | Ejemplo | Obligatoria |
-|----------|-------------|---------|-------------|
-| `SUPABASE_DB_URL` | JDBC URL de conexión con SSL | `jdbc:postgresql://...pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0` | ✅ Sí |
-| `SUPABASE_DB_USERNAME` | Usuario de BD (formato: postgres.proyecto) | `postgres.abcdefghijk` | ✅ Sí |
-| `SUPABASE_DB_PASSWORD` | Contraseña de BD | `********` | ✅ Sí |
-| `SUPABASE_PROJECT_URL` | URL base del proyecto Supabase | `https://abcdefghijk.supabase.co` | ✅ Sí |
-| `SUPABASE_ANON_KEY` | API Key anónima (para operaciones públicas) | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | ✅ Sí |
-| `SUPABASE_SERVICE_ROLE_KEY` | API Key con privilegios admin | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | ✅ Sí |
-
-**Notas:**
-- Usar **Pooler URL** (puerto 6543) en lugar de conexión directa para mejor rendimiento
-- `prepareThreshold=0` es necesario con PgBouncer en modo transacción
-- `sslmode=require` obliga a conexiones cifradas
-
-#### 2. **Seguridad y Cifrado**
-
-| Variable | Descripción | Cómo Generar | Obligatoria |
-|----------|-------------|--------------|-------------|
-| `JWT_SECRET` | Clave secreta para firmar tokens JWT (HS256) | `openssl rand -base64 32` | ✅ Sí |
-| `JWT_EXPIRATION` | Tiempo de expiración del JWT en milisegundos | `86400000` (24 horas) | ⚪ No (default: 24h) |
-| `VOZSEGURA_DATA_KEY_B64` | Clave AES-256 para cifrado de PII | `openssl rand -base64 32` | ✅ Sí |
-| `VOZSEGURA_GATEWAY_SHARED_SECRET` | Clave compartida Gateway↔Core (Zero Trust) | `openssl rand -base64 32` | ✅ Sí |
-
-**Comandos de Generación:**
-```bash
-# JWT Secret (256 bits)
-export JWT_SECRET=$(openssl rand -base64 32)
-echo "JWT_SECRET=$JWT_SECRET"
-
-# AES-256 Encryption Key (256 bits)
-export VOZSEGURA_DATA_KEY_B64=$(openssl rand -base64 32)
-echo "VOZSEGURA_DATA_KEY_B64=$VOZSEGURA_DATA_KEY_B64"
-
-# Gateway Shared Secret (256 bits) - DEBE SER LA MISMA en Gateway y Core
-export VOZSEGURA_GATEWAY_SHARED_SECRET=$(openssl rand -base64 32)
-echo "VOZSEGURA_GATEWAY_SHARED_SECRET=$VOZSEGURA_GATEWAY_SHARED_SECRET"
-```
-
-**⚠️ CRÍTICO:**
-- `VOZSEGURA_GATEWAY_SHARED_SECRET` **DEBE ser la misma** en Gateway (8080) y Core (8082)
-- Si no coinciden, todas las peticiones serán rechazadas con HTTP 403
-- NUNCA commitear estas claves en el repositorio
-
-#### 3. **AWS SES (Email OTP)**
-
-| Variable | Descripción | Dónde Obtener | Obligatoria |
-|----------|-------------|---------------|-------------|
-| `AWS_SES_FROM_EMAIL` | Email verificado para enviar OTP | AWS SES Console → Verified Identities | ✅ Sí |
-| `AWS_ACCESS_KEY_ID` | AWS Access Key ID | AWS IAM Console → Users → Security Credentials | ✅ Sí |
-| `AWS_SECRET_ACCESS_KEY` | AWS Secret Access Key | AWS IAM Console (solo visible al crear) | ✅ Sí |
-| `AWS_REGION` | Región de AWS SES | `us-east-1` (recomendado) | ✅ Sí |
-
-**Permisos IAM Requeridos:**
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ses:SendEmail",
-        "ses:SendRawEmail"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-**Verificar email en AWS SES:**
-1. Ir a AWS Console → SES → Verified Identities
-2. Click "Create Identity" → Email Address
-3. Ingresar `noreply@tudominio.com`
-4. Verificar email recibido
-
-#### 4. **Cloudflare Turnstile (CAPTCHA)**
-
-| Variable | Descripción | Dónde Obtener | Obligatoria |
-|----------|-------------|---------------|-------------|
-| `CLOUDFLARE_SITE_KEY` | Site Key pública (usada en frontend) | Cloudflare Dashboard → Turnstile | ✅ Sí |
-| `CLOUDFLARE_SECRET_KEY` | Secret Key para validación server-side | Cloudflare Dashboard → Turnstile | ✅ Sí |
-
-**Configuración en Cloudflare:**
-1. Ir a [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. Turnstile → Add Site
-3. Configurar dominios permitidos: `vozsegura.gob.ec`, `localhost` (dev)
-4. Copiar Site Key y Secret Key
-
-#### 5. **DIDIT API (Verificación Biométrica)**
-
-| Variable | Descripción | Dónde Obtener | Obligatoria |
-|----------|-------------|---------------|-------------|
-| `DIDIT_APP_ID` | ID de la aplicación DIDIT | DIDIT Dashboard → Applications | ✅ Sí |
-| `DIDIT_API_KEY` | API Key para crear sesiones | DIDIT Dashboard → API Keys | ✅ Sí |
-| `DIDIT_WEBHOOK_URL` | URL de callback para resultados | `https://tudominio.com/webhooks/didit` | ✅ Sí |
-| `DIDIT_WEBHOOK_SECRET_KEY` | Secret para validar firma HMAC de webhooks | DIDIT Dashboard → Webhooks | ✅ Sí |
-| `DIDIT_WORKFLOW_ID` | ID del workflow (documento + biometría) | DIDIT Dashboard → Workflows | ✅ Sí |
-| `DIDIT_API_URL` | URL base de DIDIT API | `https://verification.didit.me` | ⚪ No (default) |
-
-**Configuración en DIDIT:**
-1. Crear cuenta en [DIDIT](https://www.didit.me)
-2. Crear aplicación → Seleccionar workflow (Document + Selfie)
-3. Configurar webhook URL: `https://vozsegura.gob.ec/webhooks/didit`
-4. Guardar Webhook Secret para validación HMAC
-
-#### 6. **Aplicación (Opcional)**
-
-| Variable | Descripción | Default | Obligatoria |
-|----------|-------------|---------|-------------|
-| `SERVER_PORT` | Puerto del Core | `8082` | ⚪ No |
-| `GATEWAY_PORT` | Puerto del Gateway | `8080` | ⚪ No |
-| `SPRING_PROFILES_ACTIVE` | Perfil de Spring | `dev` | ⚪ No |
-| `SESSION_TIMEOUT` | Timeout de sesión HTTP (segundos) | `1800` (30 min) | ⚪ No |
-| `MAX_FILE_SIZE` | Tamaño máximo de archivo upload | `25MB` | ⚪ No |
-
-### 🔐 Generar Todas las Claves (Script Completo)
-
-```bash
-#!/bin/bash
-# Generar variables de seguridad para Voz Segura
-
-echo "=== GENERANDO CLAVES DE SEGURIDAD ==="
-echo ""
-
-# JWT Secret
-JWT_SECRET=$(openssl rand -base64 32)
-echo "JWT_SECRET=$JWT_SECRET"
-echo ""
-
-# AES-256 Encryption Key
-VOZSEGURA_DATA_KEY_B64=$(openssl rand -base64 32)
-echo "VOZSEGURA_DATA_KEY_B64=$VOZSEGURA_DATA_KEY_B64"
-echo ""
-
-# Gateway Shared Secret (MISMA en Gateway y Core)
-VOZSEGURA_GATEWAY_SHARED_SECRET=$(openssl rand -base64 32)
-echo "VOZSEGURA_GATEWAY_SHARED_SECRET=$VOZSEGURA_GATEWAY_SHARED_SECRET"
-echo ""
-
-echo "⚠️  IMPORTANTE:"
-echo "1. Agregar estas variables al archivo .env"
-echo "2. NUNCA commitear el archivo .env"
-echo "3. VOZSEGURA_GATEWAY_SHARED_SECRET debe ser LA MISMA en Gateway y Core"
-echo "4. En producción, usar AWS Secrets Manager para estas claves"
-```
-
-Guardar como `generate-keys.sh` y ejecutar:
-```bash
-chmod +x generate-keys.sh
-./generate-keys.sh >> .env
-```
-
-### 🚨 Seguridad de Variables
-
-**NUNCA hacer esto:**
-```bash
-# ❌ MAL: Hardcodear en código
-String jwtSecret = "mi-clave-secreta-123";
-
-# ❌ MAL: Commitear .env al repositorio
-git add .env
-
-# ❌ MAL: Compartir claves por email/Slack
-```
-
-**✅ Hacer esto:**
-```bash
-# ✅ BIEN: Leer desde variable de entorno
-String jwtSecret = System.getenv("JWT_SECRET");
-
-# ✅ BIEN: .env en .gitignore
-echo ".env" >> .gitignore
-
-# ✅ BIEN: AWS Secrets Manager en producción
-@Value("${jwt.secret}")
-private String jwtSecret;
-```
-
----
-
-## 📚 Documentación de APIs Internas
-
-### Endpoints Públicos (Sin Autenticación)
-
-#### 1. Health Check
-**GET** `/health/config`
-
-**Descripción:** Verificar configuración de DIDIT y estado del sistema
-
-**Response (200 OK):**
-```json
-{
-  "didit": {
-    "appId": "app_1234567...",
-    "apiKeySet": true,
-    "workflowId": "wf_abcdefg...",
-    "apiUrl": "https://verification.didit.me",
-    "webhookUrl": "https://vozsegura.gob.ec/webhooks/didit"
-  },
-  "status": "OK"
-}
-```
-
----
-
-#### 2. Crear Denuncia - Paso 1: Verificación Biométrica
-**GET** `/denuncia`
-
-**Descripción:** Punto de entrada para denuncias públicas. Redirige a verificación DIDIT.
-
-**Response:** Redirect a `/verification/inicio`
-
----
-
-#### 3. Inicio de Verificación Biométrica
-**POST** `/verification/inicio`
-
-**Request Body (form-data):**
-```
-cedula: 1234567890
-turnstileToken: 0.ABC123XYZ...
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "diditSessionUrl": "https://didit.me/session/abc123",
-  "qrCodeUrl": "https://api.didit.me/qr/abc123",
-  "sessionId": "session_xyz789",
-  "message": "Escanea el código QR con tu móvil"
-}
-```
-
-**Errores:**
-- `400 Bad Request`: CAPTCHA inválido o cédula mal formada
-- `429 Too Many Requests`: Límite de intentos excedido (rate limiting)
-- `500 Internal Server Error`: Error al crear sesión DIDIT
-
----
-
-#### 4. Verificar Estado de Sesión DIDIT
-**GET** `/verification/status?sessionId={sessionId}`
-
-**Query Parameters:**
-- `sessionId`: ID de sesión DIDIT retornado en paso 1
-
-**Response (200 OK - Pendiente):**
-```json
-{
-  "status": "PENDING",
-  "message": "Esperando verificación biométrica"
-}
-```
-
-**Response (200 OK - Aprobado):**
-```json
-{
-  "status": "APPROVED",
-  "citizenHash": "sha256_hash_abc...",
-  "message": "Verificación completada",
-  "nextStep": "/denuncia/formulario"
-}
-```
-
-**Response (200 OK - Rechazado):**
-```json
-{
-  "status": "REJECTED",
-  "message": "Verificación biométrica fallida. Intenta nuevamente."
-}
-```
-
----
-
-#### 5. Formulario de Denuncia
-**GET** `/denuncia/formulario`
-
-**Descripción:** Muestra formulario HTML para crear denuncia (requiere verificación biométrica previa)
-
-**Validaciones:**
-- Session debe contener `citizenHash` (generado en verificación)
-- Si no hay hash → Redirect a `/verification/inicio`
-
----
-
-#### 6. Crear Denuncia - Paso 2: Envío de Formulario
-**POST** `/denuncia/submit`
-
-**Request Body (multipart/form-data):**
-```
-tipoDelito: CORRUPCION
-descripcion: Texto de la denuncia (max 4000 caracteres)
-evidencia: [File] (opcional, max 25MB, tipos: PDF|DOCX|JPG|PNG|MP4)
-```
-
-**Headers:**
-- `Cookie: JSESSIONID=...` (con citizenHash en session)
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "trackingId": "DEN-2026-ABC123XYZ",
-  "message": "Denuncia creada exitosamente. Guarda tu código de seguimiento.",
-  "tracking_url": "/seguimiento?code=DEN-2026-ABC123XYZ"
-}
-```
-
-**Errores:**
-- `400 Bad Request`: Campos faltantes o archivo inválido
-- `401 Unauthorized`: Sesión sin verificación biométrica
-- `413 Payload Too Large`: Archivo > 25 MB
-- `415 Unsupported Media Type`: Tipo de archivo no permitido
-
-**Validaciones de archivo:**
-- MIME types permitidos: `application/pdf`, `image/jpeg`, `image/png`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `video/mp4`
-- Validación de magic bytes (firma real del archivo)
-- Path traversal bloqueado (`..`, `/`, `\`)
-
----
-
-#### 7. Seguimiento de Denuncia
-**GET** `/seguimiento?code={trackingId}`
-
-**Query Parameters:**
-- `code`: Tracking ID de la denuncia (ej: `DEN-2026-ABC123XYZ`)
-
-**Response (200 OK):**
-```html
-<!-- Página HTML con estado de la denuncia -->
-<div class="status">
-  <h2>Estado de tu denuncia</h2>
-  <p>Tracking ID: DEN-2026-ABC123XYZ</p>
-  <p>Estado: EN_REVISION</p>
-  <p>Fecha: 2026-01-22 14:30:00</p>
-  <p>Entidad asignada: Fiscalía General del Estado</p>
-</div>
-```
-
-**Errores:**
-- `404 Not Found`: Tracking ID no existe
-
----
-
-### Endpoints de Autenticación (Staff/Admin)
-
-#### 8. Login - Paso 1: Verificación Biométrica
-**POST** `/auth/unified-login`
-
-**Request Body (form-data):**
-```
-cedula: 1234567890
-codigoDactilar: 123456
-turnstileToken: 0.ABC123XYZ...
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "step": "PASSWORD_REQUIRED",
-  "userType": "ADMIN",
-  "message": "Verificación biométrica exitosa. Ingresa tu clave secreta."
-}
-```
-
-**Errores:**
-- `400 Bad Request`: CAPTCHA inválido
-- `401 Unauthorized`: Cédula no encontrada en BD de staff
-- `403 Forbidden`: Usuario deshabilitado
-
----
-
-#### 9. Login - Paso 2: Validación de Contraseña
-**POST** `/auth/verify-secret`
-
-**Request Body (form-data):**
-```
-cedula: 1234567890
-secretKey: VozSegura2026Admin!
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "step": "OTP_REQUIRED",
-  "message": "Clave correcta. Código OTP enviado a tu email."
-}
-```
-
-**Errores:**
-- `401 Unauthorized`: Contraseña incorrecta (registra intento fallido)
-- `423 Locked`: Cuenta bloqueada tras 3 intentos fallidos
-
----
-
-#### 10. Login - Paso 3: Verificación OTP
-**POST** `/auth/verify-otp`
-
-**Request Body (form-data):**
-```
-cedula: 1234567890
-otpCode: 123456
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "message": "Login exitoso",
-  "userType": "ADMIN",
-  "redirectUrl": "/admin"
-}
-```
-
-**Response Headers:**
-```
-Set-Cookie: JSESSIONID=ABC123XYZ; HttpOnly; Secure; SameSite=Strict
-```
-
-**Errores:**
-- `401 Unauthorized`: Código OTP incorrecto
-- `410 Gone`: Código OTP expirado (TTL: 5 minutos)
-- `429 Too Many Requests`: Máximo 3 intentos de OTP
-
----
-
-### Endpoints de Staff (Requiere Auth + Role ANALYST)
-
-#### 11. Listar Casos
-**GET** `/staff/casos`
-
-**Query Parameters (opcionales):**
-```
-estado: PENDING|IN_REVIEW|ASSIGNED|COMPLETED
-tipo: CORRUPCION|ACOSO|DISCRIMINACION|...
-prioridad: LOW|MEDIUM|HIGH|CRITICAL
-page: 0
-size: 20
-```
-
-**Headers:**
-```
-Cookie: JSESSIONID=...
-```
-
-**Response (200 OK):**
-```html
-<!-- Página HTML con tabla de casos -->
-```
-
----
-
-#### 12. Ver Detalle de Caso
-**GET** `/staff/casos/{trackingId}`
-
-**Path Parameters:**
-- `trackingId`: ID de la denuncia
-
-**Response (200 OK):**
-```html
-<!-- Página HTML con:
-  - Texto de denuncia (DESCIFRADO automáticamente)
-  - Archivos adjuntos (links de descarga)
-  - Historia de cambios de estado
-  - Botones de acción (aprobar, rechazar, derivar)
--->
-```
-
-**Nota:** El texto cifrado en BD se descifra automáticamente por `ComplaintService.findByTrackingId()`
-
----
-
-#### 13. Descargar Evidencia
-**GET** `/staff/casos/{trackingId}/evidencias/{evidenciaId}`
-
-**Response (200 OK):**
-```
-Content-Type: application/pdf (o según tipo)
-Content-Disposition: attachment; filename="evidencia_001.pdf"
-
-[Binary data - archivo descifrado]
-```
-
----
-
-#### 14. Actualizar Estado de Caso
-**POST** `/staff/casos/{trackingId}/estado`
-
-**Request Body (form-data):**
-```
-newStatus: IN_REVIEW|COMPLETED|REJECTED
-```
-
-**Response:** Redirect a `/staff/casos/{trackingId}` con mensaje flash
-
----
-
-#### 15. Aprobar y Derivar Caso
-**POST** `/staff/casos/{trackingId}/aprobar-derivar`
-
-**Descripción:** Aprueba la denuncia y la deriva automáticamente según reglas configuradas
-
-**Response (302 Redirect):**
-```
-Location: /staff/casos/{trackingId}
-Flash: "Denuncia aprobada y enviada a: Fiscalía General del Estado"
-```
-
----
-
-### Endpoints de Admin (Requiere Auth + Role ADMIN)
-
-#### 16. Ver Logs de Auditoría
-**GET** `/admin/logs`
-
-**Query Parameters (opcionales):**
-```
-username: USR-Xy7kP0Qz (hash SHA-256)
-eventType: LOGIN|LOGOUT|CREATE|UPDATE|DELETE|ACCESS|REVEAL|ERROR
-startDate: 2026-01-01
-endDate: 2026-01-31
-page: 0
-size: 50
-```
-
-**Response (200 OK):**
-```html
-<!-- Tabla HTML con logs:
-  - Timestamp (UTC)
-  - Event Type
-  - Username hasheado (8 caracteres)
-  - Details (truncado 500 chars)
-  - Request ID
--->
-```
-
----
-
-#### 17. Listar Reglas de Derivación
-**GET** `/admin/reglas`
-
-**Response (200 OK):**
-```html
-<!-- Tabla HTML con:
-  - ID
-  - Nombre de regla
-  - Severidad match
-  - Entidad destino
-  - Estado (active/inactive)
-  - Botones: Editar, Desactivar, Activar
--->
-```
-
----
-
-#### 18. Crear Regla de Derivación
-**POST** `/admin/reglas/crear`
-
-**Request Body (form-data):**
-```
-name: Severidad Alta -> OIJ
-severityMatch: HIGH (opcional)
-destinationId: 3
-description: Denuncias de alta gravedad van a OIJ
-```
-
-**Response:** Redirect a `/admin/reglas` con mensaje de éxito
-
----
-
-#### 19. Editar Regla de Derivación
-**POST** `/admin/reglas/{id}/editar`
-
-**Request Body (form-data):**
-```
-name: Nuevo nombre
-severityMatch: CRITICAL
-destinationId: 5
-description: Descripción actualizada
-active: true
-```
-
-**Response:** Redirect a `/admin/reglas` con mensaje de éxito
-
----
-
-#### 20. Desactivar Regla
-**POST** `/admin/reglas/{id}/eliminar`
-
-**Descripción:** Soft-delete (marca como `active=false`)
-
-**Response:** Redirect a `/admin/reglas`
-
----
-
-#### 21. Activar Regla
-**POST** `/admin/reglas/{id}/activar`
-
-**Descripción:** Reactiva una regla desactivada
-
-**Response:** Redirect a `/admin/reglas`
-
----
-
-### Webhooks (Callbacks Externos)
-
-#### 22. Webhook DIDIT
-**POST** `/webhooks/didit`
-
-**Headers:**
-```
-X-Didit-Signature: hmac_sha256_signature
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "session_id": "session_abc123",
-  "status": "Approved",
-  "webhook_type": "VERIFICATION_COMPLETED",
-  "document_data": {
-    "personal_number": "1234567890",
-    "full_name": "Juan Pérez",
-    "nationality": "ECU",
-    "birth_date": "1990-01-01"
-  }
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "received": true,
-  "session_id": "session_abc123"
-}
-```
-
-**Validaciones:**
-- Firma HMAC-SHA256 en header `X-Didit-Signature`
-- Validación timing-safe contra `DIDIT_WEBHOOK_SECRET_KEY`
-- Si firma inválida → HTTP 403
-
----
-
-### Códigos de Error HTTP
-
-| Código | Significado | Cuándo Ocurre |
-|--------|-------------|---------------|
-| `400 Bad Request` | Parámetros faltantes o inválidos | Formulario incompleto, CAPTCHA inválido |
-| `401 Unauthorized` | Credenciales inválidas | Login fallido, JWT expirado |
-| `403 Forbidden` | Sin permisos | ANALYST intenta acceder a `/admin` |
-| `404 Not Found` | Recurso no existe | Tracking ID inválido |
-| `410 Gone` | Recurso expirado | OTP expirado (>5 min) |
-| `413 Payload Too Large` | Archivo muy grande | Evidencia > 25 MB |
-| `415 Unsupported Media Type` | Tipo de archivo no permitido | Upload de .exe o .zip |
-| `423 Locked` | Cuenta bloqueada | 3 intentos fallidos de login |
-| `429 Too Many Requests` | Rate limit excedido | >30 req/min por IP |
-| `500 Internal Server Error` | Error del servidor | Fallo de BD, cifrado, etc. |
-
----
-
-### Ejemplos con cURL
-
-#### Crear Denuncia (flujo completo)
-```bash
-# Paso 1: Verificación biométrica
-curl -X POST https://vozsegura.gob.ec/verification/inicio \
-  -F "cedula=1234567890" \
-  -F "turnstileToken=0.ABC123XYZ" \
-  -c cookies.txt
-
-# Paso 2: Verificar estado (esperar aprobación)
-curl -X GET "https://vozsegura.gob.ec/verification/status?sessionId=session_xyz" \
-  -b cookies.txt
-
-# Paso 3: Enviar denuncia
-curl -X POST https://vozsegura.gob.ec/denuncia/submit \
-  -b cookies.txt \
-  -F "tipoDelito=CORRUPCION" \
-  -F "descripcion=Descripción de la denuncia" \
-  -F "evidencia=@documento.pdf"
-```
-
-#### Login Staff (flujo MFA)
-```bash
-# Paso 1: Verificación biométrica
-curl -X POST https://vozsegura.gob.ec/auth/unified-login \
-  -F "cedula=1234567890" \
-  -F "codigoDactilar=123456" \
-  -F "turnstileToken=0.ABC123" \
-  -c cookies.txt
-
-# Paso 2: Contraseña
-curl -X POST https://vozsegura.gob.ec/auth/verify-secret \
-  -b cookies.txt \
-  -F "cedula=1234567890" \
-  -F "secretKey=VozSegura2026Admin!"
-
-# Paso 3: OTP
-curl -X POST https://vozsegura.gob.ec/auth/verify-otp \
-  -b cookies.txt \
-  -F "cedula=1234567890" \
-  -F "otpCode=123456"
-```
-
----
-
-### 3. Configurar Base de Datos
-
-1. Crear proyecto en [Supabase](https://supabase.com)
-2. Obtener credenciales de conexión (usar **Pooler** para mejor rendimiento)
-3. Las migraciones Flyway se ejecutan **automáticamente** al iniciar la aplicación
-
-**Migraciones automáticas:**
-- V1 a V27: Estructura de BD
-- V28: Agregar columnas PII cifradas
-- V29: Migración de datos existentes (si hay)
-- V30: Eliminar columnas texto plano
-- V31-V32: Optimizaciones y limpieza
-
-⚠️ **IMPORTANTE:** Las migraciones se ejecutan automáticamente. NO se requiere intervención manual.
-
-### 4. Compilar Proyecto
-
-```bash
-./mvnw clean install
-```
-
----
-
-## ▶️ Ejecutar la Aplicación
-
-### Modo Desarrollo (Local)
-
-#### Opción 1: Ejecutar ambos servicios
-
-```bash
-# Terminal 1: Core Service (Puerto 8082)
-./mvnw spring-boot:run
-
-# Terminal 2: Gateway (Puerto 8080)
-cd gateway
-../mvnw spring-boot:run
-```
----
-
-## 🚀 Despliegue en Producción
-
-### Compilación del Proyecto
-
-#### Compilar Gateway
-```bash
-cd gateway
-../mvnw clean package -DskipTests
-# Archivo generado: gateway/target/voz-segura-gateway-0.0.1-SNAPSHOT.jar
-```
-
-#### Compilar Core
-```bash
-./mvnw clean package -DskipTests
-# Archivo generado: target/voz-segura-core-0.0.1-SNAPSHOT.jar
-```
-
-### Opción 1: Despliegue con Docker
-
-```bash
-# Construir imágenes
-docker-compose build
-
-# Iniciar servicios
-docker-compose up -d
-
-# Verificar estado
-docker-compose ps
-
-# Ver logs
-docker-compose logs -f gateway
-docker-compose logs -f core
-```
-
-### Opción 2: Despliegue en AWS EC2
-
-#### Instalar Java 21
-```bash
-sudo amazon-linux-extras install java-openjdk21 -y
-java -version
-```
-
-#### Configurar variables de entorno
-```bash
-sudo vim /etc/environment
-```
-
-Agregar:
-```bash
-# Gateway
-GATEWAY_PORT=8080
-CORE_SERVICE_URI=http://localhost:8082
-JWT_SECRET=<generar_con_openssl_rand_base64_32>
-VOZSEGURA_GATEWAY_SHARED_SECRET=<mismo_en_gateway_y_core>
-
-# Core
-SERVER_PORT=8082
-SPRING_PROFILES_ACTIVE=prod
-DB_URL=jdbc:postgresql://aws-0-us-west-2.pooler.supabase.com:6543/postgres?sslmode=require
-DB_USERNAME=postgres.<tu-proyecto>
-DB_PASSWORD=<tu-password-seguro>
-VOZSEGURA_DATA_KEY_B64=<clave-aes-256-base64>
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=<tu-access-key>
-AWS_SECRET_ACCESS_KEY=<tu-secret-key>
-AWS_SES_FROM_EMAIL=noreply@vozsegura.gob.ec
-DIDIT_APP_ID=<tu-app-id>
-DIDIT_API_KEY=<tu-api-key>
-DIDIT_WEBHOOK_SECRET_KEY=<tu-webhook-secret>
-CLOUDFLARE_SITE_KEY=<tu-site-key>
-CLOUDFLARE_SECRET_KEY=<tu-secret-key>
-```
-
-#### Crear servicios systemd
-
-**Gateway Service (`/etc/systemd/system/voz-segura-gateway.service`):**
-```ini
-[Unit]
-Description=Voz Segura API Gateway
-After=network.target
-
-[Service]
-Type=simple
-User=ec2-user
-WorkingDirectory=/opt/vozsegura
-ExecStart=/usr/bin/java -jar -Xmx512m -Xms256m /opt/vozsegura/gateway.jar
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=voz-segura-gateway
-EnvironmentFile=/etc/environment
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Core Service (`/etc/systemd/system/voz-segura-core.service`):**
-```ini
-[Unit]
-Description=Voz Segura Core Application
-After=network.target
-
-[Service]
-Type=simple
-User=ec2-user
-WorkingDirectory=/opt/vozsegura
-ExecStart=/usr/bin/java -jar -Xmx2g -Xms1g /opt/vozsegura/core.jar
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=voz-segura-core
-EnvironmentFile=/etc/environment
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### Iniciar servicios
-```bash
-# Recargar systemd
-sudo systemctl daemon-reload
-
-# Habilitar inicio automático
-sudo systemctl enable voz-segura-core
-sudo systemctl enable voz-segura-gateway
-
-# Iniciar servicios
-sudo systemctl start voz-segura-core
-sudo systemctl start voz-segura-gateway
-
-# Verificar estado
-sudo systemctl status voz-segura-core
-sudo systemctl status voz-segura-gateway
-
-# Ver logs
-sudo journalctl -u voz-segura-core -f
-sudo journalctl -u voz-segura-gateway -f
-```
-
-### Opción 3: Configuración de Nginx (Reverse Proxy)
-
-#### Instalar Nginx
-```bash
-sudo yum install nginx -y
-```
-
-#### Configurar SSL con Let's Encrypt
-```bash
-sudo yum install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d vozsegura.gob.ec
-```
-
-#### Configuración Nginx (`/etc/nginx/conf.d/vozsegura.conf`)
-```nginx
-# Upstream para Gateway
-upstream gateway_backend {
-    server localhost:8080 max_fails=3 fail_timeout=30s;
-}
-
-# Redirigir HTTP a HTTPS
-server {
-    listen 80;
-    server_name vozsegura.gob.ec;
-    return 301 https://$server_name$request_uri;
-}
-
-# Servidor HTTPS principal
-server {
-    listen 443 ssl http2;
-    server_name vozsegura.gob.ec;
-
-    # Certificados SSL (Let's Encrypt)
-    ssl_certificate /etc/letsencrypt/live/vozsegura.gob.ec/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/vozsegura.gob.ec/privkey.pem;
-
-    # Configuración SSL moderna
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256';
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-
-    # Headers de seguridad
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options "DENY" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    # Limitar tamaño de archivos (denuncias con evidencias)
-    client_max_body_size 30M;
-
-    # Proxy al Gateway
-    location / {
-        proxy_pass http://gateway_backend;
-        proxy_http_version 1.1;
-        
-        # Headers para proxy
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-Host $host;
-        
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-        
-        # Buffering
-        proxy_buffering on;
-        proxy_buffer_size 4k;
-        proxy_buffers 8 4k;
-    }
-
-    # Health check endpoint (no cachear)
-    location /actuator/health {
-        proxy_pass http://gateway_backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-    }
-
-    # Archivos estáticos (cachear por 7 días)
-    location ~* \.(css|js|jpg|jpeg|png|gif|svg|ico|woff|woff2|ttf)$ {
-        proxy_pass http://gateway_backend;
-        expires 7d;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-#### Reiniciar Nginx
-```bash
-sudo nginx -t  # Verificar configuración
-sudo systemctl restart nginx
-sudo systemctl enable nginx
-```
-
-### Monitoreo y Logs
-
-#### Ver logs de aplicación
-```bash
-# Logs de systemd
-sudo journalctl -u voz-segura-core -f
-sudo journalctl -u voz-segura-gateway -f
-
-# Logs de aplicación (si están en archivos)
-tail -f /opt/vozsegura/logs/core.log
-tail -f /opt/vozsegura/logs/gateway.log
-```
-
-#### Configurar logrotate
-```bash
-sudo vim /etc/logrotate.d/vozsegura
-```
-
-```
-/opt/vozsegura/logs/*.log {
-    daily
-    rotate 30
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 0644 ec2-user ec2-user
-    sharedscripts
-    postrotate
-        systemctl reload voz-segura-core
-        systemctl reload voz-segura-gateway
-    endscript
-}
-```
-
-### Actualización en Producción (Zero Downtime)
-
-```bash
-# 1. Subir nuevos JARs
-scp target/core.jar ec2-user@servidor:/opt/vozsegura/core-new.jar
-scp gateway/target/gateway.jar ec2-user@servidor:/opt/vozsegura/gateway-new.jar
-
-# 2. Verificar que funcionan
-java -jar /opt/vozsegura/core-new.jar --server.port=8083 &
-java -jar /opt/vozsegura/gateway-new.jar --server.port=8081 &
-
-# 3. Reemplazar y reiniciar
-sudo systemctl stop voz-segura-core
-sudo mv /opt/vozsegura/core-new.jar /opt/vozsegura/core.jar
-sudo systemctl start voz-segura-core
-
-sudo systemctl stop voz-segura-gateway
-sudo mv /opt/vozsegura/gateway-new.jar /opt/vozsegura/gateway.jar
-sudo systemctl start voz-segura-gateway
-
-# 4. Verificar logs
-sudo journalctl -u voz-segura-core -n 100
-sudo journalctl -u voz-segura-gateway -n 100
-```
-
----
-
-## 🔧 Comandos Útiles
-
-### Maven
-
-```bash
-# Compilar
-./mvnw clean compile
-
-# Ejecutar tests
-./mvnw test
-
-# Package
-./mvnw package
-
-# Limpiar y compilar
-./mvnw clean install
-```
-
----
-
-## 🧪 Pruebas Unitarias y de Seguridad
-
-### Ejecutar Todos los Tests
-
-```bash
-# Ejecutar todos los tests
-./mvnw test
-
-# Ejecutar con cobertura (JaCoCo)
-./mvnw test jacoco:report
-
-# Ver reporte de cobertura
-open target/site/jacoco/index.html
-# o en Windows: start target\site\jacoco\index.html
-```
-
-### Ejecutar Tests por Categoría
-
-```bash
-# Solo tests de seguridad
-./mvnw test -Dtest="*SecurityTest,*AccessControlTest,SecuritySmokeTests"
-
-# Solo tests de servicios
-./mvnw test -Dtest="*ServiceTest"
-
-# Solo tests de validación
-./mvnw test -Dtest="*ValidationTest"
-
-# Tests de un archivo específico
-./mvnw test -Dtest=SecuritySmokeTests
-```
-
-### Tests Implementados
-
-#### 1. **SecuritySmokeTests** - Validación de Controles de Acceso
-
-**Archivo:** `src/test/java/com/vozsegura/vozsegura/SecuritySmokeTests.java`
-
-**Propósito:** Verificar que los controles de acceso básicos funcionan correctamente
-
-**Tests:**
-
-```java
-@Test
-void publicDenunciaRequiresAuth() throws Exception {
-    // Verifica que /denuncia requiere autenticación o verif. biométrica
-    mockMvc.perform(get("/denuncia"))
-            .andExpect(status().is3xxRedirection());
-}
-```
-- ✅ **Valida:** Rutas de denuncias redirigen si no hay verificación
-- ✅ **Control:** Zero Trust - No hay acceso sin autenticación
-
-```java
-@Test
-void authLoginIsAccessible() throws Exception {
-    // Verifica que la página de login es pública
-    mockMvc.perform(get("/auth/login"))
-            .andExpect(status().isOk());
-}
-```
-- ✅ **Valida:** Ruta `/auth/login` es pública
-- ✅ **Control:** Endpoints de autenticación accesibles sin login
-
-```java
-@Test
-void staffCasosRequiresAuth() throws Exception {
-    // Verifica que /staff requiere autenticación
-    mockMvc.perform(get("/staff/casos"))
-            .andExpect(status().is3xxRedirection());
-}
-```
-- ✅ **Valida:** Panel de staff requiere login
-- ✅ **Control:** RBAC - Solo usuarios autenticados
-
----
-
-#### 2. **VozSeguraApplicationTests** - Tests de Integración
-
-**Archivo:** `src/test/java/com/vozsegura/vozsegura/VozSeguraApplicationTests.java`
-
-**Propósito:** Verificar que la aplicación inicia correctamente
-
-```java
-@Test
-void contextLoads() {
-    // Verifica que Spring Boot context se carga sin errores
-}
-```
-- ✅ **Valida:** Configuración de Spring Boot correcta
-- ✅ **Valida:** Todas las dependencias inyectables
-
----
-
-### Tests de Seguridad Recomendados (Para Implementar)
-
-#### A. **ApiGatewayFilterTest** - Autorización por Ruta
-
-```java
-@Test
-void analystCannotAccessAdmin() throws Exception {
-    // Simular sesión con userType=ANALYST
-    MockHttpSession session = new MockHttpSession();
-    session.setAttribute("userType", "ANALYST");
-    session.setAttribute("authenticated", true);
-    
-    // Intentar acceder a ruta admin
-    mockMvc.perform(get("/admin/logs").session(session))
-            .andExpect(status().isForbidden());
-}
-
-@Test
-void adminCanAccessBothAdminAndStaff() throws Exception {
-    MockHttpSession session = new MockHttpSession();
-    session.setAttribute("userType", "ADMIN");
-    session.setAttribute("authenticated", true);
-    
-    mockMvc.perform(get("/admin/logs").session(session))
-            .andExpect(status().isOk());
-    mockMvc.perform(get("/staff/casos").session(session))
-            .andExpect(status().isOk());
-}
-
-@Test
-void unauthenticatedUserCannotAccessProtectedRoutes() throws Exception {
-    mockMvc.perform(get("/staff/casos"))
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrlPattern("**/auth/login**"));
-}
-```
-
-**Controles Validados:**
-- ✅ ANALYST NO puede acceder a `/admin/**`
-- ✅ ADMIN puede acceder a `/admin/**` y `/staff/**`
-- ✅ Sin autenticación → redirect a login
-
----
-
-#### B. **ZeroTrustGatewayFilterTest** - Validación HMAC
-
-```java
-@Test
-void requestWithoutHmacSignatureIsRejected() throws Exception {
-    mockMvc.perform(post("/staff/casos")
-            .header("X-User-Cedula", "1234567890")
-            .header("X-User-Type", "ANALYST"))
-            // Sin X-Gateway-Signature
-            .andExpect(status().isUnauthorized());
-}
-
-@Test
-void requestWithInvalidHmacSignatureIsRejected() throws Exception {
-    String timestamp = String.valueOf(System.currentTimeMillis());
-    String fakeSignature = "invalid_signature_123";
-    
-    mockMvc.perform(post("/staff/casos")
-            .header("X-Gateway-Signature", fakeSignature)
-            .header("X-Request-Timestamp", timestamp)
-            .header("X-User-Cedula", "1234567890")
-            .header("X-User-Type", "ANALYST"))
-            .andExpect(status().isForbidden());
-}
-
-@Test
-void requestWithExpiredTimestampIsRejected() throws Exception {
-    // Timestamp de hace 2 minutos (TTL: 60 segundos)
-    long expiredTimestamp = System.currentTimeMillis() - 120_000;
-    String signature = generateValidHmac(expiredTimestamp, "GET", "/staff/casos");
-    
-    mockMvc.perform(get("/staff/casos")
-            .header("X-Gateway-Signature", signature)
-            .header("X-Request-Timestamp", String.valueOf(expiredTimestamp)))
-            .andExpect(status().isForbidden());
-}
-```
-
-**Controles Validados:**
-- ✅ Sin firma HMAC → HTTP 401
-- ✅ Firma HMAC inválida → HTTP 403
-- ✅ Timestamp expirado (>60s) → HTTP 403 (anti-replay)
-
----
-
-#### C. **UnifiedAuthServiceTest** - Flujo MFA
-
-```java
-@Test
-void mfaFlowCompletesSuccessfully() {
-    String cedula = "1234567890";
-    String password = "VozSegura2026Admin!";
-    
-    // Paso 1: Verificación biométrica (mock)
-    when(diditService.createVerificationSession(cedula))
-            .thenReturn("session_abc123");
-    
-    // Paso 2: Validación de contraseña
-    StaffUser user = createMockStaffUser(cedula, password);
-    when(staffUserRepository.findByCedulaAndEnabledTrue(cedula))
-            .thenReturn(Optional.of(user));
-    
-    boolean passwordValid = authService.validateSecretKey(user, password);
-    assertTrue(passwordValid);
-    
-    // Paso 3: Envío de OTP
-    String otpToken = authService.sendEmailOtp(cedula);
-    assertNotNull(otpToken);
-    
-    // Paso 4: Verificación OTP
-    boolean otpValid = otpClient.verifyOtp(otpToken, "123456");
-    assertTrue(otpValid);
-}
-
-@Test
-void accountIsLockedAfterThreeFailedAttempts() {
-    String cedula = "1234567890";
-    StaffUser user = createMockStaffUser(cedula, "correct_password");
-    
-    // 3 intentos fallidos
-    for (int i = 0; i < 3; i++) {
-        authService.validateSecretKey(user, "wrong_password");
-    }
-    
-    // Verificar que cuenta está bloqueada
-    assertTrue(user.isLocked());
-    
-    // Intentar login con contraseña correcta debe fallar
-    assertThrows(AccountLockedException.class, () -> {
-        authService.validateSecretKey(user, "correct_password");
-    });
-}
-
-@Test
-void otpExpiresAfterFiveMinutes() throws InterruptedException {
-    String otpToken = otpClient.sendOtp("user@example.com");
-    
-    // Simular paso de 6 minutos
-    Thread.sleep(6 * 60 * 1000);
-    
-    // Verificación debe fallar
-    boolean valid = otpClient.verifyOtp(otpToken, "123456");
-    assertFalse(valid);
-}
-```
-
-**Controles Validados:**
-- ✅ Flujo MFA completo (Biometría + Password + OTP)
-- ✅ Bloqueo de cuenta tras 3 intentos fallidos
-- ✅ Expiración de OTP (5 minutos)
-
----
-
-#### D. **ComplaintServiceTest** - Cifrado y Auditoría
-
-```java
-@Test
-void complaintTextIsEncryptedBeforePersisting() {
-    String plainText = "Descripción de la denuncia sensible";
-    
-    Complaint complaint = new Complaint();
-    complaint.setEncryptedText(plainText);
-    
-    // Guardar (debe cifrar automáticamente)
-    complaintService.save(complaint);
-    
-    // Verificar que en BD está cifrado
-    String encryptedInDb = complaintRepository
-            .findById(complaint.getId())
-            .get()
-            .getEncryptedText();
-    
-    assertNotEquals(plainText, encryptedInDb);
-    assertTrue(encryptedInDb.startsWith("base64:")); // Base64 encoded
-}
-
-@Test
-void complaintTextIsDecryptedWhenRetrieved() {
-    String originalText = "Texto original de la denuncia";
-    
-    // Crear y guardar
-    Complaint complaint = complaintService.createComplaint(
-            originalText, "CORRUPCION", "citizenHash123");
-    
-    // Recuperar (debe descifrar automáticamente)
-    Complaint retrieved = complaintService
-            .findByTrackingId(complaint.getTrackingId())
-            .orElseThrow();
-    
-    assertEquals(originalText, retrieved.getDecryptedText());
-}
-
-@Test
-void onlyAnalystCanAccessComplaint() {
-    String trackingId = "DEN-2026-ABC123";
-    
-    // ANALYST puede acceder
-    when(session.getAttribute("userType")).thenReturn("ANALYST");
-    Complaint complaint = complaintService.findByTrackingId(trackingId);
-    assertNotNull(complaint);
-    
-    // DENUNCIANTE NO puede acceder a otras denuncias
-    when(session.getAttribute("userType")).thenReturn("DENUNCIANTE");
-    assertThrows(AccessDeniedException.class, () -> {
-        complaintService.findByTrackingId(trackingId);
-    });
-}
-
-@Test
-void complaintAccessIsAudited() {
-    String trackingId = "DEN-2026-ABC123";
-    String username = "USR-Xy7kP0Qz";
-    
-    complaintService.findByTrackingId(trackingId);
-    
-    // Verificar que se registró en auditoría
-    verify(auditService).logEvent(
-            eq("ACCESS"),
-            contains(trackingId),
-            eq(username)
-    );
-}
-```
-
-**Controles Validados:**
-- ✅ Texto cifrado antes de guardar en BD
-- ✅ Texto descifrado automáticamente al recuperar
-- ✅ Solo ANALYST puede leer denuncias
-- ✅ Accesos registrados en auditoría (sin PII)
-
----
-
-#### E. **FileValidationServiceTest** - Validación de Archivos
-
-```java
-@Test
-void pdfFilePassesValidation() {
-    byte[] pdfBytes = createMockPdfFile(); // Comienza con %PDF
-    MultipartFile file = new MockMultipartFile(
-            "evidencia", "documento.pdf", "application/pdf", pdfBytes);
-    
-    boolean valid = fileValidationService.isValidEvidence(file);
-    assertTrue(valid);
-}
-
-@Test
-void exeFileIsRejected() {
-    byte[] exeBytes = createMockExeFile(); // Magic bytes: MZ
-    MultipartFile file = new MockMultipartFile(
-            "malware", "virus.exe", "application/exe", exeBytes);
-    
-    boolean valid = fileValidationService.isValidEvidence(file);
-    assertFalse(valid);
-}
-
-@Test
-void fileTooLargeIsRejected() {
-    byte[] largeFile = new byte[30 * 1024 * 1024]; // 30 MB
-    MultipartFile file = new MockMultipartFile(
-            "evidencia", "huge.pdf", "application/pdf", largeFile);
-    
-    boolean valid = fileValidationService.isValidEvidence(file);
-    assertFalse(valid); // Max: 25 MB
-}
-
-@Test
-void pathTraversalIsBlocked() {
-    byte[] pdfBytes = createMockPdfFile();
-    MultipartFile file = new MockMultipartFile(
-            "evidencia", "../../../etc/passwd", "application/pdf", pdfBytes);
-    
-    assertThrows(SecurityException.class, () -> {
-        fileValidationService.isValidEvidence(file);
-    });
-}
-```
-
-**Controles Validados:**
-- ✅ Whitelist de MIME types (PDF, DOCX, JPG, PNG, MP4)
-- ✅ Validación de magic bytes (firma real del archivo)
-- ✅ Tamaño máximo 25 MB
-- ✅ Path traversal bloqueado
-
----
-
-### Cobertura de Código
-
-```bash
-# Generar reporte de cobertura
-./mvnw clean test jacoco:report
-
-# Ver reporte HTML
-open target/site/jacoco/index.html
-```
-
-**Métricas de Cobertura Objetivo:**
-- Clases: > 80%
-- Métodos: > 75%
-- Líneas: > 70%
-- Branches: > 65%
-
-**Áreas Críticas (cobertura > 90%):**
-- `EncryptionService`
-- `GatewayRequestValidator`
-- `ZeroTrustGatewayFilter`
-- `ApiGatewayFilter`
-- `UnifiedAuthService`
-
----
-
-### Ejecutar Tests en CI/CD (GitHub Actions)
-
-```yaml
-# .github/workflows/tests.yml
-name: Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      
-      - name: Run tests
-        run: ./mvnw clean test
-      
-      - name: Generate coverage report
-        run: ./mvnw jacoco:report
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./target/site/jacoco/jacoco.xml
-```
-
----
-
-### Tests de Penetración (Pentesting)
-
-#### Herramientas Recomendadas:
-- **OWASP ZAP:** Escaneo automatizado de vulnerabilidades
-- **Burp Suite:** Pruebas manuales de seguridad
-- **sqlmap:** Detección de inyecciones SQL
-- **Nikto:** Escaneo de servidor web
-
-#### Checklist de Seguridad:
-- ✅ Inyección SQL (JPA con prepared statements)
-- ✅ XSS (Thymeleaf escapa por defecto)
-- ✅ CSRF (Spring Security CSRF enabled)
-- ✅ Clickjacking (X-Frame-Options: DENY)
-- ✅ HTTPS (TLS 1.2+)
-- ✅ Rate Limiting (30 req/min)
-- ✅ Autenticación (MFA obligatorio)
-- ✅ Autorización (RBAC granular)
-- ✅ Cifrado (AES-256-GCM)
-- ✅ Auditoría (todos los accesos)
-
----
-
-## 🐛 Troubleshooting
-
-### Error: "JWT_SECRET not found"
-```bash
-# Solución: Agregar a .env
-JWT_SECRET=$(openssl rand -base64 32)
-```
-
-### Error: "Database connection failed"
-```bash
-# Verificar credenciales Supabase
-echo $SUPABASE_DB_URL
-
-# Probar conexión
-psql "$SUPABASE_DB_URL" -U "$SUPABASE_DB_USERNAME"
-```
-
-### Error: "Invalid gateway signature"
-```bash
-# El Core solo acepta peticiones del Gateway
-# Accede a http://localhost:8080 (NO a :8082)
-```
-
-### Error en migraciones Flyway
-```bash
-# Las migraciones son automáticas
-# Si falla, revisar logs en logs/core-dev.log
-tail -f logs/core-dev.log
-```
-
----
-
-## 📋 Flujos del Sistema
-
-### Flujo de Denuncia
-
-1. Usuario accede a `/denuncia`
-2. Verificación biométrica DIDIT
-3. Validación contra Registro Civil
-4. Aceptación de términos y condiciones
-5. Formulario de denuncia (máx 4000 caracteres)
-6. Upload de evidencias (PDF/DOCX/JPG/PNG, máx 25MB)
-7. **Cifrado automático** de texto y archivos
-8. Generación de tracking ID (UUID)
-9. Almacenamiento en `denuncias.denuncia`
-10. Retorno de código de seguimiento
-
-### Flujo de Análisis (Staff)
-
-1. Login con biometría + clave secreta + OTP
-2. Lista de casos en estado PENDING
-3. Visualización de caso (**descifrado automático**)
-4. Clasificación (tipo, prioridad, severidad)
-5. Derivación automática según reglas
-6. Actualización de estado
-7. Registro en auditoría (sin PII)
-
----
-
-## 🔒 Seguridad
-
-### 🛡️ Arquitectura Zero Trust Implementada
-
-#### 1. **API Gateway (Puerto 8080)**
-**Responsabilidades:**
-- Validación de JWT (firma HS256, expiración 24h)
-- Generación de firma HMAC-SHA256 para peticiones al Core
-- Rate limiting (30 req/min por IP)
-- CORS y headers de seguridad
-
-**Clase Principal:** `JwtAuthenticationGatewayFilterFactory`
-- Extrae claims del JWT (cedula, userType, apiKey)
-- Genera timestamp + HMAC signature
-- Agrega headers: `X-User-Cedula`, `X-User-Type`, `X-Gateway-Signature`, `X-Request-Timestamp`
-
-```java
-// Generación de firma HMAC
-String message = timestamp + ":" + method + ":" + path + ":" + cedula + ":" + userType;
-Mac mac = Mac.getInstance("HmacSHA256");
-mac.init(new SecretKeySpec(sharedSecret.getBytes(), "HmacSHA256"));
-String signature = Base64.encode(mac.doFinal(message.getBytes()));
-```
-
-#### 2. **Core Service (Puerto 8082)**
-**Responsabilidades:**
-- Validación de firma HMAC del Gateway (Zero Trust)
-- Anti-replay: TTL 60 segundos en timestamp
-- Cifrado/descifrado de PII con AES-256-GCM
-- Lógica de negocio y persistencia
-
-**Clase Principal:** `ZeroTrustGatewayFilter` + `GatewayRequestValidator`
-- Valida firma HMAC contra clave compartida
-- Compara con timing-attack safe (`MessageDigest.isEqual`)
-- Rechaza peticiones directas al Core (sin pasar por Gateway)
-
-```java
-// Validación Zero Trust
-String expectedSignature = generateHmacSignature(timestamp, method, path, cedula, userType);
-if (!MessageDigest.isEqual(
-    expectedSignature.getBytes(), 
-    gatewaySignature.getBytes())) {
-    response.sendError(403, "Invalid gateway signature");
-}
-```
-
-#### 3. **Cifrado de Datos (AES-256-GCM)**
-**Clase Principal:** `AesGcmEncryptionService`
-- **Algoritmo:** AES-256-GCM (AEAD - Authenticated Encryption with Associated Data)
-- **IV:** 12 bytes aleatorios por operación (`SecureRandom`)
-- **Tag:** 128 bits de autenticación (detecta manipulación)
-- **Clave:** 256 bits desde AWS Secrets Manager o variable de entorno
-
-**Flujo de Cifrado:**
-```
-Texto Plain → IV Aleatorio → AES-GCM → Tag Auth → Base64 → BD
-                 (12 bytes)   (256-bit)  (128 bits)
-```
-
-**Implementación:**
-```java
-// Cifrado
-byte[] iv = new byte[12];
-secureRandom.nextBytes(iv);  // IV aleatorio
-Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-GCMParameterSpec spec = new GCMParameterSpec(128, iv);
-cipher.init(Cipher.ENCRYPT_MODE, key, spec);
-byte[] ciphertext = cipher.doFinal(plaintext.getBytes());
-return Base64.encode(IV + ciphertext + tag);
-```
-
-**Datos Cifrados:**
-- Texto completo de denuncias
-- Archivos adjuntos (evidencias)
-- PII en columnas `*_encrypted` de BD: nombres, emails, cédulas
-- Notas de analistas (opcional)
-
-**Tablas Cifradas:**
-
-| Tabla | Registros | Columnas Encrypted | Hashes SHA-256 |
-|-------|-----------|-------------------|----------------|
-| `registro_civil.personas` | 5 | 5 (cedula, nombres, apellidos) | 2 (cedula, nombre_completo) |
-| `staff.staff_user` | 2 | 2 (cedula, email) | 2 (cedula, email) |
-| `denuncias.denuncia` | 41 | 4 (text, analyst_notes, company_contact, company_address) | - |
-| `reglas_derivacion.entidad_destino` | 12 | 3 (email, phone, address) | - |
-| `evidencias.evidencia` | N | 1 (encrypted_content - binario) | - |
-| `registro_civil.didit_verification` | N | 1 (document_number) | - |
-
-**Job de Cifrado Automático:**
-```bash
-#### 4. **Validación de Archivos**
-           isAllowedFileName(file) &&     // Path traversal blocked
-           isValidMagicBytes(file);       // Firma real del archivo
-}
-```
-
-#### 5. **Auditoría Sin PII**
-**Clase Principal:** `AuditService`
-- Username hasheado con SHA-256 (8 caracteres): `USR-Xy7kP0Qz`
-- Sin cédulas, tokens, contraseñas en logs
-- Timestamp con timezone offset (UTC)
-- Detalles truncados a 500 caracteres
-
-**Eventos Auditados:**
-- `LOGIN`: Acceso al sistema
-- `LOGOUT`: Cierre de sesión
-- `CREATE`: Creación de denuncia/usuario
-- `UPDATE`: Actualización de estado/clasificación
-- `DELETE`: Eliminación (soft-delete)
-- `ACCESS`: Acceso a recurso (visualización)
-- `REVEAL`: Solicitud de revelación de identidad
-- `ERROR`: Error del sistema
----
-**Última actualización:** Enero 21, 2026
-**Última actualización:** Enero 22, 2026  
-**Versión:** 2.0
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_SES_FROM_EMAIL=
+
+#####################################
+# SEED (datos iniciales para demo)
+#####################################
+VOZ_SEED_ENABLED=false
+VOZ_SEED_FILE=docs/seed-data.example.json
+
+VOZ_ADMIN_PASSWORD=
+VOZ_ANALYST_PASSWORD=
+VOZ_STAFF_ADMIN_SECRET=
+VOZ_STAFF_ANALYST_SECRET=
+```
+
+
+## 3) Seed / datos iniciales (simulación)
+
+El proyecto trae un ejemplo en: `docs/seed-data.example.json`.
+
+El **seeder** vive en `com.vozsegura.seeder.DataSeeder` y se ejecuta al iniciar si:
+
+- `VOZ_SEED_ENABLED=true`
+- `VOZ_SEED_FILE` apunta al JSON
+
+Qué carga (resumen):
+- Personas del “registro civil” (tabla `registro_civil.personas`) usando **hash** de cédula.
+- Identity vault (tabla `identity_vault`) con “blob” cifrado.
+- Usuarios staff (admin/analyst) y datos mínimos para probar.
+
+Importante:
+- Las contraseñas y secretos del staff se toman de variables como `VOZ_ADMIN_PASSWORD`, `VOZ_ANALYST_PASSWORD`, `VOZ_STAFF_ADMIN_SECRET`, `VOZ_STAFF_ANALYST_SECRET`.
+- El seeder **cifra** y/o **hashea** los datos sensibles antes de guardarlos.
+
+
+## 4) Tecnologías usadas (explicado en sencillo)
+
+- **Spring Boot**: es el motor principal del backend. Arranca el servidor, maneja rutas web, inyección de dependencias, etc.
+- **Spring MVC + Thymeleaf**: para las páginas HTML (formularios de denuncia, login, panel staff/admin).
+- **Spring Security**: para cookies seguras, CSRF, headers de seguridad (CSP, X-Frame-Options, etc.).
+- **Spring Cloud Gateway** (módulo `gateway/`): es la “puerta de entrada”. Filtra y valida las peticiones antes de dejarlas pasar al Core.
+- **JPA (Spring Data) + Hibernate**: para hablar con la base de datos con repositorios (sin escribir SQL a mano casi nunca).
+- **Flyway**: aplica migraciones SQL automáticas al iniciar (carpeta `src/main/resources/db/migration`).
+- **Supabase**: aquí se usa principalmente como **Postgres administrado** (la app se conecta por JDBC).
+- **JWT (JSON Web Token)**: token firmado para identificar al usuario (sobre todo staff).
+- **ZTA (Zero Trust Architecture)**: el Core no confía en “porque viene de adentro”, sino que valida firma y tiempo en cada request del Gateway.
+- **Didit**: verificación de identidad (sesión + webhook) para confirmar a la persona sin guardar su cédula en texto plano.
+- **Cloudflare Turnstile**: captcha moderno para frenar bots (se valida server-side).
+- **AWS SES**: envío de OTP por correo (segundo factor).
+- **Cifrado AES-GCM + hash SHA-256**: para proteger PII (cédula, nombres, correos, etc.) y mantener anonimato.
+
+
+## 5) Diagrama de componentes (en palabras)
+
+El diagrama está en `docs/c4-component-diagram.puml`. Traducido a “qué hace cada pieza”:
+
+- **Navegador (usuario)**: abre la web, llena formularios y ve estados.
+- **Gateway (Spring Cloud Gateway)**:
+    - recibe TODO lo que viene de afuera,
+    - revisa el **JWT** (si aplica),
+    - valida que haya API Key (cuando corresponde),
+    - y además firma la petición (HMAC + timestamp) para que el Core sepa que es “legítima y reciente”.
+- **Core (Spring Boot app principal)**:
+    - sirve las páginas (Thymeleaf),
+    - expone endpoints,
+    - guarda/consulta en base de datos,
+    - cifra y descifra lo necesario,
+    - y vuelve a validar que la request realmente venga del Gateway (ZTA).
+- **Supabase Postgres**:
+    - guarda denuncias, evidencias cifradas, reglas de derivación, staff, auditoría…
+- **Didit**:
+    - hace el “check” de identidad,
+    - manda un webhook al Core cuando la verificación termina.
+- **Cloudflare Turnstile**:
+    - valida que no sea un bot (token del frontend → verificación server-side).
+- **AWS SES**:
+    - envía códigos OTP al correo para MFA.
+- **(Opcional) Secret Manager / llaves**:
+    - la llave AES-GCM se carga como secreto (en el código existe `SecretsManagerClient`).
+
+
+## 6) Gateway + ZTA (cómo funciona en este proyecto)
+
+### 6.1 Qué hace el Gateway (módulo `gateway/`)
+La idea es que **nadie** le pegue directo al Core “porque sí”. El Gateway es el filtro principal.
+
+En el código, la pieza importante es:
+- `com.vozsegura.gateway.filter.JwtAuthenticationGatewayFilterFactory`
+
+Lo que hace, resumido:
+1) Lee el header `Authorization: Bearer <jwt>`
+2) Valida firma y expiración del JWT con `jwt.secret`
+3) Extrae claims importantes:
+    - `sub` (usuario)
+    - `role` (rol)
+    - `apiKey` (llave para servicios internos)
+4) Calcula una firma **HMAC-SHA256** con:
+    - método HTTP
+    - path
+    - timestamp
+    - userId
+    - role
+5) Inyecta headers internos:
+    - `X-Gateway-User-Id`
+    - `X-Gateway-User-Role`
+    - `X-Gateway-Timestamp`
+    - `X-Gateway-Signature`
+    - (y también pasa `X-Api-Key` si aplica)
+
+### 6.2 Qué es “ZTA” aquí (la parte Zero Trust)
+ZTA en este proyecto significa: **el Core valida cada request “interna”**, aunque venga del Gateway.
+
+En el Core hay dos filtros relevantes:
+- `com.vozsegura.config.ZeroTrustGatewayFilter`
+- `com.vozsegura.config.ApiGatewayFilter`
+
+Ambos van en el mismo espíritu:
+- si la request es “de API / sensible”, exige headers del Gateway,
+- verifica firma,
+- verifica timestamp (anti-replay).
+
+Además, existe un validador re-usable:
+- `com.vozsegura.security.GatewayRequestValidator`
+
+Detalle importante:
+- `ZeroTrustGatewayFilter` acepta una ventana de **5 minutos**.
+- `GatewayRequestValidator` usa **60 segundos**.
+- Esto es intencional o una inconsistencia: el README original menciona 60s, pero el filtro “ZeroTrust” deja 5 min. Si estás explicándolo en defensa, menciona esta diferencia y cuál usas como “regla final”.
+
+### 6.3 Cómo viaja una petición (ejemplo simple)
+- Usuario → Gateway:
+    - manda cookie / token (según el caso)
+- Gateway:
+    - valida JWT
+    - agrega headers + firma
+- Core:
+    - valida firma + timestamp (ZTA)
+    - recién ahí procesa (guardar denuncia, ver casos, etc.)
+
+
+## 7) Validaciones (entrada, API, credenciales, archivos)
+
+Aquí te dejo “qué valida qué”, y **en qué clase** pasa (para que lo expliques con seguridad).
+
+### 7.1 Validaciones de formularios (Bean Validation)
+Están en `com.vozsegura.dto.forms.*` usando anotaciones como `@NotBlank`, `@Size`, `@Pattern`, `@Email`.
+
+Ejemplos claros:
+- `UnifiedLoginForm`: valida formato de cédula y código dactilar (largo y patrón).
+- `ComplaintForm`: exige que el detalle tenga mínimo 50 caracteres, y valida campos de empresa.
+- `TrackingForm`: exige UUID (36 chars + regex).
+- `SecretKeyForm`: mínimo 8 caracteres.
+- `AdditionalInfoForm`: texto entre 50 y 5000 caracteres.
+
+Dónde se “aplican”:
+- En controladores, con `@Valid` + `BindingResult` (por ejemplo en `PublicComplaintController`, `TrackingController`, `UnifiedAuthController`).
+
+### 7.2 Validación de credenciales (staff)
+Se hace principalmente en `com.vozsegura.controller.UnifiedAuthController`:
+
+- **Password (login staff)**:
+    - usa `PasswordEncoder.matches(...)`
+    - cuenta intentos y bloquea temporalmente por sesión
+- **Secret Key (2do factor staff)**:
+    - también con `PasswordEncoder.matches(...)`
+    - con contador de intentos `secretKeyAttempts` en sesión
+
+La creación/almacenamiento seguro se ve en:
+- `com.vozsegura.controller.admin.AdminController` (creación de analistas)
+    - genera password temporal, lo hashea con BCrypt
+    - toma secretKey de `VOZ_STAFF_ADMIN_SECRET` / `VOZ_STAFF_ANALYST_SECRET` y guarda hash en `mfaSecretEncrypted`
+
+### 7.3 OTP (código por correo)
+- Envío: `com.vozsegura.service.OtpService.sendOtp(...)`
+    - valida formato básico de email
+- Verificación: `com.vozsegura.service.OtpService.verifyOtp(...)`
+- Cliente real: `com.vozsegura.client.aws.AwsSesOtpClient`
+    - rate limiting: 3 solicitudes/minuto por destino
+    - TTL: 5 minutos
+    - máximo 3 intentos fallidos
+    - anti-replay: token se consume una vez
+- Cliente mock: `com.vozsegura.client.mock.MockOtpClient`
+    - valida igual, pero no envía correo real (solo simula en memoria)
+
+> Ojo: en el código actual, `AwsSesOtpClient` está marcado como `@Primary`, entonces en profile `dev` se usa ese primero. Para que OTP funcione en local, o configuras AWS SES, o ajustas el perfil/primary para usar el mock.
+
+### 7.4 Validación de archivos (evidencias)
+Hay dos niveles:
+- `com.vozsegura.security.FileValidationService.isValidEvidence(...)` (la validación “seria”)
+    - tamaño máximo
+    - extensión permitida
+    - MIME type permitido
+    - **magic bytes** (firma real del archivo) para evitar “.pdf que es un .exe”
+- `com.vozsegura.service.ComplaintService.processEvidences(...)`
+    - limita a **máx 5** evidencias
+    - sanitiza nombre de archivo (`sanitizeFileName`)
+    - cifra el contenido antes de guardar
+
+### 7.5 Validación de API (Gateway → Core)
+En el Gateway:
+- `JwtAuthenticationGatewayFilterFactory`
+    - rechaza si falta token, si está mal firmado, o si le faltan claims (`sub`, `role`, `apiKey`)
+
+En el Core:
+- `ZeroTrustGatewayFilter` + `ApiGatewayFilter`
+    - exigen headers `X-Gateway-*`
+    - verifican firma HMAC
+    - verifican timestamp (anti-replay)
+- `GatewayRequestValidator` centraliza la lógica (firma + ventana)
+
+
+## 8) Seguridad (JWT, XSS/CSRF, SQLi, etc.)
+
+### 8.1 Cómo se generan los JWT (exacto en el código)
+La clase es:
+- `com.vozsegura.service.JwtTokenProvider`
+
+Métodos:
+- `generateToken(String subject, String role, String apiKey)`
+- `generateTokenWithScopes(String subject, String role, String apiKey, List<String> scopes)`
+
+Dónde se usan:
+- En `UnifiedAuthController`, después de completar MFA, se crea el JWT y se mete en cookie con:
+    - `createSecureJwtCookie(jwt)` (cookie `Authorization`, `HttpOnly`, `Secure`, `SameSite=Strict`)
+    - y se borra con `createClearJwtCookie()`
+
+Validación de JWT (cuando se necesita):
+- `com.vozsegura.service.JwtValidator.validateToken(...)`
+- En el Gateway también se valida con `io.jsonwebtoken` dentro del filtro.
+
+### 8.2 Dónde está “toda la seguridad” en el código (mapa rápido)
+- Headers de seguridad, CSP, CSRF, etc: `com.vozsegura.config.SecurityConfig`
+- Timeout y reglas de sesión: `com.vozsegura.config.SessionTimeoutConfig` + uso de `HttpSession` en controladores
+- ZTA (firma/timestamp del Gateway): `com.vozsegura.config.ZeroTrustGatewayFilter`, `com.vozsegura.config.ApiGatewayFilter`, `com.vozsegura.security.GatewayRequestValidator`
+- Cifrado y hash: `com.vozsegura.security.*` + `com.vozsegura.service.CryptoService`
+- Validación de archivos: `com.vozsegura.security.FileValidationService`
+- Rate limiting (base): `com.vozsegura.security.RateLimiter`, `InMemoryRateLimiter`
+- Auditoría: `com.vozsegura.service.AuditService` + entidad `AuditEvent`
+
+### 8.3 XSS (Cross-Site Scripting) — mitigaciones
+En este proyecto se mitiga sobre todo con:
+- **Thymeleaf**: por defecto escapa contenido cuando lo imprime (y no se usa `th:utext` en templates).
+- **Headers CSP**: en `SecurityConfig.securityFilterChain(...)` se define `Content-Security-Policy`.
+- **Cookies HttpOnly**: el JWT va en cookie `HttpOnly`, así JS no lo puede leer fácil.
+- **Sanitización de nombres de archivo**: `ComplaintService.sanitizeFileName(...)` evita caracteres raros.
+
+### 8.4 CSRF (Cross-Site Request Forgery) — mitigaciones
+- En `SecurityConfig` está **CSRF habilitado**.
+- Las vistas Thymeleaf incluyen el token CSRF (`<input ... th:value="${_csrf.token}"/>`), por ejemplo:
+    - `templates/auth/login.html`
+    - `templates/admin/*.html`
+    - `templates/public/*.html`
+- Excepción: se ignora CSRF para `/webhooks/**` porque eso viene desde servicios externos (Didit).
+
+### 8.5 SQL Injection
+- El proyecto usa **Spring Data JPA** (repositorios en `com.vozsegura.repo`) y consultas con parámetros.
+- No hay construcción de SQL con string concatenado ni `EntityManager` manual.
+- Ejemplo seguro: `DerivationRuleRepository` usa `@Query` con parámetros (`:complaintType`, `:severity`).
+
+### 8.6 NoSQL Injection
+- En el código no hay base NoSQL (Mongo, etc.), por eso este riesgo no aplica directamente aquí.
+
+### 8.7 Otros puntos de seguridad que sí aparecen
+- Anti-replay en OTP (token se consume una vez): `AwsSesOtpClient.verifyOtp(...)`
+- Anti-brute-force en OTP: max 3 intentos + rate limit
+- Anti-replay en ZTA: timestamp + ventana de tiempo (`GatewayRequestValidator`, `ZeroTrustGatewayFilter`)
+- Comparación “sin filtrar timing” (mejor práctica): `GatewayRequestValidator.constantTimeEquals(...)`
+
+> Nota honesta para tu informe: en `DiditService` existe `verifyWebhookSignature(...)`, pero el controller `DiditWebhookController` actualmente no lee/valida el header de firma del webhook. La intención está, pero falta conectarlo en el endpoint (eso se puede mencionar como mejora).
+
+
+## 9) Recorrido del código (clase por clase)
+
+### 9.1 Core (aplicación principal)
+
+### (sin package / placeholders)
+**PiiEncryptionJob** (`src/main/java/com/vozsegura/migration/PiiEncryptionJob.java`)
+- Qué es: Placeholder. El archivo está vacío (no implementa nada todavía) y parece reservado para una migración/job futuro de cifrado de PII.
+
+### com.vozsegura
+**VozSeguraApplication** (`src/main/java/com/vozsegura/VozSeguraApplication.java`) — @SpringBootApplication
+- Qué es: Voz Segura Main Application - Ecuador Whistleblower Platform.
+- Métodos clave: main
+
+### com.vozsegura.client
+**CivilRegistryClient** (`src/main/java/com/vozsegura/client/CivilRegistryClient.java`)
+- Qué es: Interface para cliente del Registro Civil del Ecuador.
+
+**ExternalDerivationClient** (`src/main/java/com/vozsegura/client/ExternalDerivationClient.java`)
+- Qué es: Interface para cliente de derivación de casos a entidades externas.
+
+**OtpClient** (`src/main/java/com/vozsegura/client/OtpClient.java`)
+- Qué es: Interface para cliente OTP (One-Time Password).
+
+**SecretsManagerClient** (`src/main/java/com/vozsegura/client/SecretsManagerClient.java`)
+- Qué es: Interface para cliente de AWS Secrets Manager.
+
+### com.vozsegura.client.aws
+**AwsSecretsManagerClientImpl** (`src/main/java/com/vozsegura/client/aws/AwsSecretsManagerClientImpl.java`) — @Component, @Profile
+- Qué es: AWS Secrets Manager Client - Recupera secretos de AWS Secrets Manager con caching.
+- Métodos clave: init, cleanup, getSecretString, resolveSecretName, isCacheValid, invalidateCache, invalidateAllCache
+
+**AwsSesOtpClient** (`src/main/java/com/vozsegura/client/aws/AwsSesOtpClient.java`) — @Component, @Primary, @Profile
+- Qué es: AWS SES OTP Client - Genera y valida códigos OTP vía AWS SES.
+- Métodos clave: init, close, sendOtp, enviarEmailSES, generarHtmlEmail, verifyOtp, maskEmail
+
+### com.vozsegura.client.mock
+**EnvSecretsManagerClient** (`src/main/java/com/vozsegura/client/mock/EnvSecretsManagerClient.java`) — @Component, @Profile
+- Qué es: Environment Secrets Manager Client - Híbrido seguro para desarrollo.
+- Métodos clave: init, cleanup, getSecretString, getStaffSecretFromAws
+
+**HttpExternalDerivationClient** (`src/main/java/com/vozsegura/client/mock/HttpExternalDerivationClient.java`) — @Component, @Profile
+- Qué es: HTTP External Derivation Client - Envía casos a entidades externas vía HTTP.
+- Métodos clave: derivateCase
+
+**MockCivilRegistryClient** (`src/main/java/com/vozsegura/client/mock/MockCivilRegistryClient.java`) — @Component, @Profile
+- Qué es: Mock Civil Registry Client - Valida identidad ecuatoriana en memoria.
+- Métodos clave: verifyCitizen, esCedulaDePrueba, verifyBiometric, getEmailForCitizen, validarCedulaEcuatoriana, validarCodigoDactilar
+
+**MockOtpClient** (`src/main/java/com/vozsegura/client/mock/MockOtpClient.java`) — @Component, @Profile
+- Qué es: Mock OTP Client - Genera y valida códigos OTP en memoria para desarrollo.
+- Métodos clave: sendOtp, maskDestination, verifyOtp
+
+### com.vozsegura.config
+**ApiGatewayFilter** (`src/main/java/com/vozsegura/config/ApiGatewayFilter.java`) — @Component, @Order
+- Qué es: API Gateway Filter - Valida headers de autenticación del Gateway.
+- Campos/atributos: gatewayBaseUrl, gatewayRequestValidator, PUBLIC_PATHS
+- Métodos clave: doFilter, isPublicPath, isAuthorized, init, destroy
+
+**AwsDatabaseConfig** (`src/main/java/com/vozsegura/config/AwsDatabaseConfig.java`) — @Configuration, @Profile
+- Qué es: Configuración de DataSource para perfiles AWS/Producción.
+- Campos/atributos: secretsManagerClient, objectMapper, databaseSecretName
+- Métodos clave: dataSource, getJsonValue
+
+**CustomLogoutSuccessHandler** (`src/main/java/com/vozsegura/config/CustomLogoutSuccessHandler.java`) — @Component
+- Qué es: Handler personalizado para auditar el cierre de sesión.
+- Campos/atributos: log, auditService
+- Métodos clave: onLogoutSuccess, getClientIp
+
+**FlywayRepairConfig** (`src/main/java/com/vozsegura/config/FlywayRepairConfig.java`) — @Configuration
+- Qué es: Configuración de Flyway que repara automáticamente migraciones fallidas.
+- Campos/atributos: log
+- Métodos clave: flywayMigrationStrategy
+
+**GatewayConfig** (`src/main/java/com/vozsegura/config/GatewayConfig.java`) — @Component
+- Qué es: Configuración de URLs del API Gateway.
+- Campos/atributos: gatewayBaseUrl
+- Métodos clave: getBaseUrl, buildUrl, getLoginUrl, getSessionExpiredUrl, redirectTo, redirectToLogin, redirectToSessionExpired
+
+**GlobalExceptionHandler** (`src/main/java/com/vozsegura/config/GlobalExceptionHandler.java`) — @ControllerAdvice
+- Qué es: Manejador global de excepciones.
+- Campos/atributos: log, auditService
+- Métodos clave: handleNotFound, handleGenericError, auditError, getClientIp
+
+**GlobalModelAttributes** (`src/main/java/com/vozsegura/config/GlobalModelAttributes.java`) — @ControllerAdvice
+- Qué es: Global Model Attributes - Inyecta datos comunes en todas las vistas Thymeleaf.
+- Campos/atributos: gatewayConfig
+- Métodos clave: gatewayUrl, loginUrl
+
+**PgBouncerDataSourceConfig** (`src/main/java/com/vozsegura/config/PgBouncerDataSourceConfig.java`) — @Configuration
+- Qué es: Configuración de DataSource optimizada para PgBouncer.
+- Campos/atributos: jdbcUrl, username, password, maxPoolSize, minIdle, connectionTimeout, idleTimeout, maxLifetime
+- Métodos clave: dataSource, appendPgBouncerParams
+
+**RestClientConfig** (`src/main/java/com/vozsegura/config/RestClientConfig.java`) — @Configuration
+- Qué es: Configuración para RestTemplate y ObjectMapper.
+- Métodos clave: restTemplate, clientHttpRequestFactory, objectMapper
+
+**SecurityConfig** (`src/main/java/com/vozsegura/config/SecurityConfig.java`) — @Configuration
+- Qué es: Configuración de Seguridad - VOZ SEGURA CORE.
+- Campos/atributos: logoutSuccessHandler
+- Métodos clave: filterChain, passwordEncoder, userDetailsService
+
+**SessionTimeoutConfig** (`src/main/java/com/vozsegura/config/SessionTimeoutConfig.java`) — @Component
+- Qué es: Interceptor para configurar tiempos de sesión diferenciados por rol.
+- Campos/atributos: log, ADMIN_TIMEOUT, ANALYST_TIMEOUT, CITIZEN_TIMEOUT, DEFAULT_TIMEOUT
+- Métodos clave: preHandle, getTimeoutForUserType
+
+**TimeZoneConfig** (`src/main/java/com/vozsegura/config/TimeZoneConfig.java`) — @Configuration
+- Qué es: Timezone Configuration for Ecuador (America/Guayaquil UTC-5).
+- Campos/atributos: ECUADOR_TIMEZONE
+- Métodos clave: init
+
+**WebMvcConfig** (`src/main/java/com/vozsegura/config/WebMvcConfig.java`) — @Configuration
+- Qué es: Configuración de recursos estáticos (CSS, JS, imágenes).
+- Campos/atributos: sessionValidationInterceptor, sessionTimeoutConfig
+- Métodos clave: addInterceptors, addResourceHandlers
+
+**ZeroTrustGatewayFilter** (`src/main/java/com/vozsegura/config/ZeroTrustGatewayFilter.java`) — @Component, @Order
+- Qué es: Filtro Zero Trust para validar requests desde API Gateway.
+- Campos/atributos: sharedSecret
+- Métodos clave: doFilter, generateHmacSignature, isPublicRoute, init, destroy
+
+### com.vozsegura.controller
+**AuthController** (`src/main/java/com/vozsegura/controller/AuthController.java`) — @Controller
+- Qué es: Controlador MVC para mostrar la página de inicio de sesión.
+- Rutas (aprox): @GetMapping /login
+- Métodos clave: login
+
+**GlobalErrorController** (`src/main/java/com/vozsegura/controller/GlobalErrorController.java`) — @Controller
+- Qué es: Controlador global de errores.
+- Rutas (aprox): @RequestMapping /error
+- Métodos clave: handleError, extractStatusCode, extractRequestPath, generateRequestId
+
+**HomeController** (`src/main/java/com/vozsegura/controller/HomeController.java`) — @Controller
+- Qué es: Controlador para la página de inicio de la aplicación.
+- Rutas (aprox): @GetMapping /
+- Métodos clave: home
+
+**UnifiedAuthController** (`src/main/java/com/vozsegura/controller/UnifiedAuthController.java`) — @Controller, @RequestMapping
+- Qué es: Controlador de autenticación unificada.
+- Rutas (aprox): @RequestMapping /auth; @GetMapping /login; @GetMapping /verify-start; @GetMapping /verify-callback; @GetMapping /secret-key; @GetMapping /verify-otp; @GetMapping /logout; @PostMapping /unified-login; @PostMapping /verify-complete; @PostMapping /verify-secret; @PostMapping /verify-otp; @PostMapping /resend-otp
+- Métodos clave: showLoginPage, processUnifiedLogin, startDiditVerification, handleDiditCallback, waitForVerification, completeVerification, showSecretKeyPage, verifySecretKey, showOtpPage, verifyOtp, resendOtp, logout, …
+
+### com.vozsegura.controller.admin
+**AdminController** (`src/main/java/com/vozsegura/controller/admin/AdminController.java`) — @Controller, @RequestMapping
+- Qué es: Controlador del panel administrativo.
+- Rutas (aprox): @RequestMapping /admin; @GetMapping , ; @GetMapping /reglas; @GetMapping /logs; @GetMapping /revelacion; @GetMapping /analistas; @PostMapping /reglas/crear; @PostMapping /reglas/{id}/editar; @PostMapping /reglas/{id}/eliminar; @PostMapping /analistas/crear; @PostMapping /analistas/{id}/toggle; @PostMapping /reglas/{id}/activar; @PostMapping /reglas/{id}/desactivar
+- Métodos clave: panel, reglas, crearRegla, editarRegla, eliminarRegla, logs, translateEventType, revelacion, isAuthenticated, getUsername, emptyToNull, normalizeJson, …
+
+### com.vozsegura.controller.publicview
+**PublicComplaintController** (`src/main/java/com/vozsegura/controller/publicview/PublicComplaintController.java`) — @Controller, @SessionAttributes
+- Qué es: Controlador del flujo público de denuncias anónimas.
+- Rutas (aprox): @GetMapping /denuncia; @GetMapping /verification/inicio; @GetMapping /verification/start; @GetMapping /verification/callback; @GetMapping /denuncia/opciones; @GetMapping /denuncia/form; @GetMapping /denuncia/confirmacion; @GetMapping /denuncia/editar/{trackingId}; @PostMapping /denuncia/submit; @PostMapping /denuncia/editar/{trackingId}
+- Métodos clave: accessForm, showAccessForm, verificationInicio, startVerification, verificationCallback, showOptions, showComplaintForm, submitComplaint, showConfirmation, showAdditionalInfoForm, submitAdditionalInfo
+
+**TermsController** (`src/main/java/com/vozsegura/controller/publicview/TermsController.java`) — @Controller
+- Qué es: Terms and Conditions Controller - Muestra términos y condiciones públicos.
+- Rutas (aprox): @GetMapping /terms
+- Métodos clave: terms
+
+**TrackingController** (`src/main/java/com/vozsegura/controller/publicview/TrackingController.java`) — @Controller, @RequestMapping
+- Qué es: Controlador para consulta anónima de seguimiento de denuncias.
+- Rutas (aprox): @RequestMapping /seguimiento
+- Métodos clave: showTrackingForm, processTracking, isOwner, getClientIp
+
+### com.vozsegura.controller.staff
+**StaffCaseController** (`src/main/java/com/vozsegura/controller/staff/StaffCaseController.java`) — @Controller, @RequestMapping
+- Qué es: Controlador para gestion de casos por parte del staff.
+- Rutas (aprox): @RequestMapping /staff; @GetMapping /casos,/casos-list; @GetMapping /casos/{trackingId}; @GetMapping /evidencias/{id}; @PostMapping /casos/{trackingId}/clasificar; @PostMapping /casos/{trackingId}/estado; @PostMapping /casos/{trackingId}/aprobar-derivar; @PostMapping /casos/{trackingId}/solicitar-info; @PostMapping /casos/{trackingId}/rechazar
+- Métodos clave: listCases, viewCase, clasificarCaso, updateEstado, aprobarYDerivar, solicitarMasInfo, rechazarCaso, downloadEvidence, isAuthenticated, getUsername
+
+### com.vozsegura.controller.webhook
+**DiditWebhookController** (`src/main/java/com/vozsegura/controller/webhook/DiditWebhookController.java`) — @Controller, @RequestMapping
+- Qué es: Recibe callbacks y webhooks de Didit.
+- Rutas (aprox): @RequestMapping /webhooks; @GetMapping /didit; @PostMapping /didit
+- Métodos clave: handleDiditCallbackGet, readBody, getClientIpAddress
+
+### com.vozsegura.domain.converter
+**JsonbStringConverter** (`src/main/java/com/vozsegura/domain/converter/JsonbStringConverter.java`) — @Converter
+- Qué es: Converter para campos JSONB en PostgreSQL.
+- Métodos clave: convertToDatabaseColumn, convertToEntityAttribute, normalizeToSafeJson
+
+### com.vozsegura.domain.entity
+**AuditEvent** (`src/main/java/com/vozsegura/domain/entity/AuditEvent.java`) — @Entity, @Table
+- Qué es: Entidad JPA para auditoría de eventos del sistema.
+- Campos/atributos: id, eventTime, requestId, correlationId, actorRole, actorStaffId, actorUsername, ipAddress, userAgent, httpMethod, path, statusCode, latencyMs, eventType, outcome, trackingId, entityType, entityId, details
+
+**Complaint** (`src/main/java/com/vozsegura/domain/entity/Complaint.java`) — @Entity, @Table
+- Qué es: Entidad JPA que representa una denuncia anónima almacenada en {@code denuncias.denuncia}.
+- Campos/atributos: id, trackingId, identityVaultId, status, severity, complaintType, priority, derivedTo, derivedAt, requiresMoreInfo, encryptedText, companyNameEncrypted, companyEmailEncrypted, companyPhoneEncrypted, companyContactEncrypted, companyAddressEncrypted, analystNotesEncrypted, assignedStaffId, createdAt, updatedAt
+
+**DerivationPolicy** (`src/main/java/com/vozsegura/domain/entity/DerivationPolicy.java`) — @Entity, @Table
+- Qué es: Politica de derivacion almacenada en reglas_derivacion.politica_derivacion.
+- Campos/atributos: id, name, legalFramework, version, effectiveFrom, effectiveTo, active, createdBy, creator, approvedBy, approver, approvedAt, createdAt, updatedAt
+
+**DerivationRule** (`src/main/java/com/vozsegura/domain/entity/DerivationRule.java`) — @Entity, @Table
+- Qué es: Regla de derivación automática almacenada en {@code reglas_derivacion.regla_derivacion}.
+- Campos/atributos: id, policyId, name, description, active, complaintTypeMatch, severityMatch, conditions, destinationId, destinationEntity, priorityOrder, requiresManualReview, slaHours, normativeReference, createdAt, updatedAt
+
+**DestinationEntity** (`src/main/java/com/vozsegura/domain/entity/DestinationEntity.java`) — @Entity, @Table
+- Qué es: Entidad receptora de denuncias derivadas almacenada en {@code reglas_derivacion.entidad_destino}.
+- Campos/atributos: id, code, name, description, active, emailEncrypted, phoneEncrypted, addressEncrypted, endpointUrl, createdAt, updatedAt
+
+**DiditVerification** (`src/main/java/com/vozsegura/domain/entity/DiditVerification.java`) — @Entity, @Table
+- Qué es: Registro de verificación con Didit almacenado en {@code registro_civil.didit_verification}.
+- Campos/atributos: id, identityVaultId, diditSessionId, documentNumberHash, documentNumberEncrypted, verificationStatus, verifiedAt, createdAt, updatedAt, documentNumber
+
+**Evidence** (`src/main/java/com/vozsegura/domain/entity/Evidence.java`) — @Entity, @Table
+- Qué es: Evidencia asociada a una denuncia almacenada en {@code evidencias.evidencia}.
+- Campos/atributos: id, idDenuncia, complaint, fileNameEncrypted, contentType, sizeBytes, encryptedContent, storageObjectKey, checksum, createdAt, updatedAt
+
+**IdentityVault** (`src/main/java/com/vozsegura/domain/entity/IdentityVault.java`) — @Entity, @Table
+- Qué es: Bóveda de identidad almacenada en {@code registro_civil.identity_vault}.
+- Campos/atributos: id, documentHash, identityBlobEncrypted, keyVersion, createdAt, updatedAt
+
+**Persona** (`src/main/java/com/vozsegura/domain/entity/Persona.java`) — @Entity, @Table
+- Qué es: Identidad verificada almacenada en {@code registro_civil.personas}.
+- Campos/atributos: id, identityVaultId, cedulaHash, cedulaEncrypted, primerNombreEncrypted, segundoNombreEncrypted, primerApellidoEncrypted, segundoApellidoEncrypted, nombreCompletoHash, sexo, createdAt, updatedAt, cedula, primerNombre, segundoNombre, primerApellido, segundoApellido
+
+**StaffUser** (`src/main/java/com/vozsegura/domain/entity/StaffUser.java`) — @Entity, @Table
+- Qué es: Usuario interno del sistema almacenado en {@code staff.staff_user}.
+- Campos/atributos: id, username, passwordHash, role, enabled, emailEncrypted, phoneEncrypted, mfaSecretEncrypted, cedulaHashIdx, createdBy, createdAt, updatedAt, lastLoginAt
+
+### com.vozsegura.domain.enums
+**ComplaintType** (`src/main/java/com/vozsegura/domain/enums/ComplaintType.java`)
+- Qué es: Tipos de denuncia del sistema.
+- Métodos clave: getCode, getLabel, fromCode
+
+**Severity** (`src/main/java/com/vozsegura/domain/enums/Severity.java`)
+- Qué es: Severidad de la denuncia.
+- Métodos clave: getCode, getLabel, fromCode
+
+### com.vozsegura.dto
+**ComplaintStatusDto** (`src/main/java/com/vozsegura/dto/ComplaintStatusDto.java`)
+- Qué es: DTO para mostrar el estado de una denuncia al denunciante.
+- Métodos clave: translateStatus, translateSeverity, translateComplaintType, getTrackingId, setTrackingId, getStatus, setStatus, getStatusLabel, getSeverity, setSeverity, getSeverityLabel, getCreatedAt, …
+
+### com.vozsegura.dto.forms
+**AdditionalInfoForm** (`src/main/java/com/vozsegura/dto/forms/AdditionalInfoForm.java`)
+- Qué es: DTO para formulario de información adicional solicitada por analista.
+- Campos/atributos: additionalInfo, evidences
+- Métodos clave: getAdditionalInfo, setAdditionalInfo, getEvidences, setEvidences
+
+**BiometricOtpForm** (`src/main/java/com/vozsegura/dto/forms/BiometricOtpForm.java`)
+- Qué es: DTO para formulario de muestra biométrica (OTP biométrica).
+- Campos/atributos: biometricSample
+- Métodos clave: getBiometricSample, setBiometricSample
+
+**ComplaintForm** (`src/main/java/com/vozsegura/dto/forms/ComplaintForm.java`)
+- Qué es: DTO para el formulario de creación de denuncias públicas.
+- Campos/atributos: detail, evidences, companyName, companyAddress, companyContact, companyEmail, companyPhone, additionalInfo, newEvidences
+- Métodos clave: getDetail, setDetail, getEvidences, setEvidences, getCompanyName, setCompanyName, getCompanyAddress, setCompanyAddress, getCompanyContact, setCompanyContact, getCompanyEmail, setCompanyEmail, …
+
+**DenunciaAccessForm** (`src/main/java/com/vozsegura/dto/forms/DenunciaAccessForm.java`)
+- Qué es: DTO para formulario de acceso inicial a denuncias (entrada pública).
+- Campos/atributos: cedula, codigoDactilar, captcha, termsAccepted
+- Métodos clave: getCedula, setCedula, getCodigoDactilar, setCodigoDactilar, getCaptcha, setCaptcha, isTermsAccepted, setTermsAccepted
+
+**SecretKeyForm** (`src/main/java/com/vozsegura/dto/forms/SecretKeyForm.java`)
+- Qué es: DTO para el formulario de clave secreta (Staff/Admin - Paso 3 del MFA).
+- Campos/atributos: secretKey
+- Métodos clave: getSecretKey, setSecretKey
+
+**TrackingForm** (`src/main/java/com/vozsegura/dto/forms/TrackingForm.java`)
+- Qué es: DTO para formulario de seguimiento anónimo de denuncias.
+- Campos/atributos: trackingId
+- Métodos clave: getTrackingId, setTrackingId
+
+**UnifiedLoginForm** (`src/main/java/com/vozsegura/dto/forms/UnifiedLoginForm.java`)
+- Qué es: DTO para formulario de login unificado (entry point para todos los usuarios).
+- Campos/atributos: cedula, codigoDactilar
+- Métodos clave: getCedula, setCedula, getCodigoDactilar, setCodigoDactilar
+
+### com.vozsegura.dto.webhook
+**DiditWebhookPayload** (`src/main/java/com/vozsegura/dto/webhook/DiditWebhookPayload.java`) — @JsonIgnoreProperties
+- Qué es: DTO para procesar el payload del webhook de Didit. Extrae los datos relevantes: nombre completo y número de cédula. /
+- Campos/atributos: sessionId, status, workflowId, verificationResult, documentData, vendorData, webhookType, decision, id, livenessPassed, verifiedAt, documentType, documentNumber, personalNumber, firstName, lastName, fullName, dateOfBirth, gender, nationality, expiryDate, issueDate, idVerifications
+- Métodos clave: getSessionId, setSessionId, getStatus, setStatus, getWorkflowId, setWorkflowId, getVerificationResult, setVerificationResult, getDocumentData, setDocumentData, getVendorData, setVendorData, …
+
+### com.vozsegura.repo
+**AuditEventRepository** (`src/main/java/com/vozsegura/repo/AuditEventRepository.java`) — @Repository
+- Qué es: Repositorio para gestionar registros de auditoria del sistema.
+
+**ComplaintRepository** (`src/main/java/com/vozsegura/repo/ComplaintRepository.java`) — @Repository
+- Qué es: Repositorio JPA para Complaint.
+
+**DerivationPolicyRepository** (`src/main/java/com/vozsegura/repo/DerivationPolicyRepository.java`) — @Repository
+- Qué es: Repositorio JPA para acceder a la base de datos.
+
+**DerivationRuleRepository** (`src/main/java/com/vozsegura/repo/DerivationRuleRepository.java`) — @Repository
+- Qué es: Repositorio JPA para acceder a la base de datos.
+
+**DestinationEntityRepository** (`src/main/java/com/vozsegura/repo/DestinationEntityRepository.java`) — @Repository
+- Qué es: Spring Data JPA repository para entidad DestinationEntity.
+
+**DiditVerificationRepository** (`src/main/java/com/vozsegura/repo/DiditVerificationRepository.java`)
+- Qué es: Repositorio para gestionar registros de verificaciones biometricas via Didit.
+
+**EvidenceRepository** (`src/main/java/com/vozsegura/repo/EvidenceRepository.java`) — @Repository
+- Qué es: Spring Data JPA repository para entidad Evidence.
+
+**IdentityVaultRepository** (`src/main/java/com/vozsegura/repo/IdentityVaultRepository.java`)
+- Qué es: Repositorio para gestionar la boveda de identidades de ciudadanos de forma anonima.
+
+**PersonaRepository** (`src/main/java/com/vozsegura/repo/PersonaRepository.java`)
+- Qué es: Spring Data JPA repository para entidad Persona.
+
+**StaffUserRepository** (`src/main/java/com/vozsegura/repo/StaffUserRepository.java`) — @Repository
+- Qué es: Repositorio JPA para StaffUser.
+
+### com.vozsegura.security
+**AesGcmEncryptionService** (`src/main/java/com/vozsegura/security/AesGcmEncryptionService.java`) — @Service
+- Qué es: Implementación de EncryptionService usando AES-256-GCM (AEAD).
+- Métodos clave: loadKey, encryptToBase64, decryptFromBase64, encryptBytes, decryptBytes
+
+**EncryptionService** (`src/main/java/com/vozsegura/security/EncryptionService.java`)
+- Qué es: Interface para servicio de encriptación.
+
+**FileValidationService** (`src/main/java/com/vozsegura/security/FileValidationService.java`) — @Service
+- Qué es: Servicio de validación de archivos (evidencias).
+- Métodos clave: isValidEvidence, isAllowedMimeType, isAllowedFileName, getFileExtension, isAllowedExtension, isValidMagicBytes, matchesMagicBytes
+
+**GatewayRequestValidator** (`src/main/java/com/vozsegura/security/GatewayRequestValidator.java`) — @Component
+- Qué es: Validador de autenticidad de peticiones del Gateway.
+- Métodos clave: validateRequest, generateSignature, constantTimeEquals, maskCedula
+
+**InMemoryRateLimiter** (`src/main/java/com/vozsegura/security/InMemoryRateLimiter.java`) — @Component
+- Qué es: Implementacion en memoria de rate limiter (anti-brute-force, anti-DDoS).
+- Métodos clave: tryConsume
+
+**RateLimiter** (`src/main/java/com/vozsegura/security/RateLimiter.java`)
+- Qué es: Interface para Rate Limiter (protección anti-brute-force y DDoS).
+
+**SessionValidationInterceptor** (`src/main/java/com/vozsegura/security/SessionValidationInterceptor.java`) — @Component
+- Qué es: Interceptor para validar sesión en rutas protegidas.
+- Métodos clave: preHandle, postHandle, afterCompletion, isPublicPath, isProtectedPath, isSessionValid
+
+### com.vozsegura.security.converter
+**EncryptedStringConverter** (`src/main/java/com/vozsegura/security/converter/EncryptedStringConverter.java`) — @Converter, @Component
+- Qué es: JPA AttributeConverter para cifrado automático de strings en BD.
+- Métodos clave: setEncryptionService, convertToDatabaseColumn, convertToEntityAttribute
+
+### com.vozsegura.seeder
+**DataSeeder** (`src/main/java/com/vozsegura/seeder/DataSeeder.java`) — @Component, @Profile
+- Qué es: Seeder de datos iniciales para Voz Segura.
+- Métodos clave: run, seedCitizens, seedStaff, seedStaffUser
+
+**DerivationPolicySeeder** (`src/main/java/com/vozsegura/seeder/DerivationPolicySeeder.java`) — @Component, @Profile, @Order
+- Qué es: Seeder para crear una política de derivación por defecto si no existe ninguna.
+- Métodos clave: run
+
+**DestinationEntityDataSeeder** (`src/main/java/com/vozsegura/seeder/DestinationEntityDataSeeder.java`) — @Component, @Order
+- Qué es: Seeder para actualizar datos cifrados de entidades destino.
+- Métodos clave: run, seedFGE, seedCGE, seedDPE, seedMDT, seedSUPERCIAS, seedMSP, seedMINEDUC, seedSRI, seedSB, seedUAFE, updateDestination
+
+### com.vozsegura.service
+**AuditService** (`src/main/java/com/vozsegura/service/AuditService.java`) — @Service
+- Qué es: Servicio de negocio (lógica principal).
+- Métodos clave: logEvent, logEventWithSession, logSecurityEvent, logComplaintCreated, logComplaintAccess, logLogout, findAll, baseEvent, generateSecureUserId, hashShort, sanitizeIp, truncate, …
+
+**CaptchaService** (`src/main/java/com/vozsegura/service/CaptchaService.java`) — @Service
+- Qué es: Servicio para generar y validar CAPTCHAs de texto.
+- Métodos clave: generateCaptcha, validateCaptcha, clearCaptcha
+
+**CitizenVerificationService** (`src/main/java/com/vozsegura/service/CitizenVerificationService.java`) — @Service
+- Qué es: Servicio de verificación de ciudadanos anónimos.
+- Métodos clave: verifyCitizen, verifyBiometric, sendOtp, verifyOtp, hashCitizenRef
+
+**CloudflareTurnstileService** (`src/main/java/com/vozsegura/service/CloudflareTurnstileService.java`) — @Service
+- Qué es: Servicio para validar tokens de Cloudflare Turnstile (CAPTCHA moderno).
+- Métodos clave: getSiteKey, verifyTurnstileToken, isSuccess, setSuccess, getChallengeTs, setChallengeTs, getHostname, setHostname, getErrorCodes, setErrorCodes
+
+**ComplaintService** (`src/main/java/com/vozsegura/service/ComplaintService.java`) — @Service
+- Qué es: Servicio principal para la gestión de denuncias.
+- Métodos clave: createComplaint, processEvidences, isAllowedContentType, encryptBytes, sanitizeFileName, findByTrackingId, findAll, findAllOrderByCreatedAtDesc, findByStatus, decryptComplaintText, updateStatus, classifyComplaint, …
+
+**CryptoService** (`src/main/java/com/vozsegura/service/CryptoService.java`) — @Service
+- Qué es: Servicio centralizado de criptografía para el sistema Voz Segura.
+- Métodos clave: hashCedula, hashEmail, hashNombreCompleto, encryptPII, decryptPII, generateSHA256Hex, nullToEmpty
+
+**DerivationService** (`src/main/java/com/vozsegura/service/DerivationService.java`) — @Service
+- Qué es: Servicio de negocio (lógica principal).
+- Métodos clave: findAllRules, findActiveRules, findActivePolicies, findAllPolicies, findById, createRule, updateRule, deleteRule, activateRule, deactivateRule, findDestinationIdForComplaint, findEffectivePolicy, …
+
+**DiditService** (`src/main/java/com/vozsegura/service/DiditService.java`) — @Service
+- Qué es: Servicio para integración con Didit v3 - Plataforma de verificación de identidad.
+- Métodos clave: createVerificationSession, verifyWebhookSignature, computeHmacSha256, processWebhookPayload, getVerificationBySessionId, getVerificationByDocumentNumber, getSessionDecisionFromDidit, processDiditDecisionResponse, extractDocumentData, buildIdentityJson
+
+**IdentityRevealService** (`src/main/java/com/vozsegura/service/IdentityRevealService.java`) — @Service
+- Qué es: Servicio para revelación excepcional y controlada de identidad de denunciante anónimo.
+- Métodos clave: requestReveal, approveReveal, getRevealedIdentity, RevealedIdentity
+
+**JwtTokenProvider** (`src/main/java/com/vozsegura/service/JwtTokenProvider.java`) — @Service
+- Qué es: Servicio para generar y gestionar JWT (JSON Web Tokens).
+- Métodos clave: validateConfiguration, generateToken, generateTokenWithScopes, getExpirationTime
+
+**JwtValidator** (`src/main/java/com/vozsegura/service/JwtValidator.java`) — @Service
+- Qué es: Servicio de validación JWT defensivo.
+- Métodos clave: validateToken, extractCedula, extractUserType, extractApiKey, isUserType, hasScope
+
+**OtpService** (`src/main/java/com/vozsegura/service/OtpService.java`) — @Service
+- Qué es: Servicio para generar y verificar codigos OTP (One-Time Password).
+- Métodos clave: sendOtp, verifyOtp
+
+**SystemConfigService** (`src/main/java/com/vozsegura/service/SystemConfigService.java`) — @Service
+- Qué es: Servicio para traducir códigos de configuración del sistema a etiquetas legibles.
+- Métodos clave: translateStatus, translateSeverity, translateComplaintType, getComplaintTypesAsArray, getPrioritiesAsArray, getStatusesAsArray
+
+**UnifiedAuthService** (`src/main/java/com/vozsegura/service/UnifiedAuthService.java`) — @Service
+- Qué es: Servicio de autenticacion unificada para usuarios del sistema.
+- Métodos clave: findStaffByUsername, validatePassword, getStaffEmail, hashUserId, logLoginFailed, logLoginSuccess
+
+
+
+### 9.2 Gateway (API Gateway)
+
+### com.vozsegura.gateway
+**VozSeguraGatewayApplication** (`gateway/src/main/java/com/vozsegura/gateway/VozSeguraGatewayApplication.java`) — @SpringBootApplication
+- Qué es: Aplicación principal del API Gateway
+- Métodos clave: main, jwtAuthenticationGatewayFilterFactory, routeLocator
+
+### com.vozsegura.gateway.config
+**RouteSecurityConfig** (`gateway/src/main/java/com/vozsegura/gateway/config/RouteSecurityConfig.java`) — @Component
+- Qué es: Configuración de seguridad por rutas del Gateway.
+- Campos/atributos: PUBLIC_ROUTES
+- Métodos clave: isPublicRoute, isProtectedRoute, getAllowedRoles
+
+### com.vozsegura.gateway.filter
+**ApiKeyValidationFilter** (`gateway/src/main/java/com/vozsegura/gateway/filter/ApiKeyValidationFilter.java`) — @Component
+- Qué es: Filtro global para validación de API Keys en el Gateway.
+- Métodos clave: filter, requiresApiKeyValidation, isValidApiKey, getRemoteAddress
+
+**AuditLoggingFilter** (`gateway/src/main/java/com/vozsegura/gateway/filter/AuditLoggingFilter.java`) — @Component
+- Qué es: Filtro global para auditoría de todas las peticiones a través del API Gateway.
+- Métodos clave: filter, getRemoteAddress
+
+**JwtAuthenticationGatewayFilterFactory** (`gateway/src/main/java/com/vozsegura/gateway/filter/JwtAuthenticationGatewayFilterFactory.java`) — @Component
+- Qué es: Filtro JWT para validación de tokens en el API Gateway
+- Métodos clave: validateConfiguration, apply, generateHmacSignature
