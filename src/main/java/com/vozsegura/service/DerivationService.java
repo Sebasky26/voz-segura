@@ -199,27 +199,48 @@ public class DerivationService {
     // =========================
 
     public Long findDestinationIdForComplaint(Complaint complaint) {
-        DerivationPolicy activePolicy = findEffectivePolicy(LocalDate.now());
-        if (activePolicy == null) {
-            log.warn("No active effective policy found for complaint [{}].", complaint.getTrackingId());
+        // Validar que la denuncia tenga priority y complaintType configurados
+        if (complaint.getPriority() == null || complaint.getComplaintType() == null) {
+            log.warn("Complaint [{}] missing priority or type, using fallback", complaint.getTrackingId());
             return fallbackDestinationId();
         }
 
-        // ✅ Matching correcto: policy + priority_order + especificidad
-        // Nota: Usamos priority (no severity) porque es lo que se guarda al clasificar
-        List<DerivationRule> candidates = ruleRepository.findMatchingRulesForPolicy(
-                activePolicy.getId(),
-                complaint.getPriority(),  // Cambiado de getSeverity() a getPriority()
+        log.info("=== MATCHING RULES FOR COMPLAINT [{}] ===", complaint.getTrackingId());
+        log.info("Complaint priority: {}", complaint.getPriority());
+        log.info("Complaint type: {}", complaint.getComplaintType());
+
+        // Buscar reglas que coincidan con priority y complaintType
+        // Nota: El campo severityMatch en la BD se usa para almacenar la priority (HIGH, MEDIUM, LOW, CRITICAL)
+        List<DerivationRule> candidates = ruleRepository.findMatchingRules(
+                complaint.getPriority(),      // Usamos priority, no severity
                 complaint.getComplaintType()
         );
 
-        for (DerivationRule rule : candidates) {
-            if (rule.isRequiresManualReview()) {
-                return null;
-            }
-            return rule.getDestinationId();
+        log.info("Found {} matching rules", candidates.size());
+        for (int i = 0; i < candidates.size(); i++) {
+            DerivationRule rule = candidates.get(i);
+            log.info("  Rule {}: id={}, name='{}', severityMatch='{}', typeMatch='{}', destinationId={}",
+                    i + 1, rule.getId(), rule.getName(),
+                    rule.getSeverityMatch(), rule.getComplaintTypeMatch(),
+                    rule.getDestinationId());
         }
 
+        // Si encontramos reglas, usar la primera (más específica)
+        if (!candidates.isEmpty()) {
+            DerivationRule selectedRule = candidates.get(0);
+            if (selectedRule.isRequiresManualReview()) {
+                log.info("Rule [{}] requires manual review for complaint [{}]",
+                        selectedRule.getName(), complaint.getTrackingId());
+                return null;
+            }
+            log.info("SELECTED rule [{}] for complaint [{}] -> destination [{}]",
+                    selectedRule.getName(), complaint.getTrackingId(), selectedRule.getDestinationId());
+            return selectedRule.getDestinationId();
+        }
+
+        // Si no hay coincidencias, usar fallback
+        log.warn("No matching rules for complaint [{}] (priority={}, type={}), using fallback",
+                complaint.getTrackingId(), complaint.getPriority(), complaint.getComplaintType());
         return fallbackDestinationId();
     }
 
