@@ -1,0 +1,129 @@
+@startuml C4_Component
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_TOP_DOWN()
+
+title Diagrama de Componentes C4 - Voz Segura (Arquitectura Real)
+
+' ============================================
+' CONTENEDOR 1: API GATEWAY (Puerto 8080)
+' ============================================
+Container_Boundary(gateway, "API Gateway - Spring Cloud Gateway") {
+    Component(jwt_filter, "JwtAuthenticationGatewayFilterFactory", "GatewayFilterFactory", "Valida JWT y genera firma HMAC-SHA256")
+    Component(apikey_filter, "ApiKeyValidationFilter", "WebFilter", "Valida X-Api-Key para rutas admin/staff")
+    Component(audit_filter, "AuditLoggingFilter", "WebFilter", "Registra peticiones para auditoría")
+    Component(route_locator, "RouteLocator", "Spring Cloud Gateway", "Enruta peticiones al Core (8082)")
+}
+
+' ============================================
+' CONTENEDOR 2: CORE APPLICATION
+' ============================================
+Container_Boundary(core, "Core Application - Spring Boot (Puerto 8082)") {
+    ' === CAPA DE SEGURIDAD ===
+    Component(zero_trust_filter, "ZeroTrustGatewayFilter", "Servlet Filter", "Valida firma HMAC-SHA256 del Gateway")
+    Component(api_gateway_filter, "ApiGatewayFilter", "Servlet Filter", "Autorización por ruta según userType")
+    Component(gateway_validator, "GatewayRequestValidator", "@Component", "Valida HMAC timing-safe")
+
+    ' === CONTROLLERS ===
+    Component(auth_controller, "UnifiedAuthController", "@Controller", "Login MFA completo")
+    Component(denuncia_controller, "DenunciaController", "@Controller", "Denuncias anónimas")
+    Component(staff_controller, "StaffCaseController", "@Controller", "Gestión casos")
+    Component(admin_controller, "AdminController", "@Controller", "Panel admin")
+    Component(webhook_controller, "WebhookController", "@RestController", "Callback DIDIT")
+
+    ' === SERVICES ===
+    Component(unified_auth, "UnifiedAuthService", "@Service", "Orquesta MFA 5 pasos")
+    Component(otp_client, "AwsSesOtpClient", "@Component", "Envía OTP por email")
+    Component(complaint_service, "ComplaintService", "@Service", "CRUD denuncias cifradas")
+    Component(derivation_service, "DerivationService", "@Service", "Derivación automática")
+    Component(audit_service, "AuditService", "@Service", "Auditoría sin PII")
+    Component(didit_service, "DiditService", "@Service", "Integración DIDIT")
+    Component(captcha_service, "CloudflareTurnstileService", "@Service", "Validación CAPTCHA")
+    Component(encryption_service, "EncryptionService", "@Component", "AES-256-GCM")
+    Component(config_service, "SystemConfigService", "@Service", "Configuración dinámica")
+
+    ' === REPOSITORIES ===
+    Component(complaint_repo, "ComplaintRepository", "JpaRepository", "BD denuncias")
+    Component(staff_repo, "StaffUserRepository", "JpaRepository", "BD staff")
+    Component(persona_repo, "PersonaRepository", "JpaRepository", "BD personas")
+    Component(audit_repo, "AuditRepository", "JpaRepository", "BD logs")
+}
+
+' === BASE DE DATOS ===
+ContainerDb(supabase, "Supabase PostgreSQL", "PostgreSQL 17", "6 schemas cifrados")
+
+' === SISTEMAS EXTERNOS ===
+System_Ext(didit_api, "DIDIT API v3", "Verificación biométrica")
+System_Ext(aws_ses, "AWS SES", "Email OTP")
+System_Ext(cloudflare_api, "Cloudflare Turnstile", "CAPTCHA")
+
+' === FLUJO GATEWAY → CORE ===
+Rel(apikey_filter, jwt_filter, "Si API Key OK")
+Rel(jwt_filter, audit_filter, "Si JWT válido")
+Rel(audit_filter, route_locator, "Registra petición")
+Rel(route_locator, zero_trust_filter, "Enruta con HMAC", "HTTP")
+
+' === FLUJO FILTROS CORE ===
+Rel(zero_trust_filter, gateway_validator, "Valida HMAC")
+Rel(zero_trust_filter, api_gateway_filter, "Si firma válida")
+Rel(api_gateway_filter, auth_controller, "/auth")
+Rel(api_gateway_filter, denuncia_controller, "/denuncia")
+Rel(api_gateway_filter, staff_controller, "/staff")
+Rel(api_gateway_filter, admin_controller, "/admin")
+Rel(api_gateway_filter, webhook_controller, "/webhooks")
+
+' === CONTROLLERS → SERVICES ===
+Rel(auth_controller, unified_auth, "Ejecuta MFA")
+Rel(denuncia_controller, complaint_service, "Crea denuncia")
+Rel(denuncia_controller, didit_service, "Verifica identidad")
+Rel(denuncia_controller, captcha_service, "Valida CAPTCHA")
+Rel(staff_controller, complaint_service, "CRUD casos")
+Rel(staff_controller, derivation_service, "Deriva")
+Rel(admin_controller, config_service, "Config")
+Rel(webhook_controller, didit_service, "Webhook")
+
+' === SERVICES → SERVICES ===
+Rel(unified_auth, otp_client, "OTP")
+Rel(unified_auth, staff_repo, "Auth")
+Rel(complaint_service, encryption_service, "Cifra")
+Rel(complaint_service, complaint_repo, "BD")
+Rel(complaint_service, audit_service, "Log")
+Rel(didit_service, persona_repo, "Vincula")
+Rel(derivation_service, complaint_repo, "Update")
+Rel(audit_service, audit_repo, "Log")
+
+' === REPOS → BD ===
+Rel(complaint_repo, supabase, "JDBC")
+Rel(staff_repo, supabase, "JDBC")
+Rel(persona_repo, supabase, "JDBC")
+Rel(audit_repo, supabase, "JDBC")
+
+' === EXTERNAS ===
+Rel(didit_service, didit_api, "API")
+Rel(otp_client, aws_ses, "SDK")
+Rel(captcha_service, cloudflare_api, "API")
+
+note right of jwt_filter
+  **JWT Filter:**
+  • Valida JWT (HS256)
+  • Extrae: cedula, userType
+  • Genera HMAC-SHA256
+  • Agrega headers Zero Trust
+end note
+
+note right of zero_trust_filter
+  **Zero Trust:**
+  • Valida HMAC-SHA256
+  • TTL: 60 segundos
+  • Timing-safe comparison
+end note
+
+note bottom of encryption_service
+  **AES-256-GCM:**
+  • IV: 12 bytes
+  • Tag: 128 bits AEAD
+  • Key desde Secrets Manager
+end note
+
+@enduml

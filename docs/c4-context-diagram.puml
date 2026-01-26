@@ -1,0 +1,38 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LEFT_RIGHT()
+
+title Diagrama de Contexto C4 - Voz Segura (Plataforma de Denuncias Anónimas)
+
+' Actores principales
+Person(denunciante, "Denunciante", "Ciudadano que reporta denuncias anónimas con verificación biométrica")
+Person(analista, "Analista", "Personal que revisa y clasifica denuncias")
+Person(administrador, "Administrador", "Gestiona sistema y define reglas de derivación")
+
+' Sistema principal
+System(vozsegura, "Voz Segura", "Plataforma web de denuncias anónimas con verificación de identidad")
+
+' Sistemas externos REALMENTE usados
+System_Ext(didit, "DIDIT API v3", "Verificación biométrica facial + validación de identidad con cédula ecuatoriana")
+System_Ext(aws_ses, "AWS SES", "Envío de códigos OTP por email para autenticación MFA")
+System_Ext(aws_secrets, "AWS Secrets Manager", "Almacenamiento seguro de credenciales y claves de cifrado")
+System_Ext(supabase, "Supabase PostgreSQL", "Base de datos principal con cifrado AES-256-GCM")
+System_Ext(cloudflare, "Cloudflare Turnstile", "CAPTCHA anti-bot")
+
+' Relaciones Denunciante
+Rel(denunciante, vozsegura, "Crea denuncia anónima", "HTTPS/TLS 1.3")
+Rel(vozsegura, didit, "Verifica identidad biométrica", "HTTPS + Webhook")
+Rel(vozsegura, cloudflare, "Valida CAPTCHA", "JavaScript SDK")
+
+' Relaciones Staff (Analista + Admin)
+Rel(analista, vozsegura, "Revisa denuncias", "HTTPS + Session + MFA")
+Rel(administrador, vozsegura, "Gestiona sistema y reglas", "HTTPS + Session + MFA")
+Rel(vozsegura, aws_ses, "Envía códigos OTP", "AWS SDK v2")
+
+' Relaciones de datos y seguridad
+Rel(vozsegura, supabase, "Almacena datos cifrados", "JDBC + SSL")
+Rel(vozsegura, aws_secrets, "Obtiene credenciales", "AWS SDK v2 + IAM")
+
+@enduml

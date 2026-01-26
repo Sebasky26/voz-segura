@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Voz Segura — Reglas de derivación</title>
+    <title>Voz Segura — Reglas de Derivación</title>
     <link rel="stylesheet" th:href="@{/css/main.css?v=6}" href="/css/main.css?v=6"/>
 </head>
 <body class="vs-app">
@@ -19,177 +19,250 @@
         </div>
         <nav class="vs-nav" aria-label="Navegación">
             <a th:href="@{/admin/panel}" class="vs-nav__link">Panel</a>
-            <a th:href="@{/admin/reglas}" class="vs-nav__link">Reglas</a>
+            <a th:href="@{/admin/reglas}" class="vs-nav__link vs-nav__link--active">Reglas</a>
+            <a th:href="@{/admin/analistas}" class="vs-nav__link">Analistas</a>
             <a th:href="@{/admin/logs}" class="vs-nav__link">Logs</a>
-            <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
+            <a th:href="@{/logout}" class="vs-nav__link">Cerrar sesión</a>
         </nav>
     </div>
 </header>
 
 <main class="vs-container vs-container-wide">
+
+    <!-- Notificaciones -->
+    <div th:if="${success}" class="vs-alert vs-alert--success" th:text="${success}"></div>
+    <div th:if="${error}" class="vs-alert vs-alert--danger" th:text="${error}"></div>
+
     <section class="vs-card" aria-labelledby="titulo-reglas">
         <div class="vs-card__header">
-            <h1 id="titulo-reglas" class="vs-card__title">Reglas de derivación</h1>
-            <p class="vs-card__subtitle">
-                Configure hacia qué entidad se derivan las denuncias según sus características
-            </p>
+            <h1 id="titulo-reglas" class="vs-card__title">Reglas de Derivación</h1>
+            <p class="vs-card__subtitle">Configure las reglas automáticas para derivar denuncias a las entidades correspondientes</p>
         </div>
 
-        <div th:if="${success}" data-vs-success th:data-vs-success="${success}" style="display:none;"></div>
-        <div th:if="${error}" data-vs-error th:data-vs-error="${error}" style="display:none;"></div>
-
-        <!-- Mensaje de error visible -->
-        <div th:if="${error}" class="vs-alert vs-alert--error vs-mb-4" role="alert">
-            <strong>Error:</strong> <span th:text="${error}">Mensaje de error</span>
+        <!-- Aviso si NO hay políticas -->
+        <div th:if="${policies == null or policies.isEmpty()}" class="vs-alert vs-alert--danger">
+            No hay políticas activas. Crea o activa una política antes de crear reglas.
         </div>
 
-        <!-- Mensaje de éxito visible -->
-        <div th:if="${success}" class="vs-alert vs-alert--success vs-mb-4" role="status">
-            <span th:text="${success}">Operación exitosa</span>
-        </div>
+        <!-- Formulario Nueva Regla -->
+        <form th:action="@{/admin/reglas/crear}" method="post" class="vs-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
-        <!-- Formulario para crear regla -->
-        <div class="vs-section vs-mb-6">
-            <h3 class="vs-section__title">Nueva regla</h3>
+            <!-- Selector de Política (evita enviar policyId inválidos) -->
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="policyId">Política</label>
+                <select id="policyId" name="policyId" class="vs-select"
+                        th:disabled="${policies == null or policies.isEmpty()}"
+                        required>
+                    <option value="" th:if="${policies == null or policies.isEmpty()}">No hay políticas activas</option>
+                    <option th:each="p : ${policies}"
+                            th:value="${p.id}"
+                            th:text="${p.name + ' — v' + p.version}"></option>
+                </select>
+                <small class="vs-form__help">Las reglas se aplican dentro de una política activa</small>
+            </div>
 
-            <form th:action="@{/admin/reglas/crear}" method="post" class="vs-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <div class="vs-form__group">
+                <label class="vs-form__label vs-form__label--required" for="name">Nombre de la Regla</label>
+                <input type="text"
+                       id="name"
+                       name="name"
+                       class="vs-input"
+                       required
+                       maxlength="200"
+                       placeholder="Ej: Fraude Financiero Crítico"
+                       th:disabled="${policies == null or policies.isEmpty()}"/>
+            </div>
 
-                <div class="vs-grid vs-grid--2cols">
-                    <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="name">Nombre</label>
-                        <input type="text"
-                               id="name"
-                               name="name"
-                               class="vs-input"
-                               required
-                               maxlength="64"
-                               autocomplete="off"
-                               placeholder="Ej: Acoso laboral crítico"/>
-                    </div>
-
-                    <div class="vs-form__group">
-                        <label class="vs-form__label vs-form__label--required" for="destinationId">Entidad de destino</label>
-                        <select id="destinationId" name="destinationId" class="vs-select" required>
-                            <option value="">Seleccionar entidad...</option>
-                            <option th:each="e : ${entidades}" th:value="${e.id}" th:text="${e.name}"></option>
-                        </select>
-                    </div>
-
-                    <div class="vs-form__group">
-                        <label class="vs-form__label" for="severityMatch">Severidad</label>
-                        <select id="severityMatch" name="severityMatch" class="vs-select">
-                            <option value="">Cualquiera</option>
-                            <option th:each="sev : ${severities}" th:value="${sev.configValue}" th:text="${sev.displayLabel}"></option>
-                        </select>
-                    </div>
+            <div class="vs-grid vs-grid--2cols">
+                <div class="vs-form__group">
+                    <label class="vs-form__label vs-form__label--required" for="destinationId">Entidad Destino</label>
+                    <select id="destinationId" name="destinationId" class="vs-select" required
+                            th:disabled="${policies == null or policies.isEmpty()}">
+                        <option value="">Seleccione una entidad...</option>
+                        <option th:each="dest : ${destinations}"
+                                th:value="${dest.id}"
+                                th:text="${dest.name}"></option>
+                    </select>
                 </div>
 
                 <div class="vs-form__group">
-                    <label class="vs-form__label" for="description">Descripción</label>
-                    <textarea id="description"
-                              name="description"
-                              class="vs-input"
-                              rows="2"
-                              maxlength="512"
-                              placeholder="Descripción opcional de la regla"></textarea>
+                    <label class="vs-form__label" for="complaintTypeMatch">Tipo de Denuncia</label>
+                    <select id="complaintTypeMatch" name="complaintTypeMatch" class="vs-select"
+                            th:disabled="${policies == null or policies.isEmpty()}">
+                        <option value="">Cualquier tipo</option>
+                        <option th:each="type : ${complaintTypes}"
+                                th:value="${type.code}"
+                                th:text="${type.label}"></option>
+                    </select>
                 </div>
 
-                <div class="vs-button-group vs-mt-4">
-                    <button type="submit" class="vs-button vs-button--primary">Crear regla</button>
+                <div class="vs-form__group">
+                    <label class="vs-form__label" for="severityMatch">Severidad</label>
+                    <select id="severityMatch" name="severityMatch" class="vs-select"
+                            th:disabled="${policies == null or policies.isEmpty()}">
+                        <option value="">Cualquier severidad</option>
+                        <option th:each="sev : ${severities}"
+                                th:value="${sev.code}"
+                                th:text="${sev.label}"></option>
+                    </select>
                 </div>
-            </form>
-        </div>
 
-        <!-- Listado de reglas -->
-        <div class="vs-section">
-            <h3 class="vs-section__title">Reglas configuradas</h3>
+                <div class="vs-form__group">
+                    <label class="vs-form__label vs-form__label--required" for="priorityOrder">Orden de Prioridad</label>
+                    <input type="number"
+                           id="priorityOrder"
+                           name="priorityOrder"
+                           class="vs-input"
+                           required
+                           min="1"
+                           max="100"
+                           value="50"
+                           placeholder="1-100"
+                           th:disabled="${policies == null or policies.isEmpty()}"/>
+                    <small class="vs-form__help">Menor número = mayor prioridad</small>
+                </div>
 
-            <div th:if="${#lists.isEmpty(rules)}" class="vs-alert vs-alert--info">
-                No hay reglas configuradas. Cree una nueva regla arriba.
-            </div>
-
-            <div th:unless="${#lists.isEmpty(rules)}" class="vs-rules-grid">
-                <div th:each="rule : ${rules}"
-                     class="vs-rule-card"
-                     th:classappend="${!rule.active} ? ' vs-rule-card--inactive'">
-
-                    <div class="vs-rule-card__header">
-                        <span class="vs-rule-card__name" th:text="${rule.name}">Nombre de regla</span>
-                        <span class="vs-form__help" th:text="${rule.active} ? 'Activa' : 'Inactiva'">Estado</span>
-                    </div>
-
-                    <div class="vs-rule-card__body">
-                        <div class="vs-rule-card__item">
-                            <span class="vs-rule-card__label">Destino:</span>
-                            <span class="vs-rule-card__value" th:text="${rule.destinationEntity != null ? rule.destinationEntity.name : 'No asignado'}">Ministerio</span>
-                        </div>
-
-                        <div class="vs-rule-card__item">
-                            <span class="vs-rule-card__label">Severidad:</span>
-                            <span class="vs-rule-card__value" th:text="${rule.severityMatch ?: 'Cualquiera'}">-</span>
-                        </div>
-
-
-                        <div class="vs-rule-card__item" th:if="${rule.description}">
-                            <span class="vs-rule-card__label">Descripción:</span>
-                            <span class="vs-rule-card__value" th:text="${rule.description}">-</span>
-                        </div>
-                    </div>
-
-                    <div class="vs-rule-card__actions">
-                        <form th:if="${rule.active}"
-                              th:action="@{/admin/reglas/{id}/eliminar(id=${rule.id})}"
-                              method="post"
-                              class="vs-inline vs-confirm-form"
-                              data-confirm-title="Desactivar regla"
-                              data-confirm-message="¿Está seguro que desea desactivar esta regla?">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <button type="submit"
-                                    class="vs-button vs-button--ghost vs-button--sm">
-                                Desactivar
-                            </button>
-                        </form>
-
-                        <form th:unless="${rule.active}"
-                              th:action="@{/admin/reglas/{id}/activar(id=${rule.id})}"
-                              method="post"
-                              class="vs-inline vs-confirm-form"
-                              data-confirm-title="Activar regla"
-                              data-confirm-message="¿Está seguro que desea activar esta regla?">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <button type="submit"
-                                    class="vs-button vs-button--secondary vs-button--sm">
-                                Activar
-                            </button>
-                        </form>
-                    </div>
-
+                <div class="vs-form__group">
+                    <label class="vs-form__label vs-form__label--required" for="slaHours">SLA (Horas)</label>
+                    <input type="number"
+                           id="slaHours"
+                           name="slaHours"
+                           class="vs-input"
+                           required
+                           min="1"
+                           max="720"
+                           placeholder="Ej: 24"
+                           th:disabled="${policies == null or policies.isEmpty()}"/>
+                    <small class="vs-form__help">Tiempo máximo de respuesta</small>
                 </div>
             </div>
+
+            <div class="vs-form__group">
+                <label class="vs-form__label" for="description">Descripción</label>
+                <textarea id="description"
+                          name="description"
+                          class="vs-textarea"
+                          rows="2"
+                          placeholder="Descripción breve de la regla..."
+                          th:disabled="${policies == null or policies.isEmpty()}"></textarea>
+            </div>
+
+            <div class="vs-form__group">
+                <label class="vs-form__label" for="normativeReference">Referencia Normativa</label>
+                <textarea id="normativeReference"
+                          name="normativeReference"
+                          class="vs-textarea"
+                          rows="2"
+                          placeholder="Ej: Ley 123, Art. 45"
+                          th:disabled="${policies == null or policies.isEmpty()}"></textarea>
+            </div>
+
+            <div class="vs-form__group">
+                <div class="vs-checkbox-wrapper">
+                    <label class="vs-checkbox">
+                        <input type="checkbox" name="requiresManualReview"
+                               th:disabled="${policies == null or policies.isEmpty()}"/>
+                        <span>Requiere revisión manual antes de derivar</span>
+                    </label>
+                    <small class="vs-form__help" style="margin-top: 0.5rem; display: block;">
+                        Si está marcada, un analista debe aprobar la derivación antes de enviarla automáticamente.
+                    </small>
+                </div>
+            </div>
+
+            <div class="vs-button-group">
+                <button type="submit" class="vs-button vs-button--primary"
+                        th:disabled="${policies == null or policies.isEmpty()}">
+                    Crear Regla
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Listado de Reglas -->
+    <section class="vs-card vs-mt-6" aria-labelledby="titulo-listado">
+        <div class="vs-card__header">
+            <h2 id="titulo-listado" class="vs-card__title">Reglas Configuradas</h2>
         </div>
 
-        <div class="vs-button-group vs-mt-6">
-            <a th:href="@{/admin/panel}" class="vs-button vs-button--secondary">Volver al panel</a>
+        <div th:if="${rules == null or rules.isEmpty()}" class="vs-empty-state">
+            <p>No hay reglas configuradas aún</p>
+        </div>
+
+        <div th:if="${rules != null and !rules.isEmpty()}" class="vs-table-wrapper">
+            <table class="vs-table">
+                <thead>
+                <tr>
+                    <th>Regla</th>
+                    <th>Destino</th>
+                    <th>Tipo</th>
+                    <th>Severidad</th>
+                    <th>Prioridad</th>
+                    <th>SLA</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="rule : ${rules}">
+                    <td>
+                        <strong th:text="${rule.name}">Nombre</strong>
+                        <small th:if="${rule.description}"
+                               th:text="${rule.description}"
+                               class="vs-text-muted"
+                               style="display:block;margin-top:4px;"></small>
+                    </td>
+
+                    <!-- Si destinationEntity viene cargado por el service, perfecto -->
+                    <td th:text="${rule.destinationEntity?.name ?: 'N/A'}">-</td>
+
+                    <td th:text="${rule.complaintTypeMatch ?: 'Cualquiera'}">-</td>
+                    <td th:text="${rule.severityMatch ?: 'Cualquiera'}">-</td>
+                    <td th:text="${rule.priorityOrder}">-</td>
+                    <td th:text="${rule.slaHours != null ? rule.slaHours + 'h' : '-'}">-</td>
+
+                    <td>
+                        <span class="vs-badge"
+                              th:classappend="${rule.active} ? 'vs-badge--success' : 'vs-badge--secondary'"
+                              th:text="${rule.active ? 'Activa' : 'Inactiva'}"></span>
+                        <span th:if="${rule.requiresManualReview}"
+                              class="vs-badge vs-badge--warning"
+                              style="margin-left:4px;">Manual</span>
+                    </td>
+
+                    <td>
+                        <div class="vs-button-group">
+                            <form th:if="${rule.active}"
+                                  th:action="@{/admin/reglas/{id}/desactivar(id=${rule.id})}"
+                                  method="post"
+                                  style="display:inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <button type="submit" class="vs-button vs-button--sm vs-button--secondary">
+                                    Desactivar
+                                </button>
+                            </form>
+
+                            <form th:unless="${rule.active}"
+                                  th:action="@{/admin/reglas/{id}/activar(id=${rule.id})}"
+                                  method="post"
+                                  style="display:inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <button type="submit" class="vs-button vs-button--sm vs-button--primary">
+                                    Activar
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </section>
+
 </main>
 
-<script th:src="@{/js/notifications.js}" src="/js/notifications.js"></script>
-<script>
-    // Manejar formularios con confirmación personalizada
-    document.querySelectorAll('.vs-confirm-form').forEach(function(form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const title = form.dataset.confirmTitle || 'Confirmar';
-            const message = form.dataset.confirmMessage || '¿Está seguro de continuar?';
-            vsConfirm(title, message, function() {
-                // Enviar el formulario sin volver a pasar por el evento
-                form.removeEventListener('submit', arguments.callee);
-                HTMLFormElement.prototype.submit.call(form);
-            });
-        });
-    });
-</script>
+<script th:src="@{/js/reglas.js?v=1}" src="/js/reglas.js?v=1"></script>
+
 </body>
 </html>

@@ -1,0 +1,62 @@
+{
+  "citizens": [
+    {
+      "cedula": "1753848637",
+      "primerNombre": "Marlon",
+      "segundoNombre": "Andrés",
+      "primerApellido": "Vinueza",
+      "segundoApellido": "Ramos",
+      "sexo": "masculino",
+      "email": "marlon.vinueza@epn.edu.ec",
+      "telefono": "0998361424"
+    },
+    {
+      "cedula": "1754644415",
+      "primerNombre": "Francis",
+      "segundoNombre": "Belén",
+      "primerApellido": "Velastegui",
+      "segundoApellido": "Armas",
+      "sexo": "femenino",
+      "email": "francis.velastegui@epn.edu.ec",
+      "telefono": "0987033801"
+    },
+    {
+      "cedula": "1750941013",
+      "primerNombre": "Roberto",
+      "segundoNombre": "Jhoel",
+      "primerApellido": "Narváez",
+      "segundoApellido": "Sillo",
+      "sexo": "masculino",
+      "email": "roberto.narvaez@epn.edu.ec",
+      "telefono": "0969015763"
+    },
+    {
+      "cedula": "1728848274",
+      "primerNombre": "Stalin",
+      "segundoNombre": "Anthony",
+      "primerApellido": "Yungan",
+      "segundoApellido": "Sinche",
+      "sexo": "masculino",
+      "email": "stalin.yungan@epn.edu.ec",
+      "telefono": "0939273840"
+    }
+  ],
+  "staff": {
+    "admin": {
+      "username": "sebastian.aisalla",
+      "role": "ADMIN",
+      "cedula": "1720000000",
+      "email": "sebastian.aisalla@vozsegura.local",
+      "phone": "0999999999"
+    },
+    "analysts": [
+      {
+        "username": "marlon.vinueza",
+        "role": "ANALYST",
+        "cedula": "1753848637",
+        "email": "marlon.vinueza@epn.edu.ec",
+        "phone": "0998361424"
+      }
+    ]
+  }
+}

@@ -8,7 +8,12 @@ server:
   servlet:
     context-path: /
     session:
-      timeout: 30m
+      # NOTA: Este timeout se sobreescribe dinámicamente por rol:
+      # - ADMIN: 15 minutos (SessionTimeoutConfig)
+      # - ANALYST: 20 minutos (SessionTimeoutConfig)
+      # - CITIZEN: 30 minutos (SessionTimeoutConfig)
+      # Este valor es solo fallback para sesiones sin rol
+      timeout: 15m
   compression:
     enabled: true
 
@@ -147,6 +152,16 @@ cloudflare:
     secret-key: ${CLOUDFLARE_SECRET_KEY}
 
 # ============================================
+# Didit Configuration (desde .env)
+# ============================================
+didit:
+  api-key: ${DIDIT_API_KEY}
+  webhook-secret-key: ${DIDIT_WEBHOOK_SECRET_KEY}
+  workflow-id: ${DIDIT_WORKFLOW_ID}
+  api-url: ${DIDIT_API_URL:https://verification.didit.me}
+  webhook-url: ${DIDIT_WEBHOOK_URL}
+
+# ============================================
 # Security Headers
 # ============================================
 security:
@@ -188,3 +203,21 @@ management:
   endpoint:
     health:
       show-details: always
+
+# ============================================
+# Seeder Configuration
+# ============================================
+voz:
+  seed:
+    enabled: ${VOZ_SEED_ENABLED:false}
+    file: ${VOZ_SEED_FILE:}
+  staff:
+    admin:
+      secret: ${VOZ_STAFF_ADMIN_SECRET:}
+    analyst:
+      secret: ${VOZ_STAFF_ANALYST_SECRET:}
+  admin:
+    password: ${VOZ_ADMIN_PASSWORD:}
+  analyst:
+    password: ${VOZ_ANALYST_PASSWORD:}
+

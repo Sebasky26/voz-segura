@@ -1,11 +1,11 @@
-﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Acceso — Voz Segura</title>
 
-    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=10}" href="/css/main.css?v=10"/>
 
     <!-- Cloudflare Turnstile -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -18,7 +18,7 @@
     <div class="vs-modal" role="document">
         <div class="vs-modal__header">
             <h2 id="termsTitle">Términos y condiciones</h2>
-            <button type="button" data-terms-close aria-label="Cerrar">
+            <button type="button" class="vs-modal__close" data-terms-close aria-label="Cerrar">
                 &times;
             </button>
         </div>

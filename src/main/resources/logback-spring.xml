@@ -44,6 +44,10 @@
             <charset>UTF-8</charset>
         </encoder>
 
+        <!-- Escribir inmediatamente sin buffer -->
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+
         <!-- Rotación de archivos -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>logs/voz-segura-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
@@ -68,7 +72,7 @@
     <!-- ===================================================================== -->
     <springProfile name="dev">
         <!-- Logs de aplicación: INFO (NO DEBUG para prevenir leaks) -->
-        <logger name="com.vozsegura.vozsegura" level="INFO" additivity="false">
+        <logger name="com.vozsegura" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
         </logger>
@@ -103,7 +107,7 @@
             <appender-ref ref="FILE"/>
         </root>
 
-        <logger name="com.vozsegura.vozsegura" level="INFO" additivity="false">
+        <logger name="com.vozsegura" level="INFO" additivity="false">
             <appender-ref ref="FILE"/>
         </logger>
 
@@ -117,16 +121,24 @@
     <!-- LOGGERS CRÍTICOS: NUNCA LOGGEAR EN DEBUG                              -->
     <!-- ===================================================================== -->
     <!-- Estos componentes manejan datos sensibles -->
-    <logger name="com.vozsegura.vozsegura.service.DiditService" level="INFO"/>
-    <logger name="com.vozsegura.vozsegura.client.aws.AwsSesOtpClient" level="INFO"/>
-    <logger name="com.vozsegura.vozsegura.service.EncryptionService" level="WARN"/>
-    <logger name="com.vozsegura.vozsegura.service.JwtTokenProvider" level="WARN"/>
-    <logger name="com.vozsegura.vozsegura.controller.UnifiedAuthController" level="INFO"/>
+    <logger name="com.vozsegura.service.DiditService" level="INFO"/>
+    <logger name="com.vozsegura.client.aws.AwsSesOtpClient" level="INFO"/>
+    <logger name="com.vozsegura.service.EncryptionService" level="WARN"/>
+    <logger name="com.vozsegura.service.JwtTokenProvider" level="WARN"/>
+    <logger name="com.vozsegura.controller.UnifiedAuthController" level="INFO"/>
 
     <!-- Desactivar logs de Flyway (expone estructura de BD) -->
-    <logger name="org.flywaydb" level="INFO"/>
+    <logger name="org.flywaydb" level="WARN"/>
 
     <!-- Desactivar logs de conexión (exponen credenciales) -->
     <logger name="com.zaxxer.hikari" level="WARN"/>
+
+    <!-- Silenciar logs de startup de Spring/Hibernate/Tomcat -->
+    <logger name="org.springframework.boot" level="WARN"/>
+    <logger name="org.springframework.data" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.coyote" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
 
 </configuration>

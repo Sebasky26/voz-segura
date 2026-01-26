@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8"/>
@@ -86,7 +86,7 @@
                     <th scope="col">Código</th>
                     <th scope="col">Estado</th>
                     <th scope="col">Severidad</th>
-                    <th scope="col">Empresa</th>
+                    <th scope="col">Tipo</th>
                     <th scope="col">Creación</th>
                     <th scope="col">Acciones</th>
                 </tr>
@@ -108,7 +108,15 @@
 
                     <td th:text="${systemConfigService.translateSeverity(complaint.severity)}">MEDIUM</td>
 
-                    <td th:text="${complaint.companyName}">Empresa XYZ</td>
+                    <td>
+                        <span th:if="${complaint.complaintType != null}"
+                              th:text="${systemConfigService.translateComplaintType(complaint.complaintType)}">
+                            Tipo
+                        </span>
+                        <span th:unless="${complaint.complaintType != null}" class="vs-text-muted">
+                            No clasificado
+                        </span>
+                    </td>
 
                     <td th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy - HH:mm')}">
                         24 ene 2026 - 09:22

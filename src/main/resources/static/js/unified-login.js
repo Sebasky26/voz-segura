@@ -66,18 +66,35 @@
     function hide(el) { if (el) el.classList.add("vs-hidden"); }
 
     function openModal() {
-        if (!modal) return;
+        if (!modal) {
+            console.warn("⚠️ Modal no encontrado");
+            return;
+        }
+        console.log("📂 Abriendo modal de términos");
         modal.classList.remove("vs-modal--hidden");
-        // foco al botón de cerrar o aceptar
-        const close = modal.querySelector("[data-terms-close]");
-        if (close) close.focus();
+        modal.style.display = "flex";
+        modal.style.opacity = "1";
+        modal.style.visibility = "visible";
+
+        // foco al botón de aceptar o cerrar
+        setTimeout(() => {
+            if (acceptTermsBtn) {
+                acceptTermsBtn.focus();
+            } else {
+                const close = modal.querySelector("[data-terms-close]");
+                if (close) close.focus();
+            }
+        }, 100);
     }
 
     function closeModal() {
         if (!modal) return;
+        console.log("📁 Cerrando modal de términos");
         modal.classList.add("vs-modal--hidden");
+        modal.style.display = "";
         if (openTermsBtn) openTermsBtn.focus();
     }
+
 
     function validateCedula() {
         if (!cedula) return true;
@@ -119,23 +136,55 @@
     }
 
     // ======= Events =======
-    if (openTermsBtn) openTermsBtn.addEventListener("click", openModal);
+    if (openTermsBtn) {
+        openTermsBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openModal();
+        });
+    }
+
     if (acceptTermsBtn) {
-        acceptTermsBtn.addEventListener("click", () => {
+        acceptTermsBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("👆 Click en aceptar términos");
             if (termsCheck) termsCheck.checked = true;
             updateSubmit();
             closeModal();
         });
     }
-    closeBtns.forEach(btn => btn.addEventListener("click", closeModal));
+
+    closeBtns.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+        });
+    });
+
+    // Prevenir propagación de clicks dentro del modal
+    if (modal) {
+        const modalContent = modal.querySelector('.vs-modal');
+        if (modalContent) {
+            modalContent.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+    }
 
     // Cerrar modal con ESC / click overlay
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeModal();
+        if (e.key === "Escape" && modal && !modal.classList.contains("vs-modal--hidden")) {
+            closeModal();
+        }
     });
+
     if (modal) {
         modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeModal();
+            if (e.target === modal) {
+                closeModal();
+            }
         });
     }
 

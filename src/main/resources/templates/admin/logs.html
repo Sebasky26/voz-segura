@@ -20,6 +20,7 @@
         <nav class="vs-nav" aria-label="Navegación">
             <a th:href="@{/admin/panel}" class="vs-nav__link">Panel</a>
             <a th:href="@{/admin/reglas}" class="vs-nav__link">Reglas</a>
+            <a th:href="@{/admin/analistas}" class="vs-nav__link">Analistas</a>
             <a th:href="@{/admin/logs}" class="vs-nav__link">Logs</a>
             <a th:href="@{/auth/logout}" class="vs-nav__link">Cerrar sesión</a>
         </nav>
@@ -38,14 +39,14 @@
         </div>
 
         <form th:action="@{/admin/logs}" method="get" class="vs-mb-6">
-            <div class="vs-grid vs-grid--3cols">
+            <div class="vs-grid vs-grid--2cols">
                 <div class="vs-form__group">
                     <label class="vs-form__label" for="eventType">Tipo de evento</label>
                     <select id="eventType" name="eventType" class="vs-select">
-                        <option th:each="t : ${eventTypes}"
-                                th:value="${t[0]}"
-                                th:text="${t[1]}"
-                                th:selected="${selectedEventType == t[0]}">
+                        <option th:each="entry : ${eventTypes}"
+                                th:value="${entry.key}"
+                                th:text="${entry.value}"
+                                th:selected="${selectedEventType == entry.key}">
                         </option>
                     </select>
                 </div>
@@ -107,24 +108,102 @@
             </table>
         </div>
 
-        <div class="vs-mt-4" th:if="${totalPages > 1}">
-            <div class="vs-button-group">
+        <!-- Paginación mejorada -->
+        <div class="vs-mt-6" th:if="${totalPages > 1}">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+
+                <!-- Botón Anterior -->
                 <a th:if="${currentPage > 0}"
                    th:href="@{/admin/logs(page=${currentPage - 1}, eventType=${selectedEventType})}"
-                   class="vs-button vs-button--secondary vs-button--sm">Anterior</a>
+                   class="vs-button vs-button--sm vs-button--secondary"
+                   style="min-width: 90px;">← Anterior</a>
 
-                <span class="vs-form__help">
-                    Página <span th:text="${currentPage + 1}">1</span> de <span th:text="${totalPages}">10</span>
-                </span>
+                <span th:if="${currentPage == 0}"
+                      class="vs-button vs-button--sm vs-button--secondary"
+                      style="min-width: 90px; opacity: 0.5; cursor: not-allowed;">← Anterior</span>
 
+                <!-- Números de página -->
+                <div style="display: flex; gap: 0.25rem; align-items: center;">
+                    <!-- Iterar TODAS las páginas si hay 5 o menos -->
+                    <th:block th:if="${totalPages <= 5}">
+                        <th:block th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+                            <a th:if="${i != currentPage}"
+                               th:href="@{/admin/logs(page=${i}, eventType=${selectedEventType})}"
+                               class="vs-button vs-button--sm vs-button--outline"
+                               style="min-width: 40px;"
+                               th:text="${i + 1}">1</a>
+
+                            <span th:if="${i == currentPage}"
+                                  class="vs-button vs-button--sm vs-button--primary"
+                                  style="min-width: 40px;"
+                                  th:text="${i + 1}">1</span>
+                        </th:block>
+                    </th:block>
+
+                    <!-- Si hay más de 5 páginas, mostrar con puntos suspensivos -->
+                    <th:block th:if="${totalPages > 5}">
+                        <!-- Primera página -->
+                        <a th:if="${currentPage != 0}"
+                           th:href="@{/admin/logs(page=0, eventType=${selectedEventType})}"
+                           class="vs-button vs-button--sm vs-button--outline"
+                           style="min-width: 40px;">1</a>
+
+                        <span th:if="${currentPage == 0}"
+                              class="vs-button vs-button--sm vs-button--primary"
+                              style="min-width: 40px;">1</span>
+
+                        <!-- Puntos suspensivos izquierda -->
+                        <span th:if="${currentPage > 2}" style="padding: 0 0.5rem; color: #6c757d;">...</span>
+
+                        <!-- Páginas del medio (currentPage ± 1) -->
+                        <th:block th:each="i : ${#numbers.sequence(1, totalPages - 2)}">
+                            <th:block th:if="${i >= currentPage - 1 and i <= currentPage + 1 and i != 0 and i != totalPages - 1}">
+                                <a th:if="${i != currentPage}"
+                                   th:href="@{/admin/logs(page=${i}, eventType=${selectedEventType})}"
+                                   class="vs-button vs-button--sm vs-button--outline"
+                                   style="min-width: 40px;"
+                                   th:text="${i + 1}">2</a>
+
+                                <span th:if="${i == currentPage}"
+                                      class="vs-button vs-button--sm vs-button--primary"
+                                      style="min-width: 40px;"
+                                      th:text="${i + 1}">2</span>
+                            </th:block>
+                        </th:block>
+
+                        <!-- Puntos suspensivos derecha -->
+                        <span th:if="${currentPage < totalPages - 3}" style="padding: 0 0.5rem; color: #6c757d;">...</span>
+
+                        <!-- Última página -->
+                        <a th:if="${currentPage != totalPages - 1}"
+                           th:href="@{/admin/logs(page=${totalPages - 1}, eventType=${selectedEventType})}"
+                           class="vs-button vs-button--sm vs-button--outline"
+                           style="min-width: 40px;"
+                           th:text="${totalPages}">10</a>
+
+                        <span th:if="${currentPage == totalPages - 1}"
+                              class="vs-button vs-button--sm vs-button--primary"
+                              style="min-width: 40px;"
+                              th:text="${totalPages}">10</span>
+                    </th:block>
+                </div>
+
+                <!-- Botón Siguiente -->
                 <a th:if="${currentPage < totalPages - 1}"
                    th:href="@{/admin/logs(page=${currentPage + 1}, eventType=${selectedEventType})}"
-                   class="vs-button vs-button--secondary vs-button--sm">Siguiente</a>
-            </div>
-        </div>
+                   class="vs-button vs-button--sm vs-button--secondary"
+                   style="min-width: 90px;">Siguiente →</a>
 
-        <div class="vs-button-group vs-mt-6">
-            <a th:href="@{/admin/panel}" class="vs-button vs-button--secondary">Volver al panel</a>
+                <span th:if="${currentPage == totalPages - 1}"
+                      class="vs-button vs-button--sm vs-button--secondary"
+                      style="min-width: 90px; opacity: 0.5; cursor: not-allowed;">Siguiente →</span>
+            </div>
+
+            <!-- Info de página actual -->
+            <div style="text-align: center; margin-top: 1rem; color: #6c757d; font-size: 0.875rem;">
+                Página <strong th:text="${currentPage + 1}">1</strong> de <strong th:text="${totalPages}">10</strong>
+                (<span th:text="${events.getTotalElements()}">500</span> eventos en total)
+            </div>
         </div>
     </section>
 </main>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Voz Segura — Confirmar Identidad</title>
-    <link rel="stylesheet" th:href="@{/css/main.css?v=5}" href="/css/main.css?v=5"/>
+    <link rel="stylesheet" th:href="@{/css/main.css?v=10}" href="/css/main.css?v=10"/>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
@@ -165,6 +165,11 @@
 
 <script>
 (function() {
+    'use strict';
+
+    console.log('🔧 Inicializando modal de términos y condiciones');
+
+    // Obtener elementos del DOM
     const modal = document.getElementById('termsModal');
     const acceptBtn = document.getElementById('acceptTermsBtn');
     const termsCheck = document.getElementById('termsAccepted');
@@ -176,64 +181,160 @@
     const termsAcceptedMsg = document.getElementById('termsAcceptedMsg');
     const termsStatus = document.getElementById('termsStatus');
 
+    // Validar que todos los elementos críticos existen
+    if (!modal) {
+        console.error('❌ Error: Modal no encontrado');
+        return;
+    }
+    if (!acceptBtn) {
+        console.error('❌ Error: Botón de aceptar no encontrado');
+        return;
+    }
+    if (!termsCheck) {
+        console.error('❌ Error: Checkbox de términos no encontrado');
+        return;
+    }
+    if (!submitBtn) {
+        console.error('❌ Error: Botón de submit no encontrado');
+        return;
+    }
+
+    console.log('✅ Todos los elementos del DOM encontrados');
+
     function openModal() {
+        console.log('📂 Abriendo modal de términos');
         modal.classList.remove('vs-modal--hidden');
-        acceptBtn.focus();
+        modal.style.display = 'flex';
+
+        // Asegurar que el modal esté visible
+        modal.style.opacity = '1';
+        modal.style.visibility = 'visible';
+
+        // Forzar el foco en el botón de aceptar
+        setTimeout(() => {
+            if (acceptBtn) {
+                acceptBtn.focus();
+                console.log('✅ Foco establecido en botón de aceptar');
+            }
+        }, 100);
     }
 
     function closeModal() {
+        console.log('📁 Cerrando modal de términos');
         modal.classList.add('vs-modal--hidden');
+        modal.style.display = '';
     }
 
     function updateUI() {
         const accepted = termsCheck.checked;
+        console.log('🔄 Actualizando UI. Términos aceptados:', accepted);
+
         submitBtn.disabled = !accepted;
 
         if (accepted) {
-            termsNotAccepted.style.display = 'none';
-            termsAcceptedMsg.style.display = 'inline';
-            termsStatus.classList.remove('vs-alert--warning');
-            termsStatus.classList.add('vs-alert--success');
+            if (termsNotAccepted) termsNotAccepted.style.display = 'none';
+            if (termsAcceptedMsg) termsAcceptedMsg.style.display = 'inline';
+            if (termsStatus) {
+                termsStatus.classList.remove('vs-alert--warning');
+                termsStatus.classList.add('vs-alert--success');
+            }
+            console.log('✅ UI actualizada: términos aceptados');
         } else {
-            termsNotAccepted.style.display = 'inline';
-            termsAcceptedMsg.style.display = 'none';
-            termsStatus.classList.remove('vs-alert--success');
-            termsStatus.classList.add('vs-alert--warning');
+            if (termsNotAccepted) termsNotAccepted.style.display = 'inline';
+            if (termsAcceptedMsg) termsAcceptedMsg.style.display = 'none';
+            if (termsStatus) {
+                termsStatus.classList.remove('vs-alert--success');
+                termsStatus.classList.add('vs-alert--warning');
+            }
+            console.log('⚠️ UI actualizada: términos pendientes');
         }
     }
 
-    // Mostrar modal automáticamente al cargar
-    setTimeout(openModal, 500);
-
-    // Aceptar términos
-    acceptBtn.addEventListener('click', function() {
+    // Evento: Aceptar términos
+    acceptBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('👆 Click en botón aceptar términos');
         termsCheck.checked = true;
         updateUI();
         closeModal();
     });
 
-    // Abrir modal desde botón o enlace
-    if (openTermsBtn) openTermsBtn.addEventListener('click', openModal);
-    if (viewTermsLink) viewTermsLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        openModal();
+    // Evento: Abrir modal desde botón
+    if (openTermsBtn) {
+        openTermsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('👆 Click en botón abrir términos');
+            openModal();
+        });
+    }
+
+    // Evento: Abrir modal desde enlace
+    if (viewTermsLink) {
+        viewTermsLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('👆 Click en enlace ver términos');
+            openModal();
+        });
+    }
+
+    // Evento: Cerrar modal con botones
+    closeBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('👆 Click en botón cerrar');
+            // Solo cerrar si ya aceptó
+            if (termsCheck.checked) {
+                closeModal();
+            } else {
+                console.log('⚠️ No se puede cerrar: términos no aceptados');
+            }
+        });
     });
 
-    // Cerrar modal (solo con botones, no con ESC ni clic fuera si no ha aceptado)
-    closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
-
-    // Cerrar con ESC solo si ya aceptó
+    // Evento: Cerrar con ESC solo si ya aceptó
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && termsCheck.checked) closeModal();
+        if (e.key === 'Escape' && !modal.classList.contains('vs-modal--hidden')) {
+            if (termsCheck.checked) {
+                console.log('⌨️ Cerrando modal con ESC');
+                closeModal();
+            } else {
+                console.log('⚠️ ESC bloqueado: términos no aceptados');
+            }
+        }
     });
 
-    // Cerrar al hacer clic fuera solo si ya aceptó
+    // Evento: Cerrar al hacer clic fuera solo si ya aceptó
     modal.addEventListener('click', function(e) {
-        if (e.target === modal && termsCheck.checked) closeModal();
+        if (e.target === modal && termsCheck.checked) {
+            console.log('👆 Click fuera del modal, cerrando');
+            closeModal();
+        } else if (e.target === modal && !termsCheck.checked) {
+            console.log('⚠️ Click fuera bloqueado: términos no aceptados');
+        }
     });
+
+    // Prevenir propagación de clicks dentro del modal
+    const modalContent = modal.querySelector('.vs-modal');
+    if (modalContent) {
+        modalContent.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
 
     // Inicializar UI
     updateUI();
+
+    // Mostrar modal automáticamente al cargar
+    setTimeout(function() {
+        console.log('🚀 Mostrando modal automáticamente');
+        openModal();
+    }, 500);
+
+    console.log('✅ Modal inicializado correctamente');
 })();
 </script>
 
